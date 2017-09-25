@@ -27,7 +27,7 @@ classdef (Abstract) LaserPartAbstract < EventSender
         %% constructor
         function obj = LaserPartAbstract(name)
             obj@EventSender(name);
-            BaseObject.addObject(obj);  % so it can be reached by BaseObject.getByName()
+            addBaseObject(obj);  % so it can be reached by BaseObject.getByName()
         end
         function initLaserPart(obj)
             if obj.canSetEnabled()

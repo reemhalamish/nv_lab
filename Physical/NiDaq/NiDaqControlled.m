@@ -49,12 +49,12 @@ classdef (Abstract) NiDaqControlled < EventListener
     methods
         function onNiDaqEvent(obj, event)
             % this function jumps like every onEvent() call, where the
-            % event.creatorName == NiDaq and event.extraInfo hasn't have
+            % event.creator == NiDaq and event.extraInfo hasn't have
             % the field EVENT_NIDAQ_RESET
         end
         function onEventNotNiDaq(obj, event)
             % this function jumps when receiving event with 
-            % event.creatorName ~= NiDaq
+            % event.creator ~= NiDaq
         end
     end
     
@@ -68,7 +68,7 @@ classdef (Abstract) NiDaqControlled < EventListener
         % when event happen, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
-            if strcmp(event.creatorName, NiDaq.NAME)
+            if strcmp(event.creator.name, NiDaq.NAME)
                 if isfield(event.extraInfo, NiDaq.EVENT_NIDAQ_RESET)
                     obj.onNiDaqReset(event.creator);
                 else

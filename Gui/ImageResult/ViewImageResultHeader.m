@@ -1,6 +1,6 @@
 classdef ViewImageResultHeader < ViewHBox
-    %VIEWSTAGESCANHEADER Summary of this class goes here
-    %   Detailed explanation goes here
+    %VIEWSTAGESCANHEADER the header for the ImageResults view
+    %   consists of 3 panels.
     
     properties
         vPlotOptions

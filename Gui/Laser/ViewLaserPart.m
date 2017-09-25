@@ -1,14 +1,14 @@
 classdef ViewLaserPart < ViewHBox & EventListener
     % VIEWLASERLASER GUI component that handles a laser part
-    % could be the aom or a laser
+    % could be the aom controller for the laser, or the laser controller
     properties
         %%%% Ui related %%%
         cbxEnabled             % the check box
         edtPowerPercentage     % the edit text
         sliderPower            % the slider
         
-        %%%% the laser part to send requests to %%%%
-        laserPart
+        %%%% the laser part name (to send requests  and to listen to) %%%%
+        laserPartName
     end
     
     methods
@@ -28,7 +28,7 @@ classdef ViewLaserPart < ViewHBox & EventListener
             obj@ViewHBox(parent, controller);
             
             %%%%%%%% the laser physics object %%%%%%%%
-            obj.laserPart = laserPartPhysical;
+            obj.laserPartName = nameToListen;
             
             %%%%%%%% Ui components init  %%%%%%%%            
             partRow = obj.component;
@@ -122,15 +122,19 @@ classdef ViewLaserPart < ViewHBox & EventListener
             % if the physics got our change - it will send an event to notify us
             % if not, it will send an error Event to notify us
         end
+		
+		function laserPartObject = laserPart(obj)
+			% get the laser part
+			laserPartObject = getObjByName(obj.laserPartName);
+		end
         
     end  % methods
     
     %% overriding methods!
     methods
-        function out = onEvent(obj, event) %#ok<*INUSD,*INUSL>
+        function onEvent(obj, event) %#ok<*INUSD,*INUSL>
             % we don't need the event details. we can ask the details directly from the laser!
             obj.refresh();
-            out = true;
         end
     end
     

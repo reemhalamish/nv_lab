@@ -1,6 +1,6 @@
 classdef ViewImageResult < ViewVBox
-    %VIEWSTAGESCAN Summary of this class goes here
-    %   Detailed explanation goes here
+    %VIEWSTAGESCAN this view shows the scan results of the imaging
+    %   consists of a header part and the image (axes) part 
     
     properties
         vHeader % the options view

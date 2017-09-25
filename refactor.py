@@ -1,6 +1,12 @@
 import os
 import sys
 import colorama
+import tempfile
+
+
+TMP_FILE = os.path.join(tempfile.gettempdir(), 'temp_refactor_nv_lab.txt')
+
+
 
 USAGE = '''
 usage: refactor.py [-LF or --list-functions] [-M or --manual] <class_name> [<new_class_name> [-A or --actual]]
@@ -52,9 +58,6 @@ def print_usage():
             usage += letter
     print()
             
-
-TMP_FILE = 'C:\\tmp.txt'
-
 
 def to_full_path(root, file):
     return os.path.join(root, file)
@@ -128,7 +131,7 @@ def main(args):
     colorama.init(autoreset=False)
     if len(args) == 1:
         arg = args[0]
-        if arg in ['-M', '--manual']:
+        if arg in ['-m', '-M', '--manual']:
             first = input('what to look for?\n')
             if not first:
                 return

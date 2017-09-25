@@ -11,7 +11,7 @@ classdef ViewLasersContainer < ViewVBox
         function obj = ViewLasersContainer(parent, controller)
             obj@ViewVBox(parent, controller);
             
-            lasers = Setup.getInstance.laserGates;
+            lasers = LaserGate.getLasers();
             heights = [];
             
             for i = 1 : length(lasers)

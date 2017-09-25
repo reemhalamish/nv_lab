@@ -1,6 +1,9 @@
 classdef ViewLaser < GuiComponent
-    %VIEWLASER Summary of this class goes here
-    %   Detailed explanation goes here
+    %VIEWLASER view for one laser.
+    %   consists of:
+    %   	a checkbox (if the laser supports it), 
+    %   	aom controller part (if the laser supports it) 
+    %   	and the actual-laser controller part (if the laser supports it)
     
     properties
     end
@@ -10,8 +13,8 @@ classdef ViewLaser < GuiComponent
         function obj = ViewLaser(parent, controller, laserGate)
             
             %%%%%%%% init variables %%%%%%%%
-            laserAvail = laserGate.isLaserAvail();
-            aomAvail = laserGate.isAomAvail();
+            laserAvailBool = laserGate.islaserAvailBool();
+            aomAvailBool = laserGate.isaomAvailBool();
             
             %%%%%%%% Constructors %%%%%%%%
             obj@GuiComponent(parent, controller);
@@ -26,13 +29,13 @@ classdef ViewLaser < GuiComponent
             heights = [cbxMaster.height];
             width = cbxMaster.width;
             
-            if (laserAvail)
+            if (laserAvailBool)
                 laserView = ViewLaserPart(obj, controller, laserGate.laser, 'Laser:');
                 heights = [heights, laserView.height];
                 width = max(width, laserView.width);
             end
             
-            if (aomAvail)
+            if (aomAvailBool)
                 aomView = ViewLaserPart(obj, controller, laserGate.aom, 'AOM:');
                 heights = [heights, aomView.height];
                 width = max(width, aomView.width);

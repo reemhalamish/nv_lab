@@ -1,5 +1,5 @@
 classdef ViewImageResultPanelCursor < GuiComponent
-    %VIEWSTAGESCANPANELPLOT Summary of this class goes here
+    %VIEWSTAGESCANPANELPLOT panel for the cursor
     %   Detailed explanation goes here
     
     properties

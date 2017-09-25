@@ -1,5 +1,5 @@
 classdef ViewImageResultImage < GuiComponent & EventListener & BaseObject
-    %VIEWSTAGESCANIMAGE view that shows the scan
+    %VIEWSTAGESCANIMAGE view that shows the scan results
     %   it is being used by other GUI components (such as the various
     %   options above it) as well as the StageScanner when it needs to
     %   duplicate the axes() object (which is obj.vAxes)

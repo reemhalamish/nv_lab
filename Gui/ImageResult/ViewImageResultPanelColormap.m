@@ -1,5 +1,5 @@
 classdef ViewImageResultPanelColormap < GuiComponent
-    %VIEWSTAGESCANPANELPLOT Summary of this class goes here
+    %VIEWSTAGESCANPANELPLOT panel for coloring the image
     %   Detailed explanation goes here
     
     properties

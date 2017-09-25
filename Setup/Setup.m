@@ -3,9 +3,7 @@ classdef Setup < handle
     %   this class generates everything the controller 
     %       needs, physically speaking.
     
-    properties(GetAccess = public, SetAccess = private)
-       laserGates;  % 1D cell array of laserGates (each containing Aaser&Aom components)
-       stages;      % 1D cell array of stages
+    properties
     end
     
     properties(Hidden = true, Constant = true)
@@ -46,17 +44,9 @@ classdef Setup < handle
             ImageScanResult.init;
             StageScanner.init;
             SpcmCounter.init;
-            
-            %%%% init lasers %%%%
-            laserGates = {};
-            for i = 1 : length(jsonStruct.lasers)
-                laserGates{i} = LaserGate.createFromStruct(jsonStruct.lasers(i)); %#ok<AGROW>
-            end
-            obj.laserGates = laserGates;
-            
-            %%%% init stages %%%%
-            obj.stages = ClassStage.getStages;
-            
+            LaserGate.getLasers;  % the first call on getLasers() also inits them
+			ClassStage.getStages;  % the first call on getStages() also inits them
+			
         end
     end
     

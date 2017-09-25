@@ -1,9 +1,8 @@
 classdef Event < handle
-    %EVENT events are being sent from the physical parts to the gui parts (the listeners)
+    %EVENT events are being sent from the senders to the listeners
     
     properties
-        creatorName     % is a string
-        creator         % is an object
+        creator         % is the object who sent the event
         extraInfo       % is a struct that the physics-object and the listener should know what inside
         isError         % boolean. is this en error event
     end
@@ -18,7 +17,6 @@ classdef Event < handle
             % creator - object
             % extraInfoIfNeeded - a struct containing more information
             obj@handle();
-            obj.creatorName = creator.name;
             obj.creator = creator;
             obj.isError = false;
             if exist('extraInfoIfNeeded', 'var')

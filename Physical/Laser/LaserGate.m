@@ -124,9 +124,25 @@ classdef LaserGate < Savable
     end
     
     methods(Static)
+		function cellOfLasers = getLasers()
+		% creates all the lasers from the json.
+		
+			persistent lasersCellContainer
+			if isempty(lasersCellContainer) || ~isvalid(lasersCellContainer)
+				lasersJson = JsonInfoReader.getJson.lasers;
+				lasersCellContainer = CellContainer;
+				
+				for i = 1 : length(lasersJson)
+					curLaserJson = lasersJson(i)
+					newLaserGate = LaserGate.createFromStruct(curLaserJson);
+					lasersCellContainer.cells{end + 1} = newLaserGate;
+				end
+			end
+			cellOfLasers = lasersCellContainer.cells;
+		end
+	
         function laserGate = createFromStruct(laserStruct)
-            % laserStructArray - the part in the "setupInfo.json" struct
-            %                    that talks about the lasers
+
                 missingField = FactoryHelper.usualChecks(laserStruct, LaserGate.NEEDED_FIELDS);
                 if ~isnan(missingField)
                     warning('missing field in struct! aborting.');

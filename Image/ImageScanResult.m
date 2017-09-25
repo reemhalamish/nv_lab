@@ -136,7 +136,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         % event is the event sent from the EventSender
         function onEvent(obj, event)
             % check if event is "loaded file to SaveLoad" and need to show the image
-            if strcmp(event.creatorName, SaveLoadCatImage.NAME) ...
+            if strcmp(event.creator.name, SaveLoadCatImage.NAME) ...
                     && isfield(event.extraInfo, SaveLoad.EVENT_LOAD_SUCCESS_FILE_TO_LOCAL)
                 category = Savable.CATEGORY_IMAGE;
                 % need to load the image!
@@ -149,7 +149,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             
             % check if event is "SaveLoad wants to save a file" and need to
             % save an image file of the figure
-            if strcmp(event.creatorName, SaveLoadCatImage.NAME) ...
+            if strcmp(event.creator.name, SaveLoadCatImage.NAME) ...
                     && isfield(event.extraInfo, SaveLoad.EVENT_SAVE_SUCCESS_LOCAL_TO_FILE) ...
                     && ~isempty(obj.mData)
                 
@@ -161,7 +161,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             
             % check if event is "scanner has a new line scanned" and need
             % to updated the image
-            if strcmp(event.creatorName, StageScanner.NAME) ...
+            if strcmp(event.creator.name, StageScanner.NAME) ...
                     && isfield(event.extraInfo, StageScanner.EVENT_SCAN_UPDATED)
                 
                 extra = event.extraInfo.(StageScanner.EVENT_SCAN_UPDATED);

@@ -1,6 +1,6 @@
 classdef ViewError < GuiComponent & EventListener
     %VIEWERROR showing the errors
-    %   Detailed explanation goes here
+    %   this view listens for all the event, and shows the error events. it uses a timer to remove the display from the event
     
     properties(Access = protected, Constant = true)
         PROP_ERROR_TEXT = {'Style', 'text', 'ForegroundColor', 'red','BackgroundColor', 'white', 'HorizontalAlignment', 'center'};
@@ -53,7 +53,7 @@ classdef ViewError < GuiComponent & EventListener
             set(obj.component, 'Visible', 'off');
         end
         
-       
+		% clears the timer (if it exist)
         function exitTimersIfNeeded(obj)
             try
                 if (isobject(obj.timerDisappearError))
@@ -76,7 +76,7 @@ classdef ViewError < GuiComponent & EventListener
                 out = false;
                 return
             end
-            eventSender = event.creatorName;
+            eventSender = event.creator.name;
             errorMsg = event.extraInfo.(Event.ERROR_MSG);
             obj.tvFrom.String = sprintf('from %s', eventSender);
             obj.tvMsg.String = errorMsg;

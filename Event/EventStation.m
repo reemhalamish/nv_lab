@@ -129,7 +129,7 @@ classdef EventStation < handle
                 disp(event.extraInfo);
             end
             
-            eventSender = event.creatorName;
+            eventSender = event.creator.name;
             listenersForSender = {};
             if obj.eventListenersMap.isKey(eventSender) 
                 listenersForSender = obj.eventListenersMap(eventSender);

@@ -1,6 +1,5 @@
 classdef ViewImageResultPanelPlot < GuiComponent
-    %VIEWSTAGESCANPANELPLOT Summary of this class goes here
-    %   Detailed explanation goes here
+    %VIEWSTAGESCANPANELPLOT panel for plotting the image
     
     properties
         popupStyle

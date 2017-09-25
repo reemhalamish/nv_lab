@@ -1,7 +1,7 @@
 classdef ViewBooleanSwitch < PhysicsListener & GuiComponent
     % VIEWLASERLASER the component in the LaserView that handles the aom
     % GUI part (in addition to another component, ViewLaserLaser which handles
-    % the laser GUI part
+    % the laser GUI part)
     
     properties
         %%%% Ui related %%%

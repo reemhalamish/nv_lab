@@ -7,12 +7,12 @@ classdef GuiController < handle
         windowMinHeight = 0     % will be set when starting to the mainView.height
         windowMinWidth = 0      % will be set when starting to the mainView.width
         figureWindow            % the window
-        confirmOnClose          % boolean
+        confirmOnClose          % boolean. if should ask the user before closing
         openOnlyOne             % boolean. if strict to open just 1 instance of this window
         startPosition = nan     % point on screen (1x2 double) or nan if not important
         windowName              % string
-        screenWidth             % in pixels
-        screenHeight            % in pixels
+        screenWidth             % integer. in pixels
+        screenHeight            % integer. in pixels
     end
     
     properties(Constant = true)
@@ -61,6 +61,8 @@ classdef GuiController < handle
             obj.confirmOnClose = confirmOnClose;
             obj.openOnlyOne = openOnlyOne;
         end
+		
+		% start running the GUI window
         function start(obj)
             openAlready = GuiController.findOpenOrNan(obj.windowName);
             if obj.openOnlyOne && isobject(openAlready)
@@ -83,6 +85,7 @@ classdef GuiController < handle
             end
         end  % constructor
         
+		% add a view to be called when the GUI will close
         function addView(obj, view)
             obj.views{end + 1} = view;
         end
@@ -115,6 +118,8 @@ classdef GuiController < handle
     end
     
     methods
+	
+		% the actual callback used when user is trying to close the GUI window
         function callbackCloseRequest(obj, hObject)
             if obj.confirmOnClose
                 needToClose = QuestionUserYesNo(...
@@ -136,15 +141,12 @@ classdef GuiController < handle
             end
         end
         
+		% the callback that runs when the user is changing the window size
+		% due to a matlab bug, this callback doesn't jump when the user drags the window, only on resizing
         function callbackSizeChanged(obj)
             % make sure the view isn't too small!
             currentSize = obj.figureWindow.Position(3 : 4);
             [newX0, newY0, newWidth, newHeight] = multipleAssign(obj.figureWindow.Position);
-%             warning('why above not working???')
-%            
-%             p = obj.figureWindow.Position;
-%             disp(p)
-%             newX0 = p(1); newY0 = p(2); newWidth =p(3); newHeight = p(4);
             obj.onSizeChanged(newX0, newY0, newWidth, newHeight);
             windowMinSize = [obj.windowMinWidth obj.windowMinHeight];
             if ~any(windowMinSize > currentSize); return; end
@@ -163,18 +165,19 @@ classdef GuiController < handle
         
         function toAlmostFullscreen(obj)
             % change the figure size to be almost fullscreen - leaving only
-            % the "start" windows-bottom visible
+            % the "start" windows-bottom-line visible
             obj.figureWindow.Position = [2,40, obj.screenWidth - 3, obj.screenHeight - 65];
         end
         
         function maximize(obj)
             % maximize the window.
-            % this function can only run AFTER the window has been rendered
+            % this function can only run AFTER the window has been rendered. calling it on invisible window won't work
             warning('off', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
             jFrame = get(handle(obj.figureWindow),'JavaFrame');
             set(jFrame,'Maximized',true);
         end
         
+		% move the window to the middle of the screen
         function moveToMiddleOfScreen(obj)
             oldPos = obj.figureWindow.Position;
             fWidth = max(oldPos(obj.POSITION_INDEX_WIDTH), obj.windowMinWidth);
@@ -186,6 +189,7 @@ classdef GuiController < handle
             obj.figureWindow.Position = [newX0 newY0 fWidth fHeight];
         end
         
+		% create a new figure (window) to place the GUI inside
         function figureWindow = createNewFigureInvis(obj)
             % the figure is being created invisible so that it will take
             % less time to load it (changing strings inside etc).
