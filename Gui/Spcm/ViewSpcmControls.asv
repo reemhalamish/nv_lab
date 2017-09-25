@@ -15,8 +15,7 @@ classdef ViewSpcmControls < ViewVBox & EventListener
             obj@EventListener(spcmCount.name);
             
             hboxFirstRow =  uix.HBox('Parent', obj.component, ...
-                'Spacing', 3, ...
-                'Padding', 1);
+                'Spacing', 3, 'Padding', 1);
             obj.btnStartStop = uicontrol(obj.PROP_BUTTON_BIG_GREEN{:}, ...
                 'Parent', hboxFirstRow, ...
                 'String', 'todo: refresh');
@@ -25,11 +24,16 @@ classdef ViewSpcmControls < ViewVBox & EventListener
                 'String', 'Reset');
             hboxFirstRow.Widths = [-1 -1];
             
-            hboxSecondRow =  uix.HBox('Parent', obj.component, ...'Spacing', 3, 'Padding', 1);
-            uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxSecondRow, 'String', 'Integration (ms)');
-            obj.edtIntegrationTime = uicontrol(obj.PROP_EDIT{:}, 'Parent', hboxSecondRow, 'String', 'todo: refresh');
+            hboxSecondRow =  uix.HBox('Parent', obj.component, ...
+                'Spacing', 3, 'Padding', 1);
             uix.Empty('Parent', hboxSecondRow);
-            hboxSecondRow.Widths = [-1 -1 -2];
+            uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxSecondRow, ...
+                'String', 'Integration (ms)');
+            obj.edtIntegrationTime = uicontrol(obj.PROP_EDIT{:}, ...
+                'Parent', hboxSecondRow, ...
+                'String', 'todo: refresh');
+            uix.Empty('Parent', hboxSecondRow);
+            hboxSecondRow.Widths = [-1 -1 -1 -1];
             
             obj.refresh;
             
@@ -79,7 +83,7 @@ classdef ViewSpcmControls < ViewVBox & EventListener
             if ~ValidationHelper.isValuePositiveInteger(integrationTime)
                 spcmCount.integrationTimeMillisec = integrationTime;
             else
-                EventStation.anonymousWarning('Invalid integration time. Reverting.')
+                EventStation.anonymousWarning('Integration time needs to be a positive integer. Reverting.')
                 obj.edtIntegrationTime.String = spcmCount.integrationTimeMillisec;
             end
         end
@@ -89,8 +93,8 @@ classdef ViewSpcmControls < ViewVBox & EventListener
     methods
         % when event happen, this function jumps.
         % event is the event sent from the EventSender
-        function onEvent(obj, event)
-
+        function onEvent(obj, ~)
+            
         end
     end
     

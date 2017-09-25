@@ -37,13 +37,9 @@ classdef ViewSpcmControls < ViewVBox & EventListener
             
             obj.refresh;
             
-            
             %%%% Define controls callbacks %%%%
             obj.btnReset.Callback = @obj.btnResetCallback;
             obj.edtIntegrationTime.Callback = @obj.edtIntegrationTimeCallback;
-            obj.cbxUsingWrap.Callback = @obj.cbxUsingWrapCallback;
-            obj.edtWrap.Callback = @obj.edtWrapCallback;
-            
             
             %%%% Define size %%%%
             obj.width = 450;
@@ -62,28 +58,29 @@ classdef ViewSpcmControls < ViewVBox & EventListener
                     'String', 'Start', ...
                     'Callback', @obj.btnStartCallback);
             end
+            obj.edtIntegrationTime.String = spcmCount.integrationTimeMillisec;
         end
 
         %%%% Callbacks %%%%
-        function btnStartCallback(obj,~,~)
-            getObjByName(SpcmCounter.NAME).run;
-            obj.refresh;
+        function btnStartCallback(~,~,~)
+            spcmCount = getObjByName(SpcmCounter.NAME);
+            spcmCount.run;
         end
-        function btnStopCallback(obj,~,~)
-            getObjByName(SpcmCounter.NAME).stop;
-            obj.refresh;
+        function btnStopCallback(~,~,~)
+            spcmCount = getObjByName(SpcmCounter.NAME);
+            spcmCount.stop;
         end
-        function btnResetCallback(obj,~,~)
-            getObjByName(SpcmCounter.NAME).reset;
-            obj.refresh;
+        function btnResetCallback(~,~,~)
+            spcmCount = getObjByName(SpcmCounter.NAME);
+            spcmCount.reset;
         end
         function edtIntegrationTimeCallback(obj,~,~) 
             spcmCount = getObjByName(SpcmCounter.NAME);
-            integrationTime = str2int(obj.edtIntegrationTime.String);
-            if ~ValidationHelper.isValuePositiveInteger(integrationTime)
+            integrationTime = str2double(obj.edtIntegrationTime.String);
+            if ValidationHelper.isValuePositiveInteger(integrationTime)
                 spcmCount.integrationTimeMillisec = integrationTime;
             else
-                EventStation.anonymousWarning('Invalid integration time. Reverting.')
+                EventStation.anonymousWarning('Integration time needs to be a positive integer. Reverting.')
                 obj.edtIntegrationTime.String = spcmCount.integrationTimeMillisec;
             end
         end
@@ -94,7 +91,8 @@ classdef ViewSpcmControls < ViewVBox & EventListener
         % when event happen, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
-
+            if isfield(event.extraInfo, event.creator.EVENT_SPCM_COUNTER_UPDATED); return; end
+            obj.refresh;
         end
     end
     

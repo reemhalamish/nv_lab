@@ -9,7 +9,9 @@ classdef ViewSpcm < ViewVBox
     
     methods
         function obj = ViewSpcm(parent, controller)
-            obj@ViewVBox(parent, controller,5);
+            Setup.init;
+            padding = 5;
+            obj@ViewVBox(parent, controller, padding);
             
             obj.vPlottingArea = ViewSpcmPlot(obj,controller);
             obj.vControls = ViewSpcmControls(obj,controller);
