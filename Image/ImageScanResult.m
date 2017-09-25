@@ -107,13 +107,13 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             % subCategory - string. could be empty string
 
             if ~strcmp(category, Savable.CATEGORY_IMAGE); return; end
-            if ~any(strcmp(subCategory, {Savable.CATEGORY_IMAGE_SUBCAT_LASER, Savable.SUB_CATEGORY_DEFAULT})); return; end
+            if ~any(strcmp(subCategory, {Savable.SUB_CATEGORY_DEFAULT})); return; end
             
             hasChanged = false;
-            for propNameCell = obj.getAllNonConstProperties()
+            for propNameCell = obj.getAllPropertiesThisClassDefined()
                 propName = propNameCell{:};
                 if isfield(savedStruct, propName)
-                    obj.(propName) = outStruct.(propName);
+                    obj.(propName) = savedStruct.(propName);
                     hasChanged = true;
                 end
             end
@@ -138,12 +138,13 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             % check if event is "loaded file to SaveLoad" and need to show the image
             if strcmp(event.creator.name, SaveLoadCatImage.NAME) ...
                     && isfield(event.extraInfo, SaveLoad.EVENT_LOAD_SUCCESS_FILE_TO_LOCAL)
-                category = Savable.CATEGORY_IMAGE;
                 % need to load the image!
-                saveLoad = SaveLoad.getInstance(category);
+                category = Savable.CATEGORY_IMAGE;
+                subcat = Savable.SUB_CATEGORY_DEFAULT;
+                saveLoad = event.creator;
                 struct = saveLoad.getStructToSavable(obj);
                 if ~isempty(struct)
-                    obj.loadStateFromStruct(category, struct);
+                    obj.loadStateFromStruct(struct, category, subcat);
                 end
             end
             

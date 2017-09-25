@@ -101,28 +101,23 @@ classdef StageScanner < EventSender & Savable
             spcm.setSPCMEnable(false);
             obj.mScan = kcpsScanMatrix;
             
-%             %%%%% autoSave %%%%%
-%             if obj.mStageScanParams.autoSave
-%                 currentScanParams = stage.scanParams;    % save current as temp
-%                 stage.scanParams = obj.mStageScanParams;  % revert to old ones
-%                 obj.autosaveAfterScan(); % so saving will be with the old scan parameters
-%                 stage.scanParams = currentScanParams;  % and... bring them back
-%             end
+            %%%%% autoSave %%%%%
+            if obj.mStageScanParams.autoSave
+                currentScanParams = stage.scanParams;    % save current as temp
+                stage.scanParams = obj.mStageScanParams;  % revert to old ones
+                obj.autosaveAfterScan(); % so saving will be with the old scan parameters
+                stage.scanParams = currentScanParams;  % and... bring them back
+            end
             
             scanStoppedManually = ~obj.mCurrentlyScanning; % maybe someone has changed this boolean meanwhile
             if scanStoppedManually
                 obj.sendEventScanStopped();
             else   
-                % autosave - when sending this event there will be a save.
-                % so let's save with the correct scan parameters
-                currentScanParams = stage.scanParams;    % save current as temp
-                stage.scanParams = obj.mStageScanParams;  % revert to old ones
-                
-                obj.sendEventScanFinished();  % to be catched by the saveLoad
-                
-                stage.scanParams = currentScanParams;  % and... bring them back
-                
+                % autosave - when sending this event
+                obj.sendEventScanFinished();
             end
+            % todo saveLoad catch this event for autosave
+            
         end
         
         

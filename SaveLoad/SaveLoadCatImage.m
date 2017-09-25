@@ -21,6 +21,11 @@ classdef SaveLoadCatImage < SaveLoad & EventListener
             if ~isfield(event.extraInfo, StageScanner.EVENT_SCAN_FINISHED)
                 return
             end
+            
+            if event.extraInfo.(StageScanner.EVENT_SCAN_STOPPED_MANUALLY)
+                return  % stopped manually and not finished correctly
+            end
+            
             scanParams = event.extraInfo.(StageScanner.PROPERTY_SCAN_PARAMS);
             if scanParams.autoSave
                 obj.autoSave;

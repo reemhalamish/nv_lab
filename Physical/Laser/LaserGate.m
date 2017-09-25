@@ -83,7 +83,7 @@ classdef LaserGate < Savable
             
             catIsExp = strcmp(category, Savable.CATEGORY_EXPERIMENRS);
             catIsImage = strcmp(category, Savable.CATEGORY_IMAGE);
-            subcatImageIsOk = any(strcmp(category, {Savable.CATEGORY_IMAGE_SUBCAT_LASER, Savable.SUB_CATEGORY_DEFAULT}));
+            subcatImageIsOk = any(strcmp(subCategory, {Savable.CATEGORY_IMAGE_SUBCAT_LASER, Savable.SUB_CATEGORY_DEFAULT}));
             shouldLoad = catIsExp || (catIsImage && subcatImageIsOk);
             
             if ~shouldLoad; return; end

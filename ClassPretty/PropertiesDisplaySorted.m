@@ -17,6 +17,28 @@ classdef PropertiesDisplaySorted < handle & matlab.mixin.CustomDisplay
             stringCell = sort({allProps(and(not([allProps.Hidden]) ,[allProps.Constant])).Name});
         end
         
+        function stringCell = getAllPropertiesThisClassDefined(obj)
+            mc = metaclass(obj);
+            allProps = mc.PropertyList;
+            stringCell = {};
+            for prop = allProps'
+                if eq(prop.DefiningClass,mc) && ~prop.Constant
+                    stringCell{end + 1} = prop.Name;
+                end
+            end
+        end
+        
+        function stringCell = getAllPropertiesInherited(obj)
+            mc = metaclass(obj);
+            allProps = mc.PropertyList;
+            stringCell = {};
+            for prop = allProps'
+                if ~eq(prop.DefiningClass,mc) && ~prop.Constant
+                    stringCell{end + 1} = prop.Name;
+                end
+            end
+        end
+        
         function stringCell = getAllNonConstProperties(obj)
             mc = metaclass(obj);
             allProps = mc.PropertyList;

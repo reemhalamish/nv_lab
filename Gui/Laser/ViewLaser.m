@@ -13,8 +13,8 @@ classdef ViewLaser < GuiComponent
         function obj = ViewLaser(parent, controller, laserGate)
             
             %%%%%%%% init variables %%%%%%%%
-            laserAvailBool = laserGate.islaserAvailBool();
-            aomAvailBool = laserGate.isaomAvailBool();
+            laserAvailBool = laserGate.isLaserAvail();
+            aomAvailBool = laserGate.isAomAvail();
             
             %%%%%%%% Constructors %%%%%%%%
             obj@GuiComponent(parent, controller);

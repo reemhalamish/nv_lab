@@ -44,8 +44,10 @@ classdef Setup < handle
             ImageScanResult.init;
             StageScanner.init;
             SpcmCounter.init;
+            SaveLoad.init;
             LaserGate.getLasers;  % the first call on getLasers() also inits them
 			ClassStage.getStages;  % the first call on getStages() also inits them
+            
 			
         end
     end

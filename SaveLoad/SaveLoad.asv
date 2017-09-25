@@ -314,8 +314,8 @@ classdef SaveLoad < Savable & EventSender
             
             % handle the notes
             if isfield(obj.mLocalSaveStruct.(obj.name), 'mNotes')
-                saveFileOnNewNotes = false; % we don't want the file to be saved when the notes change
-                obj.setNotes(obj.mLocalSaveStruct.(obj.name).mNotes, saveFileOnNewNotes)
+                save
+                obj.setNotes(obj.mLocalSaveStruct.(obj.name).mNotes)
             end
             
             success = true;

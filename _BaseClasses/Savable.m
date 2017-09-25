@@ -177,6 +177,9 @@ classdef (Abstract) Savable < BaseObject
             %       red_laser: [1ª1 struct]
             %       NI_DAQ: [1ª1 struct]
             %
+            if JsonInfoReader.getJson.debugMode
+                fprintf('loading! category: %s, sub-category: %s\n', category, subCategory)
+            end
             allObjects = Savable.getAllSavableObjects();
             for i = 1 : length(allObjects.cells)
                 savableObject = allObjects.cells{i};
