@@ -1,0 +1,155 @@
+classdef NiDaqPhysics < PhysicsObject
+    %PULSEBLASTER Summary of this class goes here
+    %   Detailed explanation goes here
+    
+    properties
+        dummyMode;
+        % logical. if set to true nothing will actually be passed
+        
+        channelsToChannelNames
+        % 2D array. 
+        % first column - channels ('dev/...')
+        % second column - channel names ('laser green')
+    end
+    
+    properties(Constant = true, Hidden = true)
+       IDX_CHANNEL = 1;
+       IDX_CHANNEL_NAME = 2;
+       
+       MAX_VOLTAGE = 10;
+       MIN_VOLTAGE = -10;
+    end
+    
+    methods(Access = protected)
+        function obj = NiDaqPhysics(dummyModeBoolean)
+            obj@PhysicsObject('Ni Daq');
+            obj.channelsToChannelNames = {};
+            obj.dummyMode = dummyModeBoolean;
+            if ~dummyModeBoolean
+                % todo initiation
+            end
+            
+        end
+    end
+    
+    methods(Static, Sealed)
+        function out=getInstance(newObjectInstanceOptional)
+            % one can call getInstance() with no args to get the object
+            % the Setup class will call getInstance(newObject) [via create()]
+            % with the object as argument, to initiate it!
+         persistent instance;
+         if exist('newObjectInstanceOptional', 'var')
+             instance = newObjectInstanceOptional;
+         end
+         out=instance; 
+        end
+    end
+    
+    methods(Static)
+        function obj = create(dummyModeOptional) %#ok<*INUSD>
+            % dummyModeOptional - if set to true, no actual physics will be
+            % involved. good for testing purposes
+            if exist('dummyModeOptional', 'var')
+                obj = NiDaqPhysics.getInstance(NiDaqPhysics(true));
+            else
+                obj = NiDaqPhysics.getInstance(NiDaqPhysics(false));
+            end
+        end
+    end
+    
+    methods 
+        function registerChannel(obj, newChannel, newChannelName)
+            if isempty(obj.channelsToChannelNames)
+                obj.channelsToChannelNames{end + 1, NiDaqPhysics.IDX_CHANNEL} = newChannel;
+                obj.channelsToChannelNames{end, NiDaqPhysics.IDX_CHANNEL_NAME} = newChannelName;
+                return
+            end
+                
+            channelAlreadyInIndexes = ...
+                find(...
+                    contains(...
+                        obj.channelsToChannelNames(1:end, NiDaqPhysics.IDX_CHANNEL), ...
+                        newChannel...
+                    )...
+                );
+            if ~isempty(channelAlreadyInIndexes)
+                errorMsg = 'Can''t assign channel "%s" to "%s", as it has already been captured by "%s"!';
+                channelIndex = channelAlreadyInIndexes(1);
+                channelCapturedName = obj.getChannelNameFromIndex(channelIndex);
+                error(errorMsg, newChannel, newChannelName, channelCapturedName);
+            end
+            obj.channelsToChannelNames{end + 1, NiDaqPhysics.IDX_CHANNEL} = newChannel;
+            obj.channelsToChannelNames{end, NiDaqPhysics.IDX_CHANNEL_NAME} = newChannelName;
+        end % func registerChannel
+        
+        function voltage = readVoltage(obj, channelOrChannelName)
+            channelIndex = obj.getIndexFromChannelOrName(channelOrChannelName);
+            channel = obj.getChannelFromIndex(channelIndex);
+            if obj.dummyMode
+                voltage = 0.5;
+            else
+                % todo continue
+            end
+        end
+        
+        function out = writeVoltage(obj, channelOrChannelName, newVoltage)
+            channelIndex = obj.getIndexFromChannelOrName(channelOrChannelName);
+            channel = obj.getChannelFromIndex(channelIndex);
+            disp(channel);
+            if obj.dummyMode
+                out = true;
+            else
+                % todo continue
+            end
+        end
+        
+        function out = readDigital(obj, channelOrChannelName)
+            channelIndex = obj.getIndexFromChannelOrName(channelOrChannelName);
+            channel = obj.getChannelFromIndex(channelIndex);
+            if obj.dummyMode
+                out = true;
+            else
+                % todo continue
+            end
+        end
+        
+        function out = writeDigital(obj, channelOrChannelName, newLogicalValue)
+            channelIndex = obj.getIndexFromChannelOrName(channelOrChannelName);
+            channel = obj.getChannelFromIndex(channelIndex);
+            if obj.dummyMode
+                out = true;
+            else
+                % todo continue
+            end
+        end
+    end % methods
+    
+    
+    methods(Access = protected)
+        % helper methods
+        function index = getIndexFromChannelOrName(obj, channelOrChannelName)
+            channelNamesIndexes = find(contains(obj.channelsToChannelNames(1:end, NiDaqPhysics.IDX_CHANNEL_NAME), channelOrChannelName));
+            if ~isempty(channelNamesIndexes)
+                index = channelNamesIndexes(1);
+                return;
+            end
+            
+            channelIndexes = find(contains(obj.channelsToChannelNames(1:end, NiDaqPhysics.IDX_CHANNEL), channelOrChannelName));
+            if ~isempty(channelIndexes)
+                index = channelIndexes(1);
+                return;
+            end
+            
+            error('%s couln''t find channel nor channel name "%s". have you registered it?', obj.name, channelOrChannelName);
+        end
+        
+        function channelName = getChannelNameFromIndex(obj, index)
+            channelName = obj.channelsToChannelNames{index, NiDaqPhysics.IDX_CHANNEL_NAME};
+        end
+        
+        function channel = getChannelFromIndex(obj, index)
+            channel = obj.channelsToChannelNames{index, NiDaqPhysics.IDX_CHANNEL};
+        end
+    end
+end
+

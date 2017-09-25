@@ -1,0 +1,210 @@
+classdef PulseBlasterPhysics < PhysicsObject
+    %PULSEBLASTER Summary of this class goes here
+    %   Detailed explanation goes here
+    
+    properties(SetAccess = protected)
+        dummyMode  % boolean. if set to true, no physics will be changed!
+        seqDuration %mus 1D array of length(y)
+        seqNicknames % 1D array of strings, (cell array) of length(y)
+        seqSequence % 2D array, matric with size = [y * MAX_PB_CHANNEL] of 1s and 0s.
+        seqRepeats  % scalar. how many times do this sequence
+    end
+    
+    properties (Dependent = true)
+        channelNames % 1D array of length(x)
+        channelValues % 1D array of length(x)
+        channelStatuses % 1D array of length(x)
+        seqTime  % sum() on seqDuration
+    end
+    
+    properties (Access = private)
+        mChannels;          % 1D array  of integers
+        mChannelNames;      % 1D cell of strings
+        mChannelStatuses;   % 1D array of true \ false
+    end
+    
+    properties(Constant = true, Access = private)
+        FREQUENCY=500;       % in MHz %500e6;% Hz
+        MAX_PB_CHANNEL = 16;
+        MIN_DURATION = 0;
+        MAX_DURATION = 1e5;
+        MAX_REPEATS=1e6;
+    end
+    
+    methods(Access = private)
+        function obj = PulseBlasterPhysics(dummyModeOptional) %#ok<*INUSD>
+            % dummyModeOptional - if set to true, no actual physics will be
+            % involved. good for testing purposes
+            obj@PhysicsObject('Pulse Blaster');
+            obj.dummyMode = exist('dummyModeOptional', 'var');
+            obj.mChannels = [];
+            obj.mChannelNames = {};
+            obj.mChannelStatuses = [];
+            if ~ obj.dummyMode
+                obj.initialize()
+            end
+        end
+        
+        function Initialize(obj) %#ok<*MANU>
+            if ~libisloaded('mypbesr')
+                disp('Matlab: Load spinapi.dll')
+                loadlibrary('C:\SpinCore\SpinAPI\dll\spinapi64.dll','C:\SpinCore\SpinAPI\dll\spinapi.h','alias','mypbesr');
+            end
+        end
+    end
+    
+    methods(Static)
+        function obj = create(dummyModeOptional)
+            % dummyModeOptional - if set to true, no actual physics will be
+            % involved. good for testing purposes
+            if exist('dummyModeOptional', 'var')
+                obj = PulseBlasterPhysics.getInstance(PulseBlasterPhysics(dummyModeOptional));
+            else
+                obj = PulseBlasterPhysics.getInstance(PulseBlasterPhysics());
+            end
+        end
+    end
+    
+    methods
+        function registerNewChannel(obj, newChannelName, newChannelValue)
+            % newChannelName - char vector
+            % newChannelValue - int
+            rowsAmnt = length(obj.mChannelNames);
+            if rowsAmnt >= obj.MAX_PB_CHANNEL
+                warning('can''t register %s, the pulse blaster is full! channels taken:', newChannelName);
+                warning(obj.mChannelNames);
+                warning('aborting');
+                error('');
+            end
+            
+            if ~ischar(newChannelName)
+                error('''newChannelName'' has to be some string! (got: "%s")', newChannelName);
+            end
+            if ~isnumeric(newChannelValue)
+                error('''newChannelValue'' has to be an int!(got: "%s")', newChannelValue);
+            end
+            
+            obj.mChannels(end + 1) = newChannelValue;
+            obj.mChannelNames{end + 1} = newChannelName;
+            obj.mChannelStatuses(end + 1) = 0;
+        end
+        
+        function activatedChannels = switchOnly(obj, channelNameOrNumber, newBooleanValue)
+            % channelNameOrInteger can be a string ('laser green') or an
+            %           integer ranging [1, PB_MAX_CHANNEL]
+            % newBooleanValue - the new value to set
+            if not(newBooleanValue ~= 0 || newBooleanValue ~= 1 || islogical(newBooleanValue))
+                error('''newBooleanValue'' has to be false or true only!')
+            end
+            
+            if ischar(channelNameOrNumber)
+                index = obj.getIndexFromName(channelNameOrNumber);
+                channel = obj.mChannels(index);
+            elseif isnumeric(channelNameOrNumber)
+                channel = channelNameOrNumber;
+            else
+                error('channelNameOrNumber must be the ACTUAL CHANNEL to set, or the label to use!')
+            end
+            
+            if ~obj.dummyMode
+                % todo call physics
+            end
+            
+            obj.setInternalChannelStatusIfExist(channel, newBooleanValue);
+            activatedChannels = obj.getActiveChannels();
+            
+            
+        end
+        function activatedChannels = switchArrayOnly(obj, channelNameArrayOrIntegerCell, newBooleanValue)
+            % sugar syntax for obj.switchOnly(). it does a for loop on channelNameArrayOrIntegerArray
+            % channelNameArrayOrIntegerCell - cell array of strings / integers
+            % newBooleanValue - 1 or 0
+            switch class(channelNameArrayOrIntegerCell)
+                case 'cell'
+                    for k = 1 : length(channelNameArrayOrIntegerCell)
+                        channelNameOrNumber = channelNameArrayOrIntegerCell{k};
+                        obj.switchOnly(channelNameOrNumber, newBooleanValue);
+                    end
+                case 'double'
+                    for k = 1 : length(channelNameArrayOrIntegerCell)
+                        channelNameOrNumber = channelNameArrayOrIntegerCell(k);
+                        obj.switchOnly(channelNameOrNumber, newBooleanValue);
+                    end
+                otherwise
+                    error('Input ''channelNameArrayOrIntegerCell'' must be of a 1D class ''cell'' or a vector of integers!')
+            end
+            activatedChannels = obj.getActiveChannels();
+        end
+        
+        function activatedChannels = allOn(obj)
+            % switches ON all the channels
+            
+            if ~obj.dummyMode
+                % todo call physics
+            end
+            
+            obj.mChannelStatuses = ones(size(obj.mChannelStatuses));
+            activatedChannels = obj.getActiveChannels();
+            
+        end
+        
+        function activatedChannels = allOff(obj)
+            % switches OFF all the channels
+            
+            if ~obj.dummyMode
+                % todo call physics
+            end
+            
+            obj.mChannelStatuses = zeros(size(obj.mChannelStatuses));
+            activatedChannels = obj.getActiveChannels();
+        end
+        
+    end
+    
+    
+    methods % for all the dependent properties
+        function channelNames = get.channelNames(obj)
+            channelNames = obj.mChannelNames(1:end); % copy
+        end
+        function channelValues = get.channelValues(obj)
+            channelValues = obj.mChannels(1:end); % copy
+        end
+        function channelStatuses = get.channelStatuses(obj)
+            channelStatuses = obj.mChannelStatuses(1:end); % copy
+        end
+        function time = get.seqTime(obj)
+            time = cumsum(obj.seqDuration);  % sum
+        end
+        
+        function set.seqRepeats(obj,newVal)
+            if ~isnumeric(newVal)
+                error('''newVal'' must be numeric!');
+            end
+            
+            if newVal < 1 || newVal > obj.MAX_REPEATS
+                error('Value out of range. range: [%d, %d]', 1, obj.MAX_REPEATS);
+            end
+            obj.seqRepeats = newVal;
+        end
+    end
+    
+    methods(Access = private)
+        % helper methods
+        
+        function setInternalChannelStatusIfExist(obj, channel, newBooleanValue)
+            % set the value for a channel
+            indices = find(obj.mChannels == channel);
+            if isempty(indices)
+                return
+            end
+            index = indices(1);
+            obj.mChannelStatuses(index) = newBooleanValue;
+        end
+        
+        function activeChannels = getActiveChannels(obj)
+            activeChannels = obj.mChannelNames(obj.mChannelStatuses == true;
+        end
+    end
+    
+end
+

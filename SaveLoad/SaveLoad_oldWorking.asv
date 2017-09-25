@@ -1,0 +1,262 @@
+classdef SaveLoad < Savable & EventSender
+    %SAVELOAD Summary of this class goes here
+    %   Detailed explanation goes here
+    
+    properties(Constant = true, Hidden = true)
+        EVENT_SAVE_SUCCESS = 'fileSavedSuccessfully';
+        EVENT_UPDATE_NOTES_SUCCESS = 'notesUpdatedSuccessfully';
+        EVENT_LOAD_SUCCESS = 'fileLoadedSuccessfully';
+        
+        EVENT_ERR_NO_INTERNAL_BUFFER = 'errNoInternalBufferYet';
+        EVENT_ERR_FNF = 'errFileNotFound';
+        EVENT_ERR_SUFFIX_INVALID = 'errInvalidSuffix';
+        EVENT_ERR_FILE_EXIST = 'errFileAlreadyExist';
+        
+        EVENT_FILENAME = 'fileName';
+        
+        PATH_DEFAULT_SAVE = sprintf('%sControl code\\__try\\AutoSave\\Setup %s\\', PathHelper.getPathToNvLab(), Setup.getInstance.setupNumber);
+        DEFAULT_SAVE_FORMAT = 'yyyymmdd_HHMMSS';
+        SAVE_FILE_SUFFIX = '.mat';
+    end
+    
+    properties
+        notes = 'save-notes'            % string. the notes to be saved and loaded
+        category                        % string. the category that this SaveLoad object works with
+        lastSaved = NaN;                % struct. the last saved\loaded struct
+        lastFileName = NaN;             % string. last file that was saved\loaded
+        nonDefaultSavingFolder = NaN;   % string. will be used with saves 
+    end
+    
+    properties(Dependent = true)
+        isStructInside
+    end
+    
+    methods(Static, Sealed)
+        function obj = getInstance(category)
+            % this method gets the rellevant SaveLoad object based on the
+            % needed category. so that calling
+            % SaveLoad.getInstance('image') will return a SaveLoad
+            % different than calling SaveLoad.getInstance('experiments')
+            %
+            % category - string
+            persistent allSaveLoadObjects
+            if isempty(allSaveLoadObjects) || ~isvalid(allSaveLoadObjects)
+                allSaveLoadObjects = CellContainer;
+            end
+            for i = 1 : length(allSaveLoadObjects.cells)
+                saveLoadObj = allSaveLoadObjects.cells{i};
+                if (strcmp(saveLoadObj.category, category))
+                    obj = saveLoadObj;
+                    return
+                end
+            end
+             % reached here? means the "for" didn't find a SaveLoad object
+             % with the same category as needed. so create a new one!
+             obj = SaveLoad(category);
+             allSaveLoadObjects.cells{end + 1} = obj;
+        end
+    end
+    
+    methods(Access = private)
+        function obj = SaveLoad(category)
+            name = sprintf('SaveLoad_%s', category);
+            obj@EventSender(name);
+            obj@Savable(name);
+            obj.category = category;
+        end
+    end
+    
+    methods
+        function setNotes(obj, newNotes)
+            if (ischar(newNotes))
+                obj.notes = newNotes;
+                obj.sendEvent(struct('notes', newNotes));
+            else
+                obj.sendError('newNotes parameter is not a char-array! ignoring');
+            end
+        end
+        
+        function setSavingFolder(obj, newSavingFolder)
+            if ~ischar(newSavingFolder)
+                obj.sendError('''newSavingFolder'' can only be a string!');
+                return;
+            end
+            newSavingFolder = PathHelper.appendBackslashIfNeeded(newSavingFolder);
+            obj.nonDefaultSavingFolder = newSavingFolder;
+        end
+        
+        function updateNotesInternalSavedStruct(obj)
+            if isstruct(obj.lastSaved)
+                obj.lastSaved.(obj.name) = obj.saveStateAsStruct(obj.category);
+                obj.sendEvent(struct(obj.EVENT_UPDATE_NOTES_SUCCESS, true));
+            else
+                obj.sendError('can''t update notes - no saved buffer yet!', struct(obj.EVENT_ERR_NO_INTERNAL_BUFFER, true));
+            end
+        end
+        
+        function save(obj, useNonDefaultFolder)
+            % useNonDefaultFolder - boolean. 
+            %           if true, and obj.nonDefaultSavingFolder is not NaN,
+            %           than obj.nonDefaultSavingFolder will be used
+            %           instead of SaveLoad.PATH_DEFAULT_SAVE
+            if useNonDefaultFolder && ischar(obj.nonDefaultSavingFolder)
+                folderPath = obj.nonDefaultSavingFolder;
+            else
+                folderPath = SaveLoad.PATH_DEFAULT_SAVE;
+            end
+            fileName = sprintf('%s%s', datestr(now, SaveLoad.DEFAULT_SAVE_FORMAT), SaveLoad.SAVE_FILE_SUFFIX);
+            fullPath = sprintf('%s%s', folderPath, fileName);
+            obj.saveAs(fullPath);
+        end
+        
+        function structToSave = saveInternal(obj)
+            structToSave = Savable.saveAllObjects(obj.category);
+            obj.lastSaved = structToSave;
+        end
+        
+        function saveAs(obj, fileFullPath)
+            if PathHelper.isFileExists(fileFullPath)
+                warningMsg = sprintf('file already exists! %s', fileFullPath);
+                obj.sendError(warningMsg, struct(SaveLoad.EVENT_ERR_FILE_EXIST, true));
+                return
+            end
+            
+            if ~endsWith(fileFullPath, SaveLoad.SAVE_FILE_SUFFIX)
+                warningMsg = sprintf('file suffix incorrct! (suffix needed:"%s", file to save: "%s"', obj.SAVE_FILE_SUFFIX, fileFullPath);
+                obj.sendError(warningMsg, struct(SaveLoad.EVENT_ERR_SUFFIX_INVALID, true));
+                return
+            end
+                
+            
+            myStruct = obj.saveInternal(); %#ok<NASGU>
+            obj.lastFileName = fileFullPath;
+            obj.createFolderIfNeeded(fileFullPath);
+            save(fileFullPath, 'myStruct');
+            
+            structEvent = struct();
+            structEvent.(SaveLoad.EVENT_FILENAME) = fileFullPath;
+            structEvent.(SaveLoad.EVENT_SAVE_SUCCESS) = true;
+            obj.sendEvent(structEvent);
+        end
+        
+        function load(obj, fileFullPath, shouldCallLoadOtherObjects)
+            % load a file into the SaveLoad object
+            %
+            % fileFullPath               - the path
+            %
+            % shouldCallLoadOtherObjects - boolean. if set to false, only
+            %                              the SaveLoad will load the
+            %                              struct (no other Savable objects will be notified)
+            %
+            if ~PathHelper.isFileExists(fileFullPath)
+                warningMsg = sprintf('file not exists! %s', fileFullPath);
+                obj.sendError(warningMsg, struct(SaveLoad.EVENT_ERR_FNF, true));
+                return
+            end
+            
+
+            if ~endsWith(fileFullPath, SaveLoad.SAVE_FILE_SUFFIX)
+                warningMsg = sprintf(...
+                    'file suffix incorrct! (suffix needed:"%s", file to load: "%s"', ...
+                    obj.SAVE_FILE_SUFFIX, ...
+                    fileFullPath);
+                
+                obj.sendError(warningMsg, struct(SaveLoad.EVENT_ERR_FILE_EXIST, true));
+                return
+            end
+            
+            structToLoad = load(fileFullPath);
+            structToLoad = structToLoad.myStruct;
+            
+            obj.lastSaved = structToLoad;
+            obj.lastFileName = fileFullPath;
+            
+            if shouldCallLoadOtherObjects
+                Savable.loadAllObjects(structToLoad);
+            end
+            
+            structEvent = struct();
+            structEvent.(SaveLoad.EVENT_FILENAME) = fileFullPath;
+            structEvent.(SaveLoad.EVENT_LOAD_SUCCESS) = true;
+            obj.sendEvent(structEvent);
+        end
+        
+        function loadPreviousFile(obj)
+           % load the previous file to the one currently in use.
+           % go through the files in the folder, until finding some file
+           % that matches the terms: 
+           %        @ finishes with '.mat'
+           %        @ has same category as obj.category
+            
+        end
+        
+        function loadNextFile(obj)
+            currentFile = obj.lastFileName;
+            
+            if ~ischar(currentFile)
+                obj.sendError('can''t load next - no file has been already loaded to be next to!');
+                return
+            end
+            
+            folder = PathHelper.getFolderFromFullPathFile(currentFile);
+            allFiles = PathHelper.getAllFilesInFolder(folder);
+            ispresent = cellfun(@(string) strcmp(currentFile, string), allFiles);
+            fileIndex = find(ispresent == 1);
+            if fileIndex == length(allFiles)
+                obj.sendError('last file is loaded - no possible next!');
+                return;
+                % todo dependent property 'can load next' and 'can load previous'
+                % ONE_DAY
+            end
+            
+            % TODO loop through and load the first with matching terms
+        end
+            
+        
+        function loadFromInternal(obj)
+            if isstruct(obj.lastSaved)
+                Savable.loadAllObjects(obj.lastSaved);
+            else
+                obj.sendError('can''t load from internal - no struct has been loaded from a file yet!', struct(obj.EVENT_ERR_NO_INTERNAL_BUFFER, true));
+            end
+        end
+        
+        function createFolderIfNeeded(obj, fileFullPath)
+            folderFileCellArray = PathHelper.splitFullPathToFolderAndFile(fileFullPath);
+            [folder, ~] = folderFileCellArray{:};
+            [status, msg] = mkdir(folder);
+            if status ~= 1
+                obj.sendError(msg)
+            end
+        end
+    end
+    
+    %% getter for the dependent
+    methods
+        function out = get.isStructInside(obj)
+            out = isstruct(obj.lastSaved);
+        end
+    end
+    
+    %% overriden from Savable
+    methods(Access = protected)
+        function outStruct = saveStateAsStruct(obj, category) %#ok<*MANU>
+            % saves the state as struct.
+            if strcmp(category, obj.category)
+                outStruct = struct('notes', obj.notes);
+            else
+                outStruct = NaN;
+            end
+        end
+        
+        function loadStateFromStruct(obj, savedStruct) %#ok<*INUSD>
+            % loads the state from a struct previousely saved.
+            if isfield(savedStruct, 'notes') && ischar(savedStruct.notes)
+                obj.notes = savedStruct.notes;
+                obj.sendEvent(struct('notes', obj.notes));
+            end
+        end
+    end
+    
+    
+end
