@@ -1,6 +1,6 @@
 classdef ViewSpcmPlot < ViewHBox & EventListener
     %VIEWSPCMPLOT Shows recent readings of SPCM
-    %   Detailed explanation goes here
+    %   
     
     properties
         wrap            % positive integer, how many records in plot
@@ -24,8 +24,8 @@ classdef ViewSpcmPlot < ViewHBox & EventListener
             obj.wrap = obj.DEFAULT_WRAP_VALUE;
             
             obj.vAxes = axes('Parent', obj.component, 'ActivePositionProperty', 'outerposition');
-            xlabel(obj.BOTTOM_LABEL);
-            ylabel(obj.LEFT_LABEL);
+            xlabel(obj.vAxes,obj.BOTTOM_LABEL);
+            ylabel(obj.vAxes,obj.LEFT_LABEL);
             
             axes()
             %%%% Pane for wrapping data %%%%
@@ -47,7 +47,7 @@ classdef ViewSpcmPlot < ViewHBox & EventListener
             obj.component.Widths = [-1 70];
             
             %%%% Define size %%%%
-            obj.width = 450;            
+            obj.width = 650;            
             obj.height = 300;
             
         end
@@ -61,8 +61,8 @@ classdef ViewSpcmPlot < ViewHBox & EventListener
             obj.recolor(obj.edtWrap,~obj.isUsingWrap)
         end
         function edtWrapCallback(obj,~,~)
-            if ~ValidationHelper.isValuePositiveInteger()
-                EventStation.anonymousWarning('Wrap needs to be a positive integer. Reverting.')
+            if ~ValidationHelper.isValuePositiveInteger(obj.edtWrap.String)
+                EventStation.anonymousWarning('Wrap needs to be a positive integer! Reverting.')
                 obj.edtWrap.String = obj.wrap;
             end
             obj.wrap = str2double(obj.edtWrap.String);
@@ -78,13 +78,15 @@ classdef ViewSpcmPlot < ViewHBox & EventListener
             if isfield(event.extraInfo, spcmCount.EVENT_SPCM_COUNTER_UPDATED)   % event = update
                 if obj.isUsingWrap
                     xVector = 1:obj.wrap;
-                    position = length(spcmCount.records) - obj.wrap;    % where I should start taking values
-                                                                        % also, wrap = length(records) + remainder,
-                                                                        %       so remainder = -position
-                    if position<0
-                        data = [spcmCount.records NaN(1,-position-1) 0];        % implement better
+                    difference = length(spcmCount.records) - obj.wrap;
+                    if difference < 0
+                        padding = abs(difference) - 1;
+                        data = [spcmCount.records NaN(1,padding) 0];
+                    elseif length(spcmCount.records) == obj.wrap
+                        data = spcmCount.records;
                     else
-                        data = spcmCount.records(position+1:end);
+                        position = difference + 1;                        
+                        data = spcmCount.records(position:end);
                     end
                 else
                     data = spcmCount.records;

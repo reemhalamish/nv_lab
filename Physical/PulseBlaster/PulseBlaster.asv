@@ -328,12 +328,8 @@ classdef PulseBlaster < EventSender
             
             obj.PBesrStartProgramming(); % enter the programming mode
             
-            % todo - is there a cleaner way to do so?
-            if ~any(obj.mChannelStatuses)
-                channels = 0;
-            else 
-                channels = sum(2.^(obj.mChannels(obj.mChannelStatuses)));
-            end
+            
+            channels = sum(2.^(obj.mChannels(obj.mChannelStatuses)));
             label = obj.PBesrInstruction(channels, 'ON', 'CONTINUE', 0, 100);
             obj.PBesrInstruction(channels, 'ON', 'BRANCH', label, 100);
             obj.PBesrStopProgramming(); % exit the programming mode            

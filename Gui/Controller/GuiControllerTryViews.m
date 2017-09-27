@@ -7,6 +7,7 @@ classdef GuiControllerTryViews < GuiController
        
     methods
         function obj = GuiControllerTryViews()
+            Setup.init;
             shouldConfirmOnExit = false;
             windowName = 'Gui Tester for Views';
             openOnlyOne = true;  

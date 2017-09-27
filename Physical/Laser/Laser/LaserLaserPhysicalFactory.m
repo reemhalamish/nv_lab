@@ -27,7 +27,7 @@ classdef LaserLaserPhysicalFactory
                     laserPhysicalPart = LaserDummy(partName);
                     return
                 otherwise
-                    error('can''t create a laser part into laser "%s" with classname = "%s" - unknow classname! aborting.');
+                    error('can''t create a laser part into laser "%s" with classname = "%s" - unknown classname! aborting.');
             end
         end
                     

@@ -6,8 +6,41 @@ classdef PathHelper
     end
     
     methods(Static)
-        function out = getPathToNvLab()
-            out = sprintf('%s\\Google Drive\\work\\NV Lab\\', getenv('USERPROFILE'));
+        function nvLabFolderPath = getPathToNvLab()
+            googleDriveFolder = sprintf('%s\\Google Drive\\', getenv('USERPROFILE'));
+            nvLabFolderName = 'NV Lab';
+            nvLabFolderPath = PathHelper.recuresiveFindFolder(googleDriveFolder, nvLabFolderName);
+            
+            if ~ischar(nvLabFolderPath); error('can''t find NV Lab folder!!'); end
+        end
+        
+        function folderString = recuresiveFindFolder(startingPositionPath, folderNameToSearchString)
+            startingPositionPath = PathHelper.appendBackslashIfNeeded(startingPositionPath);
+            folderString = nan;  % if nothing will be found later on
+            
+            listing = dir(startingPositionPath);
+            relevant = listing([listing.isdir]);  % looking only for folders
+            relevant = relevant(~strcmp({relevant.name}, '.'));
+            relevant = relevant(~strcmp({relevant.name}, '..'));
+            % the first 2 options are "." and "..", ignore them
+            
+            % base case 1: no more folders deeper down
+            if isempty(relevant); return; end  
+            
+            isHere = find(strcmp({relevant.name}, folderNameToSearchString));
+            % "isHere" now is a number (index) or empty, so we can use "if"
+            if isHere  
+                % base case 2: fond the folder
+                folderString = PathHelper.joinToFullPath(startingPositionPath, relevant(isHere).name);
+                folderString = PathHelper.appendBackslashIfNeeded(folderString);
+                return
+            else  % start the recurstion
+                for folderIndex = 1 : length(relevant)
+                    newBaseFolder = [startingPositionPath relevant(folderIndex).name];
+                    folderString = PathHelper.recuresiveFindFolder(newBaseFolder, folderNameToSearchString);
+                    if ischar(folderString); return; end
+                end
+            end
         end
         
         function filepath = removeDotSuffix(filePathMaybeWithDotSuffix)

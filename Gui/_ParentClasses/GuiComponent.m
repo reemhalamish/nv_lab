@@ -62,11 +62,11 @@ classdef GuiComponent < handle
         function recolor(obj,vectorEdt,isBeingGrayed)
             % supports coloring of vector of editboxes
            if isBeingGrayed
-               set(vectorEdt, 'BackgroundColor', obj.COLOR_ENABLE_OFF_BG);
-               set(vectorEdt, 'ForegroundColor', obj.COLOR_ENABLE_OFF_FG);
+               set(vectorEdt, 'BackgroundColor', obj.COLOR_ENABLE_OFF_BG, ...
+                   'ForegroundColor', obj.COLOR_ENABLE_OFF_FG);
            else
-               set(vectorEdt, 'BackgroundColor', 'white');
-               set(vectorEdt, 'ForegroundColor', 'black');
+               set(vectorEdt, 'BackgroundColor', 'white', ...
+                   'ForegroundColor', 'black');
            end
         end
         

@@ -1,4 +1,4 @@
-classdef SpcmCounter < EventSender
+classdef SpcmCounterSavable < EventSender & Savable
     %SPCMCOUNTER Read counts from SPCM via timer
     %   when switched on (reset), inits the vector of reads to be empty,
     %   and start a timer to read every 100ms.
@@ -27,13 +27,16 @@ classdef SpcmCounter < EventSender
         EVENT_SPCM_COUNTER_UPDATED = 'SpcmCounterUpdated';
         EVENT_SPCM_COUNTER_STOPPED = 'SpcmCounterStopped';
         
-        NAME = 'SpcmCounter';
+        NAME = 'SpcmCounterSavable';
         INTEGRATION_TIME_DEFAULT_MILLISEC = 100;
+        
+        SAVABLE_RECORDS = 'records';
     end
     
     methods
-        function obj = SpcmCounter
+        function obj = SpcmCounterSavable
             obj@EventSender(SpcmCounter.NAME);
+            obj@Savable(SpcmCounter.NAME);
             obj.integrationTimeMillisec = obj.INTEGRATION_TIME_DEFAULT_MILLISEC;
             obj.records = [];
             obj.isOn = false;
@@ -45,7 +48,7 @@ classdef SpcmCounter < EventSender
         function sendEventStopped(obj); obj.sendEvent(struct(obj.EVENT_SPCM_COUNTER_STOPPED,true));end
         
         function run(obj)
-            obj.isOn = true;    % redundant?
+            obj.isOn = true;
             obj.sendEventStarted;
             integrationTime = obj.integrationTimeMillisec;
             
@@ -80,8 +83,8 @@ classdef SpcmCounter < EventSender
     
     methods (Static = true)
         function init
-            older = removeObjIfExists(SpcmCounter.NAME);
-            if isa(older, 'SpcmCounter')
+            older = removeObjIfExists(SpcmCounterSavable.NAME);
+            if isa(older, 'SpcmCounterSavable')
                 older.stop;
                 pause((older.integrationTimeMillisec + 1) / 1000);
                 older.integrationTimeMillisec = 'older!!!';
@@ -91,4 +94,54 @@ classdef SpcmCounter < EventSender
             addBaseObject(newCounter);
         end     % Calls destructor when operated twice
     end
+    
+            %% overriding from Savable
+        methods(Access = protected)
+            function outStruct = saveStateAsStruct(obj, category) %#ok<*MANU>
+                % saves the state as struct. if you want to save stuff, make
+                % (outStruct = struct;) and put stuff inside. if you dont
+                % want to save, make (outStruct = NaN;)
+                %
+                % category - string. some objects saves themself only with
+                % specific category (image/experimetns/etc)
+                if category == Savable.CATEGORY_IMAGE
+                    outStruct = struct(obj.SAVABLE_RECORDS, obj.records);
+                else
+                    outStruct = NaN;
+                end
+            end
+    
+            function loadStateFromStruct(obj, savedStruct, category, subCategory) 
+                % loads the state from a struct.
+                % to support older versoins, always check for a value in the
+                % struct before using it. view example in the first line.
+                % category - a string, some savable objects will load stuff
+                %            only for the 'image_lasers' category and not for
+                %            'image_stages' category, for example
+                % subCategory - string. could be empty string
+    
+                if ~strcmp(category,Savable.CATEGORY_IMAGE) || ...
+                        ~strcmp(subCategory,obj.SAVABLE_RECORDS ...  % reem - the sub-category is defined in Savable, it has nothing to do with a specific object!
+                        )
+                    return;
+                end
+    
+                if ~isfield(savedStruct, obj.SAVABLE_RECORDS); return; end
+                obj.records = savedStruct.(obj.SAVABLE_RECORDS);
+            end
+    
+            function string = returnReadableString(obj, savedStruct)
+                % return a readable string to be shown. if this object
+                % doesn't need a readable string, make (string = NaN;) or
+                % (string = '');
+    
+                string = NaN;
+                
+                if isfield(savedStruct, obj.SAVABLE_RECORDS)
+                    string = sprintf('SPCM Counter: %s records', length(obj.records));
+                end
+                
+                % reem - awesome. this is exactly what we want.
+            end
+        end
 end

@@ -51,7 +51,8 @@ classdef (Abstract) Savable < BaseObject
         CATEGORY_IMAGE = 'image';
         CATEGORY_IMAGE_SUBCAT_STAGE = 'image_stage';
         CATEGORY_IMAGE_SUBCAT_LASER = 'image_laser';
-        CATEGORY_EXPERIMENRS = 'experiments';
+        
+        CATEGORY_EXPERIMENTS = 'experiments';
         
         SUB_CATEGORY_DEFAULT = '';  % default sub-category is empty string
         
@@ -153,7 +154,7 @@ classdef (Abstract) Savable < BaseObject
                     end
                     
                     % property name - replace all spaces with underscores
-                    nameToSave = regexprep(savableObject.name, ' ', '_');
+                    nameToSave = matlab.lang.makeValidName(savableObject.name);
                     outStruct.(nameToSave) = objectStruct;
                 end
             end
@@ -184,7 +185,7 @@ classdef (Abstract) Savable < BaseObject
             for i = 1 : length(allObjects.cells)
                 savableObject = allObjects.cells{i};
                 % replace all spaces with underscores
-                nameToLoad = regexprep(savableObject.name, ' ', '_');
+                nameToLoad = matlab.lang.makeValidName(savableObject.name);
                 if isfield(structToLoadFrom, nameToLoad)
                     savableObject.loadStateFromStruct(structToLoadFrom.(nameToLoad), category, subCategory);
                 end
@@ -214,7 +215,7 @@ classdef (Abstract) Savable < BaseObject
             % has written
             % returns - the small part of the struct, or nan if this
             % savable hasn't written anything
-            nameToLoad = regexprep(savableObject.name, ' ', '_');
+            nameToLoad = matlab.lang.makeValidName(savableObject.name);
             if isfield(bigStructToLoadFrom, nameToLoad)
                 smallStruct = bigStructToLoadFrom.(nameToLoad);
             else

@@ -83,6 +83,9 @@ classdef ViewLoad < ViewVBox & EventListener
         end
         
         function cellOfStrings = getDisplayLoadToSystemButtons(~, category)
+            % the strings to be displayed in the "load to" buttons.
+            % as depending on the relevant category. implement here other
+            % buttons for other categories!
             switch category
                 case Savable.CATEGORY_IMAGE
                     cellOfStrings = {'To Stages!', 'To Lasers!'};
@@ -92,6 +95,7 @@ classdef ViewLoad < ViewVBox & EventListener
         end
         
         function cellOfStrings = getSubCategoriesForLoadToSystemButtons(~, category)
+            % the sub-categories matching the "load to" buttons
             % should be a cell from same length as
             % obj.getDisplayLoadToSystemButtons with the same category
             switch category

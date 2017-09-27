@@ -50,7 +50,7 @@ classdef LaserGate < Savable
             % save only if you need to save
             if ~any(strcmp(category, {...
                     Savable.CATEGORY_IMAGE, ...
-                    Savable.CATEGORY_EXPERIMENRS ...
+                    Savable.CATEGORY_EXPERIMENTS ...
                     }))
                 return; 
             end
@@ -81,7 +81,7 @@ classdef LaserGate < Savable
             %       @ if the category is Experiment
             %       @ or, category is image, and subCat is "default" or "laser"
             
-            catIsExp = strcmp(category, Savable.CATEGORY_EXPERIMENRS);
+            catIsExp = strcmp(category, Savable.CATEGORY_EXPERIMENTS);
             catIsImage = strcmp(category, Savable.CATEGORY_IMAGE);
             subcatImageIsOk = any(strcmp(subCategory, {Savable.CATEGORY_IMAGE_SUBCAT_LASER, Savable.SUB_CATEGORY_DEFAULT}));
             shouldLoad = catIsExp || (catIsImage && subcatImageIsOk);
@@ -119,7 +119,7 @@ classdef LaserGate < Savable
             if obj.isLaserAvail()
                 value = value * obj.laser.currentValue / 100;
             end
-            string = sprintf('%s - value %d%% (%s)', obj.name, value, isOn);
+            string = sprintf('%s - value %d%% (%s)', obj.name, int16(value), isOn);
         end
     end
     
@@ -133,7 +133,7 @@ classdef LaserGate < Savable
 				lasersCellContainer = CellContainer;
 				
 				for i = 1 : length(lasersJson)
-					curLaserJson = lasersJson(i)
+					curLaserJson = lasersJson(i);
 					newLaserGate = LaserGate.createFromStruct(curLaserJson);
 					lasersCellContainer.cells{end + 1} = newLaserGate;
 				end
@@ -145,7 +145,7 @@ classdef LaserGate < Savable
 
                 missingField = FactoryHelper.usualChecks(laserStruct, LaserGate.NEEDED_FIELDS);
                 if ~isnan(missingField)
-                    warning('missing field in struct! aborting.');
+                    warning('Missing field in struct! Aborting.');
                     error(laserStruct);
                 end
                 

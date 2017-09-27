@@ -21,8 +21,8 @@ classdef AxesHelper
             switch dimNumber
                 case 1
                         plot(axesFig, firstAxisVector, data);
-                        xlabel(bottomLabel);
-                        ylabel(leftLabel);
+                        xlabel(axesFig,bottomLabel);
+                        ylabel(axesFig,leftLabel);
                     case 2
                         % todo
                         imagesc(...
@@ -30,8 +30,8 @@ classdef AxesHelper
                             'XData', firstAxisVector, ...
                             'YData', secondAxisOptionalVector, ...
                             'Parent', axesFig);
-                        xlabel(bottomLabel);
-                        ylabel(leftLabel);
+                        xlabel(axesFig,bottomLabel);
+                        ylabel(axesFig,leftLabel);
                         axis xy tight normal
                         axis manual
                         c = colorbar('peer', axesFig, 'location', 'EastOutside');

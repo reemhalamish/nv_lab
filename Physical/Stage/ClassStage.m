@@ -606,7 +606,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             if startsWith(category, Savable.CATEGORY_IMAGE)
                 % save only the scan parameters
                 outStruct = struct('scanParams', obj.scanParams.asStruct);
-            elseif startsWith(category, Savable.CATEGORY_EXPERIMENRS)
+            elseif startsWith(category, Savable.CATEGORY_EXPERIMENTS)
                 % save only the stage position
                 position = obj.Pos(ClassStage.SCAN_AXES);
                 outStruct = struct('position', position);
@@ -631,7 +631,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                    obj.sendEventScanParamsChanged();
                end
                
-            elseif strcmp(category, Savable.CATEGORY_EXPERIMENRS)
+            elseif strcmp(category, Savable.CATEGORY_EXPERIMENTS)
                 position = savedStruct.position;
                 obj.move(ClassStage.SCAN_AXES, position);
             end

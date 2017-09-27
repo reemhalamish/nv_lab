@@ -47,6 +47,12 @@ classdef GuiController < handle
     %             % callback. thigs to run when the window size is changed
     %             % child classes can override this method
     %         end
+    %
+    %         function bool = onAboutToclose(obj)
+    %             % callbcak. Things to run before closing. Returns true to close,
+    %             % or false to abort closing
+    %             bool = true;
+    %         end
     %         function onClose(obj)
     %             % callback. things to run when need to close the GUI.
     %             % child classes can override this method
@@ -107,8 +113,14 @@ classdef GuiController < handle
         end
         
         function onSizeChanged(obj, newX0, newY0, newWidth, newHeight)
-            % callback. thigs to run when the window size is changed
+            % callback. things to run when the window size is changed
             % child classes can override this method
+        end
+        
+        function bool = onAboutToclose(obj)
+           % callbcak. Things to run before closing. Returns true to close,
+           % or false to abort closing
+           bool = true;
         end
         
         function onClose(obj)
@@ -121,6 +133,8 @@ classdef GuiController < handle
 	
 		% the actual callback used when user is trying to close the GUI window
         function callbackCloseRequest(obj, hObject)
+            if ~obj.onAboutToclose; return; end
+            
             if obj.confirmOnClose
                 needToClose = QuestionUserYesNo(...
                     'Close Request Function', ...
