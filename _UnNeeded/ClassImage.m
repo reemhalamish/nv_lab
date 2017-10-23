@@ -874,7 +874,7 @@ classdef ClassImage < BaseObject
             DAQmx_Val_ContSamps = daq.ni.NIDAQmx.DAQmx_Val_ContSamps;
             DAQmx_Val_CountUp = daq.ni.NIDAQmx.DAQmx_Val_CountUp;
             
-            [ status, ~, task ] = DAQmxCreateTask([]);
+            [status, ~, task ] = DAQmxCreateTask([]);
             DAQmxErr(status);
             
             status = DAQmxCreateCICountEdgesChan(task, device, '', DAQmx_Val_Rising, 0, DAQmx_Val_CountUp);

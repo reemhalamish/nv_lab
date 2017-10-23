@@ -61,7 +61,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             % 2nd column: arrow left
             obj.btnMoveLeft = gobjects(1, axesLen);
             for i = 1: axesLen
-                uicontrol(obj.PROP_BUTTON{:},'Parent', gridLeftSide, 'String', '¬', 'FontName', 'Symbol', 'FontSize', 20);
+                obj.btnMoveLeft(i) = uicontrol(obj.PROP_BUTTON{:},'Parent', gridLeftSide, 'String', '¬', 'FontName', 'Symbol', 'FontSize', 20);
             end
             
             % 3rd column: current position
@@ -81,7 +81,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             % 4th column: arrow right
             obj.btnMoveRight = gobjects(1, axesLen);
             for i = 1: axesLen
-                uicontrol(obj.PROP_BUTTON{:},'Parent', gridLeftSide, 'String', '®', 'FontName', 'Symbol', 'FontSize', 20);
+                obj.btnMoveRight(i) = uicontrol(obj.PROP_BUTTON{:},'Parent', gridLeftSide, 'String', '®', 'FontName', 'Symbol', 'FontSize', 20);
             end
             
             if enableEdt
@@ -139,6 +139,12 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
                 obj.btnSendToFixed.Callback = @(h,e) obj.btnSendToFixedNonScanableCallback();
             end
             
+            for i = 1:axesLen
+                isLeft = true;
+                obj.btnMoveLeft(i).Callback = @(h,e) obj.btnMoveCallback(i,isLeft);
+                obj.btnMoveRight(i).Callback = @(h,e) obj.btnMoveCallback(i,~isLeft);
+            end
+            
             
             %%%% internal values %%%%
             obj.width = sum(widthsMain) + (hboxMain.Spacing -3) * length(widthsMain);
@@ -173,6 +179,13 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             stage.stepSize = str2double(stepSizeString);
         end
         
+        function btnMoveCallback(obj,index,trueForLeftFalseForRight)
+            axis = ClassStage.getAxis(obj.stageAxes(index));
+            stage = getObjByName(obj.stageName);
+            step = BooleanHelper.ifTrueElse(trueForLeftFalseForRight,-1,1)*stage.stepSize;
+            stage.relativeMove(axis,step);
+        end
+        
         function btnMoveStageToFixedPosCallback(obj)
             stage = getObjByName(obj.stageName);
             stage.moveByScanParams();
@@ -186,7 +199,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
         function btnMoveToBlueCallback(obj)
             stage = getObjByName(obj.stageName);
             for i = 1 : length(obj.stageAxes)
-                axis = ClassStage.GetAxis(obj.stageAxes(i));
+                axis = ClassStage.getAxis(obj.stageAxes(i));
                 pos = obj.edtCurPosValue(i); 
                 if pos ~= inf
                     stage.move(axis, pos);
@@ -197,7 +210,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
         end
         
         function tvCurPosCallback(obj, index)
-            axis = ClassStage.GetAxis(obj.stageAxes(index));
+            axis = ClassStage.getAxis(obj.stageAxes(index));
             stage = getObjByName(obj.stageName);
             [limNeg, limPos] = stage.ReturnLimits(axis);
             if ValidationHelper.isStringValueInBorders(obj.tvCurPos(index).String, limNeg, limPos)
@@ -209,7 +222,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             end
             
             stage = getObjByName(obj.stageName);
-            axis = ClassStage.GetAxis(obj.stageAxes(index));
+            axis = ClassStage.getAxis(obj.stageAxes(index));
             pos = stage.Pos(axis);
             obj.tvCurPos(index).String = pos;
             obj.btnMoveToBlue.Enable = 'on';
@@ -232,7 +245,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             % checks that the obj.edtCurPos string is a valid value.
             % reverts the value if not valid based on obj.edtCurPosValue
             % or updates obj.edtCurPosValue based on the edt
-            axis = ClassStage.GetAxis(obj.stageAxes(index));
+            axis = ClassStage.getAxis(obj.stageAxes(index));
             stage = getObjByName(obj.stageName);
             [limNeg, limPos] = stage.ReturnLimits(axis);
             if ValidationHelper.isStringValueInBorders(obj.edtCurPos(index).String, limNeg, limPos)

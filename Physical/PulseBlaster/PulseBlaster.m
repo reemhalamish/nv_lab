@@ -91,7 +91,7 @@ classdef PulseBlaster < EventSender
                 error('"libPathName must be in the struct! (pulse blaster)')
             end
             
-            libPathName = strrep(pbStruct.libPathName, '[NV Lab]', PathHelper.getPathToNvLab());
+            libPathName = strrep(pbStruct.libPathName, '[NV Lab]\', PathHelper.getPathToNvLab());
             
             if isfield(pbStruct, 'dummy')
 %                 obj = PulseBlaster.getInstance(PulseBlaster(libPathName, pbStruct.dummy));
@@ -327,7 +327,13 @@ classdef PulseBlaster < EventSender
             % based on the values given by channels    
             
             obj.PBesrStartProgramming(); % enter the programming mode
-            channels = sum(2.^(obj.mChannels(obj.mChannelStatuses)));
+            
+            % todo - is there a cleaner way to do so without this "if"?
+            if ~any(obj.mChannelStatuses)
+                channels = 0;
+            else 
+                channels = sum(2.^(obj.mChannels(obj.mChannelStatuses)));
+            end
             label = obj.PBesrInstruction(channels, 'ON', 'CONTINUE', 0, 100);
             obj.PBesrInstruction(channels, 'ON', 'BRANCH', label, 100);
             obj.PBesrStopProgramming(); % exit the programming mode            

@@ -47,6 +47,12 @@ classdef GuiController < handle
     %             % callback. thigs to run when the window size is changed
     %             % child classes can override this method
     %         end
+    %
+    %         function bool = onAboutToclose(obj)
+    %             % callbcak. Things to run before closing. Returns true to close,
+    %             % or false to abort closing
+    %             bool = true;
+    %         end
     %         function onClose(obj)
     %             % callback. things to run when need to close the GUI.
     %             % child classes can override this method
@@ -69,19 +75,24 @@ classdef GuiController < handle
                 sprintf('%s is already open!', obj.windowName);
                 figure(openAlready);
             else
-                obj.figureWindow = obj.createNewFigureInvis();
-                screenSize = get(groot, 'MonitorPositions');
-                obj.screenWidth = screenSize(obj.POSITION_INDEX_WIDTH);
-                obj.screenHeight = screenSize(obj.POSITION_INDEX_HEIGHT);
-                
-                dummyGuiComponent.component = obj.figureWindow;
-                mainView = obj.getMainView(dummyGuiComponent);
-                obj.windowMinHeight = mainView.height;
-                obj.windowMinWidth = mainView.width;
-                
-                obj.onAboutToStart();
-                obj.figureWindow.Visible = 'on';
-                obj.onStarted();
+                try
+                    obj.figureWindow = obj.createNewFigureInvis();
+                    screenSize = get(groot, 'MonitorPositions');
+                    obj.screenWidth = screenSize(obj.POSITION_INDEX_WIDTH);
+                    obj.screenHeight = screenSize(obj.POSITION_INDEX_HEIGHT);
+                    
+                    dummyGuiComponent.component = obj.figureWindow;
+                    mainView = obj.getMainView(dummyGuiComponent);
+                    obj.windowMinHeight = mainView.height;
+                    obj.windowMinWidth = mainView.width;
+                    
+                    obj.onAboutToStart();
+                    obj.figureWindow.Visible = 'on';
+                    obj.onStarted();
+                catch err
+                    delete(obj.figureWindow);
+                    rethrow(err);
+                end
             end
         end  % constructor
         
@@ -107,8 +118,14 @@ classdef GuiController < handle
         end
         
         function onSizeChanged(obj, newX0, newY0, newWidth, newHeight)
-            % callback. thigs to run when the window size is changed
+            % callback. things to run when the window size is changed
             % child classes can override this method
+        end
+        
+        function bool = onAboutToclose(obj)
+           % callbcak. Things to run before closing. Returns true to close,
+           % or false to abort closing
+           bool = true;
         end
         
         function onClose(obj)
@@ -121,6 +138,8 @@ classdef GuiController < handle
 	
 		% the actual callback used when user is trying to close the GUI window
         function callbackCloseRequest(obj, hObject)
+            if ~obj.onAboutToclose; return; end
+            
             if obj.confirmOnClose
                 needToClose = QuestionUserYesNo(...
                     'Close Request Function', ...
@@ -136,7 +155,15 @@ classdef GuiController < handle
                     obj.views{k}.onCloseGui();
                 end
                 
-                obj.onClose();
+                try 
+                    obj.onClose();
+                catch err
+                    delete(hObject);
+                    EventStation.anonymousWarning( ...
+                        'Failed to properly terminate process. Closing window anyway.');
+                    rethrow(err);
+                end
+                
                 delete(hObject);
             end
         end

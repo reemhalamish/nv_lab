@@ -22,7 +22,7 @@ classdef NiDaqControlledSpcm < Spcm & NiDaqControlled
     end
     
     properties(Constant = true, Hidden = true)
-        NEEDED_FIELDS = {'nidaq_channel_gate', 'nidaq_channel_counts'};
+        NEEDED_FIELDS_SPCM_DAQ = {'nidaq_channel_gate', 'nidaq_channel_counts'};
     end
     
     
@@ -42,22 +42,26 @@ classdef NiDaqControlledSpcm < Spcm & NiDaqControlled
         function prepareReadByTime(obj, integrationTimeInSec)
             % Prepare the SPCM to a scan by timer, with integration time of
             % integrationTime in seconds.
-            todo = 'validation on integrationTime';
             obj.counterIntegrationTime = integrationTimeInSec;
             obj.nTimeCounts = integrationTimeInSec*100e3; % 100kHz basis.
             
             niDaq = getObjByName(NiDaq.NAME);
-            obj.counterTimeTask = niDaq.CreateDAQEdgeCountingMeas(obj, nCounts, obj.niDaqCountChannelName, niDaq.CHANNEL_100kHZ);
+            obj.counterTimeTask = CreateDAQEdgeCountingMeas(niDaq,  obj.nTimeCounts, obj.niDaqCountChannelName, niDaq.CHANNEL_100kHZ);
+            niDaq.startTask(obj.counterTimeTask);
         end
         
-        function kcps = readFromTime(obj)
+        function [kcps, stdev] = readFromTime(obj)
             % Reads from the SPCM for the integration time and returns a
             % single point which is the kcps.
-            daq = getObjByName(NiDaq.NAME);
-            daq.startTask(obj.counterTimeTask);
-            counts = diff(daq.ReadDAQCounter(obj.counterTimeTask, obj.nScanCounts, obj.counterIntegrationTime));
+            niDaq = getObjByName(NiDaq.NAME);
+            
+            counts = diff(niDaq.ReadDAQCounter(obj.counterTimeTask, obj.nTimeCounts, obj.counterIntegrationTime));
             kiloCounts = double(counts)/1000;
-            kcps = sum(kiloCounts)/obj.counterIntegrationTime;
+            meanTime = obj.counterIntegrationTime/obj.nTimeCounts;                  % mean time for each reading
+            kcps = mean(kiloCounts/meanTime);
+            stdev = std(kiloCounts/meanTime);
+%             SumSquareError = sum((kiloCounts/meanTime-kcps).^2);    % SSE
+%             stdev = sqrt(SumSquareError/length(kiloCounts));        % == RMS Error
         end
         
         function clearTimeRead(obj)
@@ -67,7 +71,7 @@ classdef NiDaqControlledSpcm < Spcm & NiDaqControlled
             end
             obj.nTimeCounts = 0;
             daq = getObjByName(NiDaq.NAME);
-            daq.endTask(obj.counterScanSPCMTask);
+            daq.endTask(obj.counterTimeTask);
         end
                 
         function prepareReadByStage(obj, stageName, nPixels, timeout, fastScan)
@@ -147,7 +151,7 @@ classdef NiDaqControlledSpcm < Spcm & NiDaqControlled
   
     methods(Static = true)
         function spcmObj = create(spcmName, spcmStruct)
-            missingField = FactoryHelper.usualChecks(spcmStruct, NiDaqControlledSpcm.NEEDED_FIELDS);
+            missingField = FactoryHelper.usualChecks(spcmStruct, NiDaqControlledSpcm.NEEDED_FIELDS_SPCM_DAQ);
             if ~isnan(missingField)
                 error('can''t init NiDaq-controlled SPCM - field "%s" not found in initation struct!', missingField);
             end
@@ -163,11 +167,11 @@ classdef NiDaqControlledSpcm < Spcm & NiDaqControlled
             % Creates the measurment in the DAQ according to the parameters
             % in the object.
             if obj.fastScan
-                obj.counterScanSPCMTask = niDaq.CreateDAQEdgeCountingMeas(obj.nScanCounts, obj.niDaqCountChannelName, obj.stageName);
-                obj.counterScanTimeTask = niDaq.CreateDAQEdgeCountingMeas(obj.nScanCounts, niDaq.CHANNEL_100MHZ, obj.stageName);
+                obj.counterScanSPCMTask = niDaq.CreateDAQEdgeCountingMeas(obj.nScanCounts, obj.niDaqCountChannelName, obj.stageName, 0);
+                obj.counterScanTimeTask = niDaq.CreateDAQEdgeCountingMeas(obj.nScanCounts, niDaq.CHANNEL_100MHZ, obj.stageName, 1);
             else
-                obj.counterScanSPCMTask = niDaq.CreateDAQPulseWidthMeas(obj.nScanCounts, obj.niDaqCountChannelName, obj.stageName);
-                obj.counterScanTimeTask = niDaq.CreateDAQPulseWidthMeas(obj.nScanCounts, niDaq.CHANNEL_100MHZ, obj.stageName);
+                obj.counterScanSPCMTask = niDaq.CreateDAQPulseWidthMeas(obj.nScanCounts, obj.niDaqCountChannelName, obj.stageName, 0);
+                obj.counterScanTimeTask = niDaq.CreateDAQPulseWidthMeas(obj.nScanCounts, niDaq.CHANNEL_100MHZ, obj.stageName, 1);
             end
         end
     end

@@ -62,7 +62,7 @@ classdef StageScanner < EventSender & Savable
         end
         
         function startScan(obj)
-            if isnan(obj.mStageName); obj.sendError('can''t start scan - unknown stage name! please call stageScanner.switchTo(your_stage_name) before calling stageScanner.startScan(). exiting'); end
+            if isnan(obj.mStageName); obj.sendError('Can''t start scan: unknown stage name! please call stageScanner.switchTo(your_stage_name) before calling stageScanner.startScan(). exiting'); end
             
             obj.mCurrentlyScanning = true;
             obj.sendEventScanStarting();
@@ -101,23 +101,28 @@ classdef StageScanner < EventSender & Savable
             spcm.setSPCMEnable(false);
             obj.mScan = kcpsScanMatrix;
             
-            %%%%% autoSave %%%%%
-            if obj.mStageScanParams.autoSave
-                currentScanParams = stage.scanParams;    % save current as temp
-                stage.scanParams = obj.mStageScanParams;  % revert to old ones
-                obj.autosaveAfterScan(); % so saving will be with the old scan parameters
-                stage.scanParams = currentScanParams;  % and... bring them back
-            end
+%             %%%%% autoSave %%%%%
+%             if obj.mStageScanParams.autoSave
+%                 currentScanParams = stage.scanParams;    % save current as temp
+%                 stage.scanParams = obj.mStageScanParams;  % revert to old ones
+%                 obj.autosaveAfterScan(); % so saving will be with the old scan parameters
+%                 stage.scanParams = currentScanParams;  % and... bring them back
+%             end
             
             scanStoppedManually = ~obj.mCurrentlyScanning; % maybe someone has changed this boolean meanwhile
             if scanStoppedManually
                 obj.sendEventScanStopped();
             else   
-                % autosave - when sending this event
-                obj.sendEventScanFinished();
+                % autosave - when sending this event there will be a save.
+                % so let's save with the correct scan parameters
+                currentScanParams = stage.scanParams;    % save current as temp
+                stage.scanParams = obj.mStageScanParams;  % revert to old ones
+                
+                obj.sendEventScanFinished();  % to be catched by the saveLoad
+                
+                stage.scanParams = currentScanParams;  % and... bring them back
+                
             end
-            % todo saveLoad catch this event for autosave
-            
         end
         
         
@@ -137,7 +142,7 @@ classdef StageScanner < EventSender & Savable
             nDimentions = sum(~scanParams.isFixed);
             switch nDimentions
                 case 0
-                    disp('Nothing to scan dude!');
+                    disp('Nothing to scan, dude!');
                     return;
                 case 1
                     % One dimensional scanning
@@ -209,6 +214,7 @@ classdef StageScanner < EventSender & Savable
                     try
                         if ~obj.mCurrentlyScanning
                             stage.AbortScan();
+                            spcm.clearScanRead();  % todo - added to try resolving the problem. wasn't here at the first place!
                             return
                         end
                         
@@ -281,15 +287,15 @@ classdef StageScanner < EventSender & Savable
             % ~~~~ preparing variables: ~~~~
             maxScanSize = stage.ReturnMaxScanSize(2);
             [axisAIndex, axisBIndex] = StageScanner.optimize2dScanDirections(maxScanSize, scanParams.copy);
-            axisCIndex = setdiff(ClassStage.GetAxis(ClassStage.SCAN_AXES), [axisAIndex, axisBIndex]);
+            axisCIndex = setdiff(ClassStage.getAxis(ClassStage.SCAN_AXES), [axisAIndex, axisBIndex]);
             % axis c is where the zero point is not moving throgh the scan
             isFlipped = axisAIndex > axisBIndex;  % (for example, if axis y is before axis x, than "isFlipped" == true)
             isFastScan = scanParams.fastScan;    % a boolean
             tPixel = scanParams.pixelTime;   % time for each pixel
             numPointsAxisA = scanParams.numPoints(axisAIndex);
             numLinesAxisB = scanParams.numPoints(axisBIndex);
-            letterAxisA = ClassStage.GetAxis(axisAIndex);
-            letterAxisB = ClassStage.GetAxis(axisBIndex);
+            letterAxisA = ClassStage.getAxis(axisAIndex);
+            letterAxisB = ClassStage.getAxis(axisBIndex);
             vectorAxisA = scanParams.getScanAxisVector(axisAIndex);
             vectorAxisB = scanParams.getScanAxisVector(axisBIndex);
             pointAxisC = scanParams.getScanAxisVector(axisCIndex);
@@ -389,7 +395,7 @@ classdef StageScanner < EventSender & Savable
                         obj.sendEventScanUpdated(kcpsMatrix);
                         break;
                     catch err
-                        %                       rethrow(err);  % Uncomment to debug
+%                         rethrow(err);  % Uncomment to debug
                         obj.sendWarning(err.message);
                         if ~obj.mCurrentlyScanning
                             stage.AbortScan();
@@ -398,7 +404,7 @@ classdef StageScanner < EventSender & Savable
                         
                         fprintf('Line %d failed at trial %d, attempting to rescan line.\n', i, trial);
                         
-                        if isFinishedLastLine
+                        if ~isFinishedLastLine
                             try
                                 stage.PrepareRescanLine(); % Prepare to rescan the line
                             catch err2
@@ -422,7 +428,7 @@ classdef StageScanner < EventSender & Savable
             for letter = ClassStage.SCAN_AXES
                 % iterate over the string "xyz" letter by letter
                 ll = lower(letter);
-                switch ClassStage.GetAxis(letter)
+                switch ClassStage.getAxis(letter)
                     case axisADirectionIndex
                         eval(sprintf('%s = axisAPointsPerLine;', ll));
                     case axisBDirectionIndex

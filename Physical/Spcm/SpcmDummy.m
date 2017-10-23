@@ -28,12 +28,13 @@ classdef SpcmDummy < Spcm
             obj.integrationTime = integrationTimeInSec;
         end
         
-        function kcps = readFromTime(obj)
+        function [kcps, std] = readFromTime(obj)
             if obj.integrationTime <= 0
                 obj.sendError('can''t call readFromTime() without calling obj.prepareReadByTime() first!');
             end
             pause(obj.integrationTime)
             kcps = randi([0 obj.MAX_RANDOM_READ],1,1);
+            std = randi([0 obj.MAX_RANDOM_READ],1,1)/sqrt(12);  % looks legit
         end
         
         function clearTimeRead(obj)

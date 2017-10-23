@@ -7,6 +7,7 @@ classdef GuiControllerTryViews < GuiController
        
     methods
         function obj = GuiControllerTryViews()
+            Setup.init;
             shouldConfirmOnExit = false;
             windowName = 'Gui Tester for Views';
             openOnlyOne = true;  
@@ -24,7 +25,7 @@ classdef GuiControllerTryViews < GuiController
             % can call any view constructor with the params:
             % parent=figureWindowParent, controller=obj
             
-            view = ViewSpcm(figureWindowParent, obj);
+            view = ViewSpcm_old(figureWindowParent, obj);
         end
         
         function onAboutToStart(obj)

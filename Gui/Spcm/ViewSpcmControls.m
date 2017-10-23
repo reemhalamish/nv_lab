@@ -1,6 +1,6 @@
 classdef ViewSpcmControls < ViewVBox & EventListener
-    %VIEWSPCMCONTROLS Summary of this class goes here
-    %   Detailed explanation goes here
+    %VIEWSPCMCONTROLS view for the controls of the time-read SPCM counter
+    %   
     
     properties
         btnStartStop
@@ -14,26 +14,24 @@ classdef ViewSpcmControls < ViewVBox & EventListener
             obj@ViewVBox(parent, controller);
             obj@EventListener(spcmCount.name);
             
-            hboxFirstRow =  uix.HBox('Parent', obj.component, ...
-                'Spacing', 3, 'Padding', 1);
             obj.btnStartStop = uicontrol(obj.PROP_BUTTON_BIG_GREEN{:}, ...
-                'Parent', hboxFirstRow, ...
+                'Parent', obj.component, ...
                 'String', 'todo: refresh');
             obj.btnReset = uicontrol(obj.PROP_BUTTON{:}, ...
-                'Parent', hboxFirstRow, ...
+                'Parent', obj.component, ...
                 'String', 'Reset');
-            hboxFirstRow.Widths = [-1 -1];
             
-            hboxSecondRow =  uix.HBox('Parent', obj.component, ...
-                'Spacing', 3, 'Padding', 1);
-            uix.Empty('Parent', hboxSecondRow);
-            uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxSecondRow, ...
-                'String', 'Integration (ms)');
-            obj.edtIntegrationTime = uicontrol(obj.PROP_EDIT{:}, ...
-                'Parent', hboxSecondRow, ...
-                'String', 'todo: refresh');
-            uix.Empty('Parent', hboxSecondRow);
-            hboxSecondRow.Widths = [-1 -1 -1 -1];
+                %%%% Integration time row %%%%
+                hboxIntegrationTime =  uix.HBox('Parent', obj.component, ...
+                    'Spacing', 3, 'Padding', 1);
+                uicontrol(obj.PROP_LABEL{:}, ...
+                    'Parent', hboxIntegrationTime, ...
+                    'String', 'Integration (ms)');
+                obj.edtIntegrationTime = uicontrol(obj.PROP_EDIT{:}, ...
+                    'Parent', hboxIntegrationTime, ...
+                    'String', 'todo: refresh');
+                hboxIntegrationTime.Widths = [-1 -1];
+            obj.component.Heights = [-1 -1 -1];
             
             obj.refresh;
             
@@ -42,8 +40,8 @@ classdef ViewSpcmControls < ViewVBox & EventListener
             obj.edtIntegrationTime.Callback = @obj.edtIntegrationTimeCallback;
             
             %%%% Define size %%%%
-            obj.width = 450;
-            obj.height = 60;
+            obj.width = 200;
+            obj.height = 150;
             
         end
         

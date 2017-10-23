@@ -31,7 +31,7 @@ classdef StageScanParams < handle
                 obj.fixedPos = zeros(1,length(ClassStage.SCAN_AXES));
                 obj.numPoints = 2 * ones(1,length(ClassStage.SCAN_AXES));
                 obj.isFixed = zeros(1,length(ClassStage.SCAN_AXES));
-                obj.pixelTime = 5;
+                obj.pixelTime = 0.015;
                 obj.continuous = false;
                 obj.fastScan = false;
                 obj.autoSave = false;
@@ -94,15 +94,15 @@ classdef StageScanParams < handle
             % newLimNeg, newLimPos - the new limits to consider
             % supports vectorial axis!
             % NO INPUT CHECKS!
-            axis = ClassStage.GetAxis(axis);
+            axis = ClassStage.getAxis(axis);
             oldFrom = obj.from;
             oldTo = obj.to;
             oldFixedPos = obj.fixedPos;
             
-            from_ = obj.from(axis);
-            from_(from_ > newLimPos) = newLimPos(from_ > newLimPos);
-            from_(from_ < newLimNeg) = newLimNeg(from_ < newLimNeg);
-            obj.from(axis) = from_;
+            fromTemp = obj.from(axis);
+            fromTemp(fromTemp > newLimPos) = newLimPos(fromTemp > newLimPos);
+            fromTemp(fromTemp < newLimNeg) = newLimNeg(fromTemp < newLimNeg);
+            obj.from(axis) = fromTemp;
             
             to_ = obj.to(axis);            
             to_(to_ > newLimPos) = newLimPos(to_ > newLimPos);

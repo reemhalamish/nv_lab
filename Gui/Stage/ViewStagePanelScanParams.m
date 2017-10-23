@@ -126,7 +126,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             % index - int. [1 to length(obj.stageAxes)] which view was changed
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
-            axis = ClassStage.GetAxis(obj.stageAxes(index));
+            axis = ClassStage.getAxis(obj.stageAxes(index));
             edtNumPointsI = obj.edtNumPoints(index);
             if ValidationHelper.isValuePositiveInteger(edtNumPointsI.String)
                 scanParams.numPoints(axis) = str2double(edtNumPointsI.String);
@@ -141,7 +141,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             % index - int. [1 to length(obj.stageAxes)] which view was changed
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
-            axis = ClassStage.GetAxis(obj.stageAxes(index));
+            axis = ClassStage.getAxis(obj.stageAxes(index));
             cbx = obj.cbxFixed(index);
             scanParams.isFixed(axis) = cbx.Value;
             obj.colorifyFixed(index);
@@ -163,7 +163,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             valueLimHalf = floor(str2double(valueLimStr)/2);
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
-            axis = ClassStage.GetAxis(obj.stageAxes(index));
+            axis = ClassStage.getAxis(obj.stageAxes(index));
             from = scanParams.fixedPos(axis) - valueLimHalf;
             to = scanParams.fixedPos(axis) + valueLimHalf;
             obj.edtFrom(index).String = from;
@@ -176,7 +176,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             % index - int. [1 to length(obj.stageAxes)] which view was changed
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
-            axis = ClassStage.GetAxis(obj.stageAxes(index));
+            axis = ClassStage.getAxis(obj.stageAxes(index));
             viewFrom = obj.edtFrom(index);
             if ~ValidationHelper.isStringValueANumber(viewFrom.String)
                 viewFrom.String = scanParams.from(axis);
@@ -215,7 +215,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             % index - int. [1 to length(obj.stageAxes)] which view was changed
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
-            axis = ClassStage.GetAxis(obj.stageAxes(index));
+            axis = ClassStage.getAxis(obj.stageAxes(index));
             viewTo = obj.edtTo(index);
             if ~ValidationHelper.isStringValueANumber(viewTo.String)
                 viewTo.String = scanParams.to(axis);
@@ -255,7 +255,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             % index - int. [1 to length(obj.stageAxes)] which view was changed
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
-            axis = ClassStage.GetAxis(obj.stageAxes(index));
+            axis = ClassStage.getAxis(obj.stageAxes(index));
             viewFixed = obj.edtFixedPos(index);
             if ~ValidationHelper.isStringValueANumber(viewFixed.String)
                 viewFixed.String = scanParams.fixedPos(axis);
@@ -284,7 +284,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
         
         function colorifyFixed(obj, index)
            % index - int. [1 to length(obj.stageAxes)] which view was changed
-           axis = ClassStage.GetAxis(obj.stageAxes(index));
+           axis = ClassStage.getAxis(obj.stageAxes(index));
            stage = getObjByName(obj.stageName);
            scanParams = stage.scanParams;
            if scanParams.isFixed(axis)
@@ -306,7 +306,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             
             for i = 1 : length(obj.stageAxes)
                 axis = obj.stageAxes(i);
-                axisIndex = ClassStage.GetAxis(axis);
+                axisIndex = ClassStage.getAxis(axis);
                 
                 % notice the difference:
                 % i - the index for the views

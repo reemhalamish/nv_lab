@@ -6,7 +6,7 @@ classdef AxesHelper
     end
     
     methods(Static = true)
-        function fillAxes(axesFig, data, dimNumber, firstAxisVector, secondAxisOptionalVector, bottomLabel, leftLabel)
+        function fillAxes(axesFig, data, dimNumber, firstAxisVector, secondAxisOptionalVector, bottomLabel, leftLabel, stdev)
             % fills axes with data - usefull for displaying the scan results on GUI views
             %
             %
@@ -20,25 +20,30 @@ classdef AxesHelper
             % leftLabel - string
             switch dimNumber
                 case 1
+                    if exist('stdev','var') && length(data)==length(stdev)
+                        errorbar(axesFig, firstAxisVector, data, stdev)
+                    else
                         plot(axesFig, firstAxisVector, data);
-                        xlabel(bottomLabel);
-                        ylabel(leftLabel);
-                    case 2
-                        % todo
-                        imagesc(...
-                            data, ...
-                            'XData', firstAxisVector, ...
-                            'YData', secondAxisOptionalVector, ...
-                            'Parent', axesFig);
-                        xlabel(bottomLabel);
-                        ylabel(leftLabel);
-                        axis xy tight normal
-                        axis manual
-                        c = colorbar('peer', axesFig, 'location', 'EastOutside');
-                        xlabel(c, 'kcps')
-                    otherwise
-                        EventStation.anonymousWarning('can''t understand and display scan with %s dimension numbers!', dimNumber);
-                        return
+                    end
+                    
+                    xlabel(axesFig,bottomLabel);
+                    ylabel(axesFig,leftLabel);
+                case 2
+                    % todo
+                    imagesc(...
+                        data, ...
+                        'XData', firstAxisVector, ...
+                        'YData', secondAxisOptionalVector, ...
+                        'Parent', axesFig);
+                    xlabel(axesFig,bottomLabel);
+                    ylabel(axesFig,leftLabel);
+                    axis xy tight normal
+                    axis manual
+                    c = colorbar('peer', axesFig, 'location', 'EastOutside');
+                    xlabel(c, 'kcps')
+                otherwise
+                    EventStation.anonymousWarning('Can''t understand and display %d-dimensional scan!', dimNumber);
+                    return
             end
         end
         

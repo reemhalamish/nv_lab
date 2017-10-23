@@ -119,7 +119,7 @@ classdef SaveLoad < Savable & EventSender
         end
                 
         function setFileName(obj, newFileName)
-            % change the file name to save the struct when needed
+            % change the file name to save the struct when needed, using obj.autoSave()
             % newFileName - only the file name, not full path!
             
             if ~ischar(newFileName)
@@ -175,8 +175,8 @@ classdef SaveLoad < Savable & EventSender
             eventStruct = struct(... 
                 obj.EVENT_STATUS_LOCAL_STRUCT, obj.mLocalStructStatus, ...
                 obj.EVENT_LOCAL_STRUCT, obj.mLocalSaveStruct, ...
-                obj.EVENT_FILENAME, obj.mLoadedFileName, ...
-                obj.EVENT_FOLDER, obj.mSavingFolder);
+                obj.EVENT_FILENAME, obj.mLoadedFileName ...
+            );
             obj.sendEvent(eventStruct);
         end
         
@@ -189,14 +189,13 @@ classdef SaveLoad < Savable & EventSender
 
             myStruct = obj.mLocalSaveStruct;
             if ~isstruct(myStruct)
-                warningMsg = 'no local struct has been loaded\saved. nothing to save! consider calling obj.saveSystemToLocalStruct() or obj.loadLocalFromStruct()';                obj.sendWarning(warningMsg);
-                return
+                errorMsg = 'no local struct has been loaded\saved. nothing to save! consider calling obj.saveSystemToLocalStruct() or obj.loadFileToLocal()';                
+                obj.sendError(errorMsg);
             end
             
             if ~endsWith(fileFullPath, SaveLoad.SAVE_FILE_SUFFIX)
-                warningMsg = sprintf('file suffix incorrct! (suffix needed:"%s", file to save: "%s"', obj.SAVE_FILE_SUFFIX, fileFullPath);
-                obj.sendWarning(warningMsg, struct(SaveLoad.EVENT_ERR_SUFFIX_INVALID, true, SaveLoad.EVENT_FILENAME, fileFullPath));
-                return
+                errorMsg = sprintf('file suffix incorrct! (suffix needed:"%s", file to save: "%s"', obj.SAVE_FILE_SUFFIX, fileFullPath);
+                obj.sendError(errorMsg, struct(SaveLoad.EVENT_ERR_SUFFIX_INVALID, true, SaveLoad.EVENT_FILENAME, fileFullPath));
             end
             
             if PathHelper.isFileExists(fileFullPath)
@@ -270,7 +269,7 @@ classdef SaveLoad < Savable & EventSender
             % loads the local struct into the system
             % subCategoryOptional - string. the subCat to load to
             if ~isstruct(obj.mLocalSaveStruct)
-                warningMsg = 'no local struct has been loaded\saved. nothing to save! consider calling obj.saveSystemToLocalStruct() or obj.loadLocalFromStruct()';
+                warningMsg = 'no local struct has been loaded\saved. nothing to save! consider calling obj.saveSystemToLocalStruct() or obj.loadFileToLocal()';
                 obj.sendWarning(warningMsg);
                 success = false;
                 return

@@ -489,7 +489,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         
         
         function sanityChecksRaiseErrorIfNeeded(obj, scanParams)
-            % Sanity checks on the scan parameters
+            % sanity checks on the scan parameters
             % the way: copy the scan parameters, call updateByLimit() on
             % the new object and see if something has changed.  
             % 
@@ -498,7 +498,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             [limNeg, limPos] = obj.ReturnLimits(obj.availableAxes);
             wasChange = scanParams.copy.updateByLimit(obj.availableAxes, limNeg, limPos);
             if wasChange
-                obj.sendError('Sanity checks on the scan parameters failed!');
+                obj.sendError('sanity checks on the scan parameters failed!');
             end
         end
         

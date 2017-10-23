@@ -1,6 +1,6 @@
 classdef ViewSpcmPlot < ViewHBox & EventListener
     %VIEWSPCMPLOT Shows recent readings of SPCM
-    %   Detailed explanation goes here
+    %   
     
     properties
         wrap            % positive integer, how many records in plot
@@ -10,11 +10,12 @@ classdef ViewSpcmPlot < ViewHBox & EventListener
         edtWrap
     end
     properties(Constant = true)
-        BOTTOM_LABEL = 'Result Number'; % Text for horiz. axis
-        LEFT_LABEL = 'kCounts/sec';     % Text for vert. axis
+        BOTTOM_LABEL = 'time [sec]'; % Text for horiz. axis
+        LEFT_LABEL = 'kcps';     % Text for vert. axis
         
-        DEFAULT_WRAP_VALUE = 50;        % Value of wrap set in initiation
+        DEFAULT_WRAP_VALUE = 50;    % Value of wrap set in initiation
         DEFAULT_USING_WRAP = true;  % boolean, does this window uses wrap
+        
     end
     
     methods
@@ -24,8 +25,9 @@ classdef ViewSpcmPlot < ViewHBox & EventListener
             obj.wrap = obj.DEFAULT_WRAP_VALUE;
             
             obj.vAxes = axes('Parent', obj.component, 'ActivePositionProperty', 'outerposition');
-            xlabel(obj.BOTTOM_LABEL);
-            ylabel(obj.LEFT_LABEL);
+            
+            xlabel(obj.vAxes,obj.BOTTOM_LABEL);
+            ylabel(obj.vAxes,obj.LEFT_LABEL);
             
             axes()
             %%%% Pane for wrapping data %%%%
@@ -47,7 +49,7 @@ classdef ViewSpcmPlot < ViewHBox & EventListener
             obj.component.Widths = [-1 70];
             
             %%%% Define size %%%%
-            obj.width = 450;            
+            obj.width = 650;            
             obj.height = 300;
             
         end
@@ -61,8 +63,8 @@ classdef ViewSpcmPlot < ViewHBox & EventListener
             obj.recolor(obj.edtWrap,~obj.isUsingWrap)
         end
         function edtWrapCallback(obj,~,~)
-            if ~ValidationHelper.isValuePositiveInteger()
-                EventStation.anonymousWarning('Wrap needs to be a positive integer. Reverting.')
+            if ~ValidationHelper.isValuePositiveInteger(obj.edtWrap.String)
+                EventStation.anonymousWarning('Wrap needs to be a positive integer! Reverting.')
                 obj.edtWrap.String = obj.wrap;
             end
             obj.wrap = str2double(obj.edtWrap.String);
@@ -77,22 +79,16 @@ classdef ViewSpcmPlot < ViewHBox & EventListener
             spcmCount = event.creator;
             if isfield(event.extraInfo, spcmCount.EVENT_SPCM_COUNTER_UPDATED)   % event = update
                 if obj.isUsingWrap
-                    xVector = 1:obj.wrap;
-                    position = length(spcmCount.records) - obj.wrap;    % where I should start taking values
-                                                                        % also, wrap = length(records) + remainder,
-                                                                        %       so remainder = -position
-                    if position<0
-                        data = [spcmCount.records NaN(1,-position-1) 0];        % implement better
-                    else
-                        data = spcmCount.records(position+1:end);
-                    end
+                    [time,kcps,std] = spcmCount.getRecords(obj.wrap);
                 else
-                    data = spcmCount.records;
-                    xVector = 1:length(data);
+                    [time,kcps,std] = spcmCount.getRecords;
                 end
                 dimNum = 1;
-                AxesHelper.fillAxes(obj.vAxes, data, dimNum, xVector, nan, obj.BOTTOM_LABEL, obj.LEFT_LABEL);
-                drawnow;
+                AxesHelper.fillAxes(obj.vAxes, kcps, dimNum, time, nan, obj.BOTTOM_LABEL, obj.LEFT_LABEL);   %Still requires std implementation
+                errorbar(obj.vAxes, time, kcps, std);   % needs to be inside $fillAxes
+                
+                set(obj.vAxes,'XLim',[-inf, inf]);  % Creates smooth "sweep" of data
+                drawnow;                            % consider using animatedline
             end
             if isfield(event.extraInfo, spcmCount.EVENT_SPCM_COUNTER_RESET)    % event = reset
                 line = obj.vAxes.Children;

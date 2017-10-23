@@ -17,7 +17,7 @@ classdef(Abstract) Spcm < EventSender
         prepareReadByTime(obj, integrationTimeInSec)
         
         % actually do the read - it takes "integrationTimeInSec" to do so
-        kcps = readFromTime(obj)
+        [kcps, std] = readFromTime(obj)
         
         % clear the reading task
         clearTimeRead(obj)
