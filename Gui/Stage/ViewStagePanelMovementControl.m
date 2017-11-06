@@ -103,19 +103,32 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             
             
             %%%% buttons (fix, query, halt) & joystick %%%%
-            lblSecondButton = BooleanHelper.ifTrueElse(enableEdt, 'Move To Blue', 'Send To Fixed');
-
             vboxRight = uix.VBox('Parent',hboxMain, 'Spacing', 6);
-            obj.btnMoveStageToFixedPos = uicontrol(obj.PROP_BUTTON{:}, 'Parent', vboxRight, 'String', 'Fix Position');
-            secondButton = uicontrol(obj.PROP_BUTTON{:}, 'Parent', vboxRight, 'String', lblSecondButton);
-            obj.btnHaltStage = uicontrol(obj.PROP_BUTTON_BIG_RED{:}, 'Parent', vboxRight, 'String', 'Halt Stages');
-            obj.cbxJoystick = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', vboxRight, 'String', 'Joystick');
-            vboxRight.Heights = [-5 -5 -5 -4];
-            rightSideTotalWidth = 120;
-            
-            if enableEdt
-                secondButton.Enable = 'off'; % the starting state - off
+            if enableEdt        % Stage is not scannable
+                obj.btnMoveToBlue = uicontrol(obj.PROP_BUTTON{:}, ...
+                    'Parent', vboxRight, ...
+                    'String', 'Move To Blue', ...
+                    'Enable', 'off');   % the starting state - off
+                heights = [-2 -2 -1];
+            else
+                obj.btnMoveStageToFixedPos = uicontrol(obj.PROP_BUTTON{:}, ...
+                    'Parent', vboxRight, ...
+                    'String', sprintf('Fixed \x2192 Current'), ...
+                    'TooltipString', 'Move stage to the fixed position');
+                obj.btnSendToFixed = uicontrol(obj.PROP_BUTTON{:}, ...
+                    'Parent', vboxRight, ...
+                    'String', sprintf('Current \x2192 Fixed'), ...
+                    'TooltipString', 'Set fixed position to atual stage position');
+                heights = [-5 -5 -5 -4];
             end
+            obj.btnHaltStage = uicontrol(obj.PROP_BUTTON_BIG_RED{:}, ...
+                'Parent', vboxRight, ...
+                'String', 'Halt Stages');
+            obj.cbxJoystick = uicontrol(obj.PROP_CHECKBOX{:}, ...
+                'Parent', vboxRight, ...
+                'String', 'Joystick');
+            vboxRight.Heights = heights;
+            rightSideTotalWidth = 120;
             
             %%%% set mainHbox widths %%%%
             widthsMain = [gridLeftWidthTotal, rightSideTotalWidth];
@@ -128,14 +141,12 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             obj.btnHaltStage.Callback = @(h,e) StageControlEvents.sendHalt;
             
             if enableEdt
-                obj.btnMoveToBlue = secondButton;
                 obj.btnMoveToBlue.Callback = @(h,e) obj.btnMoveToBlueCallback();
                 for i = 1 : axesLen
                     obj.tvCurPos(i).Callback = @(h,e) obj.tvCurPosCallback(i);
                     obj.edtCurPos(i).Callback = @(h,e) obj.checkEdtCurPosValue(i);
                 end
             else
-                obj.btnSendToFixed = secondButton;
                 obj.btnSendToFixed.Callback = @(h,e) obj.btnSendToFixedNonScanableCallback();
             end
             
@@ -159,7 +170,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             obj.edtSteps.String = stage.stepSize;
             currentPosition = stage.Pos(obj.stageAxes);
             for i = 1: length(obj.stageAxes)
-                obj.tvCurPos(i).String = currentPosition(i);
+                obj.tvCurPos(i).String = sprintf('%.3f',currentPosition(i));
             end
         end
         
@@ -285,7 +296,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             if event.isError ...
                     || isfield(event.extraInfo, ClassStage.EVENT_STEP_SIZE_CHANGED) ...
                     || isfield(event.extraInfo, ClassStage.EVENT_POSITION_CHANGED)
-            obj.refresh();
+                obj.refresh();
             end
         end
     end

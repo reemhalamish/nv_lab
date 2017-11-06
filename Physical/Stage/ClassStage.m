@@ -155,6 +155,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             obj.scanParams.to(axis) = limPos;
             obj.scanParams.isFixed = ones(1, ClassStage.SCAN_AXES_SIZE);    % all fixed except what the stage supports (look 3 lines below)
             obj.scanParams.isFixed(axis) = false;
+            obj.scanParams.fixedPos(axis) = obj.Pos(axis);
         end
         
         % wrapper for the static method getAxis
@@ -424,7 +425,11 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             obj.sanityChecksRaiseErrorIfNeeded(params);
             axes = obj.SCAN_AXES(find(params.isFixed)); %#ok<FNDSB>
             fixedPos = params.fixedPos(find(params.isFixed)); %#ok<FNDSB>
-            obj.move(axes, fixedPos);
+            if isempty(axes)
+                obj.sendError('At least one axis needs to be fixed for this operation')
+            else
+                obj.move(axes, fixedPos);
+            end
         end
         
         function move(obj, axis, pos)
@@ -456,7 +461,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             % degrees.
             try
                 if ~obj.tiltAvailable
-                    error('this stage doesn''t support tilt!');
+                    error('This stage doesn''t support tilt!');
                 end
                 
                 if ~ValidationHelper.isInBorders(thetaXZ, obj.TILT_MIN_LIM_DEG, obj.TILT_MAX_LIM_DEG)
@@ -478,7 +483,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             % sends an event
             try
                 if ~obj.tiltAvailable
-                    error('this stage doesn''t support tilt!');
+                    error('This stage doesn''t support tilt!');
                 end
                 obj.EnableTiltCorrection(enable);
                 obj.sendEvent(struct(obj.EVENT_TILT_CHANGED, true));
@@ -514,17 +519,17 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                 obj.scanParams = newValue;
                 obj.sendEventScanParamsChanged();
             else
-                obj.sendWarning('can only put object of type "StageScanParams"! ignoring');
+                obj.sendWarning('Can only put object of type "StageScanParams"! ignoring');
             end
         end
         
         function set.stepSize(obj, newValue)
             % validates the input, sets the newValue, sends an event
             if ~isnumeric(newValue)
-                obj.sendError('step size must be numeric!');
+                obj.sendError('Step size must be numeric!');
             end
             if newValue < obj.STEP_MINIMUM_SIZE
-                obj.sendError(sprintf('step size minimum is %d! (you tried %d)', obj.STEP_MINIMUM_SIZE, newValue));
+                obj.sendError(sprintf('Step size minimum is %d! (you tried %d)', obj.STEP_MINIMUM_SIZE, newValue));
             end
             
             obj.stepSize = newValue;
@@ -546,15 +551,15 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                 if zeroForLowerOneForUpper == 0
                     % lower lim should be in [hardLowerLim, softUpperLim]
                     if any(newValue < lowerHardLim) || any(newValue > upperSoftLim)
-                        error('new value out of limits! limits: [%d, %d]', lowerHardLim, upperSoftLim)
+                        error('New value is out of limits! limits: [%d, %d]', lowerHardLim, upperSoftLim)
                     end
                 elseif zeroForLowerOneForUpper == 1
                     % upper lim should be in [softLowerLim, hardUpperLim]
                     if any(newValue < lowerSoftLim) || any(newValue > upperHardLim)
-                        error('new value out of limits! limits: [%d, %d]', lowerSoftLim, upperHardLim)
+                        error('New value out of limits! limits: [%d, %d]', lowerSoftLim, upperHardLim)
                     end
                 else
-                    error('parameter "zeroForLowerOneForUpper" should only be 0 or 1')
+                    error('Parameter "zeroForLowerOneForUpper" should only be 0 or 1')
                 end
                 
                 
@@ -572,7 +577,6 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                     
                     if zeroForLowerOneForUpper
                         msgLimUpperOrLower = 'upper';
-                        
                     else
                         msgLimUpperOrLower = 'lower';
                     end

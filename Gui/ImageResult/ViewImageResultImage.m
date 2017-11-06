@@ -1,11 +1,15 @@
 classdef ViewImageResultImage < GuiComponent & EventListener & BaseObject
-    %VIEWSTAGESCANIMAGE view that shows the scan results
+    %VIEWIMAGERESULTIMAGE view that shows the scan results
     %   it is being used by other GUI components (such as the various
     %   options above it) as well as the StageScanner when it needs to
     %   duplicate the axes() object (which is obj.vAxes)
     
+    % todo: check why this does not call destructor when closed
+    
     properties
-        vAxes    % the axes view to use for the plotting
+        vAxes       % the axes view to use for the plotting
+%        vColorbar   % colorbar axes view. todo: implement. Without it
+%                       copying the colorbar will remove label
     end
     properties(Constant = true)
         NAME = 'ViewImageResultImage';
@@ -20,9 +24,9 @@ classdef ViewImageResultImage < GuiComponent & EventListener & BaseObject
             
             obj.component = uicontainer('parent', parent.component);
             obj.vAxes = axes('Parent', obj.component, 'ActivePositionProperty', 'outerposition');
-            
-            axes(); % creating floating axes() so that default calls to axes (such as image() surf() etc) won't reach this view but the invis floating one
+
             colorbar(obj.vAxes);
+            axes(); % creating floating axes() so that default calls to axes (such as image() surf() etc.) won't reach this view but the invis floating one
             
             % update the axes with a scan if exists
             stageScanner = getObjByName(StageScanner.NAME);
@@ -36,7 +40,6 @@ classdef ViewImageResultImage < GuiComponent & EventListener & BaseObject
                 AxesHelper.fillAxes(obj.vAxes, stageScanner.mScan, dim, firstAxis, secondOptionalAxis, botLabel, leftLabel);
                 obj.parent.vHeader.updateAxes(obj.vAxes);  % let the other views in the header draw on the axes
             end
-            
             
             obj.height = 600;   % minimum
             obj.width = 600;    % minimum

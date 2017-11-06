@@ -72,7 +72,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             end
             
             % 6th Column - "fixed position"
-            uicontrol(obj.PROP_LABEL{:}, 'Parent', gridScanParams, 'String', 'fixed');  % label
+            uicontrol(obj.PROP_LABEL{:}, 'Parent', gridScanParams, 'String', 'Fixed');  % label
             obj.edtFixedPos = gobjects(1,axesLength);
             for i = 1: axesLength
                 obj.edtFixedPos(i) = uicontrol(obj.PROP_EDIT{:}, 'Parent', gridScanParams);
@@ -104,9 +104,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             
             
             
-            
-            
-            %%%% set the callback %%%%
+            %%%% Set callbacks %%%%
             for i=1 : length(obj.stageAxes)
                 set(obj.edtFrom(i), 'Callback', @(h,e)obj.edtFromChangedCallback(i));
                 set(obj.edtTo(i), 'Callback', @(h,e)obj.edtToChangedCallback(i));
@@ -115,7 +113,6 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
                 set(obj.edtFixedPos(i), 'Callback', @(h,e)obj.edtFixedChangedCallback(i));
                 set(obj.edtScanAround(i), 'Callback', @(h,e)obj.setAroundCallback(i));
                 set(obj.btnScanAroundSet(i), 'Callback', @(h,e)obj.setAroundCallback(i));
-                
             end
             
             %%%% init values into fields %%%%
@@ -180,35 +177,22 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             viewFrom = obj.edtFrom(index);
             if ~ValidationHelper.isStringValueANumber(viewFrom.String)
                 viewFrom.String = scanParams.from(axis);
-                obj.sendError('Only numbers can be accepted! reverting.');
+                obj.sendError('Only numbers can be accepted! Reverting.');
             end
             from = str2double(viewFrom.String);
             [lowerBound, upperBound] = stage.ReturnLimits(axis);
             if ~ValidationHelper.isInBorders(from, lowerBound, upperBound)
                 warningMsg = sprintf( ...
-                    '"from" (index: %s) is not in bounds! setting it to the bound...\n(bounds: [%d, %d])', ...
+                    '"from" (index: %s) is not in bounds! Reverting.\n(bounds: [%d, %d])', ...
                     obj.stageAxes(index), ...
                     lowerBound, ...
                     upperBound);
+                from = scanParams.from(axis);
                 obj.sendWarning(warningMsg);
-                if from > upperBound
-                    from = upperBound;
-                else
-                    from = lowerBound;
-                end
             end
-            
-            if from > scanParams.to(axis)
-                errorMsg = sprintf('"from" (index: %s) is bigger than "to"! reverting.\n(from: %d, to: %d)', ...
-                    obj.stageAxes(index), ...
-                    from, ...
-                    scanParams.to(axis));
-                viewFrom.String = scanParams.from(axis);
-                obj.sendError(errorMsg);
-            end
+
             scanParams.from(axis) = from;
             viewFrom.String = from;
-            
         end
         
         function edtToChangedCallback(obj, index)
@@ -219,31 +203,18 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             viewTo = obj.edtTo(index);
             if ~ValidationHelper.isStringValueANumber(viewTo.String)
                 viewTo.String = scanParams.to(axis);
-                obj.sendError('Only numbers can be accepted! reverting.');
+                obj.sendError('Only numbers can be accepted! Reverting.');
             end
             to = str2double(viewTo.String);
             [lowerBound, upperBound] = stage.ReturnLimits(axis);
             if ~ValidationHelper.isInBorders(to, lowerBound, upperBound)
                 warningMsg = sprintf( ...
-                    '"to" (index: %s) is not in bounds! setting it to the bound...\n(bounds: [%d, %d])', ...
+                    '"to" (index: %s) is not in bounds! Reverting.\n(bounds: [%d, %d])', ...
                     obj.stageAxes(index), ...
                     lowerBound, ...
                     upperBound);
+                to = scanParams.to(axis);                
                 obj.sendWarning(warningMsg);
-                if to > upperBound
-                    to = upperBound;
-                else
-                    to = lowerBound;
-                end
-            end
-            
-            if to < scanParams.from(axis)
-                errorMsg = sprintf('"to" (index: %s) is lower than "from"! reverting.\n(to: %d, from: %d)', ...
-                    obj.stageAxes(index), ...
-                    to, ...
-                    scanParams.from(axis));
-                viewTo.String = scanParams.to(axis);
-                obj.sendError(errorMsg);
             end
             
             scanParams.to(axis) = to;
@@ -287,17 +258,12 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
            axis = ClassStage.getAxis(obj.stageAxes(index));
            stage = getObjByName(obj.stageName);
            scanParams = stage.scanParams;
-           if scanParams.isFixed(axis)
-               set([obj.edtFrom(index), obj.edtTo(index), obj.edtNumPoints(index)], 'BackgroundColor', obj.COLOR_ENABLE_OFF_BG);
-               set([obj.edtFrom(index), obj.edtTo(index), obj.edtNumPoints(index)], 'ForegroundColor', obj.COLOR_ENABLE_OFF_FG);
-               set(obj.edtFixedPos(index), 'BackgroundColor', 'white');
-               set(obj.edtFixedPos(index), 'ForegroundColor', 'black');
-           else
-               set([obj.edtFrom(index), obj.edtTo(index), obj.edtNumPoints(index)], 'BackgroundColor', 'white');
-               set([obj.edtFrom(index), obj.edtTo(index), obj.edtNumPoints(index)], 'ForegroundColor', 'black');
-               set(obj.edtFixedPos(index), 'BackgroundColor', obj.COLOR_ENABLE_OFF_BG);
-               set(obj.edtFixedPos(index), 'ForegroundColor', obj.COLOR_ENABLE_OFF_FG);
-           end
+           axisIsFixed = scanParams.isFixed(axis);
+           
+           obj.recolor( ...     % Grays out if second parameter is true, reverts -- if false
+               [obj.edtFrom(index), obj.edtTo(index), obj.edtNumPoints(index)], ...
+               axisIsFixed);
+           obj.recolor(obj.edtFixedPos(index), ~axisIsFixed);
         end
         
         function refresh(obj)
@@ -320,7 +286,8 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
                 obj.edtTo(i).String = scanParams.to(axisIndex);
                 obj.edtNumPoints(i).String = scanParams.numPoints(axisIndex);
                 obj.cbxFixed(i).Value = scanParams.isFixed(axisIndex);
-                obj.edtFixedPos(i).String = scanParams.fixedPos(axisIndex);
+                fixedPos = sprintf('%.3f',scanParams.fixedPos(axisIndex));  % cast to string before removing trailing zeros
+                obj.edtFixedPos(i).String = StringHelper.removeTrailingZeros(fixedPos);
                 
                 obj.colorifyFixed(i);
             end
