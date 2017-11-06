@@ -37,20 +37,20 @@ classdef ViewStagePanelTiltCorrection < GuiComponent & EventListener
             obj.btnTiltCalculator = uicontrol(obj.PROP_BUTTON{:}, 'Parent', gridTilt, 'String', 'Calculator');
             
             hboxThetaX = uix.HBox('Parent', gridTilt, 'Spacing', 0, 'Padding', 0);
-            labelStr = '<html><body style="background-color:black;"><font color="white" size=4>&Theta XZ</body></html>';
+            labelStr = '<html><body style="background-color:black;"><font color="white" size=4>&nbsp;&theta<sub>XZ</sub>&nbsp;</body></html>';
             jLabel = javaObjectEDT('javax.swing.JLabel',labelStr);
             javacomponent(jLabel,[100,100,40,20],hboxThetaX);
             % uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxThetaX, 'String', 'ThetaX');  % label
             obj.edtThetaX = uicontrol(obj.PROP_EDIT{:}, 'Parent', hboxThetaX);
-            hboxThetaX.Widths = [34 -1];
+            hboxThetaX.Widths = [32 -1];
             
             hboxThetaY = uix.HBox('Parent', gridTilt, 'Spacing', 0, 'Padding', 0);
             % uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxThetaY, 'String', 'ThetaY');  % label
-            labelStr = '<html><body style="background-color:black;"><font color="white" size=4>&Theta YZ</body></html>';
+            labelStr = '<html><body style="background-color:black;"><font color="white" size=4>&nbsp;&theta<sub>YZ</sub>&nbsp;</body></html>';
             jLabel = javaObjectEDT('javax.swing.JLabel',labelStr);
             javacomponent(jLabel,[100,100,40,20],hboxThetaY);
             obj.edtThetaY = uicontrol(obj.PROP_EDIT{:}, 'Parent', hboxThetaY);
-            hboxThetaY.Widths = [34 -1];
+            hboxThetaY.Widths = [32 -1];
             
             gridTiltHeights = [-1 -1 -1 -1];
             tiltWidth = 80;
@@ -121,18 +121,8 @@ classdef ViewStagePanelTiltCorrection < GuiComponent & EventListener
         end
         
         function colorifybyCheckbox(obj)
-            cbxIsOn = obj.cbxEnable.Value;
-            if cbxIsOn
-                obj.edtThetaX.BackgroundColor = 'white';
-                obj.edtThetaY.BackgroundColor = 'white';
-                obj.edtThetaX.ForegroundColor = 'black';
-                obj.edtThetaY.ForegroundColor = 'black';
-            else
-                obj.edtThetaX.BackgroundColor = obj.COLOR_ENABLE_OFF_BG;
-                obj.edtThetaY.BackgroundColor = obj.COLOR_ENABLE_OFF_BG;
-                obj.edtThetaX.ForegroundColor = obj.COLOR_ENABLE_OFF_FG;
-                obj.edtThetaY.ForegroundColor = obj.COLOR_ENABLE_OFF_FG;
-            end
+            cbxIsOff = ~obj.cbxEnable.Value;
+            obj.recolor([obj.edtThetaX, obj.edtThetaY], cbxIsOff)
         end
     end
     

@@ -101,11 +101,14 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
         function btnScanCallback(obj)
             scanner = getObjByName(StageScanner.NAME);
             scanner.switchTo(obj.stageName);
+            obj.btnScan.Enable = 'off'; % Can't be pressed while scan is running
             scanner.startScan();
+            obj.btnScan.Enable = 'on';
         end
         function btnStopScanCallback(obj)
             scanner = getObjByName(StageScanner.NAME);
             scanner.stopScan();
+            obj.btnScan.Enable = 'on';  % If scan was aborted by error
         end
     end
     

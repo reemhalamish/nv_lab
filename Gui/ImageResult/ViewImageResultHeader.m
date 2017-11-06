@@ -30,9 +30,10 @@ classdef ViewImageResultHeader < ViewHBox
         end
         
         function updateAxes(obj, axesFigure)
+            % maybe replace loop with cellfun
             for cvCell = obj.views
                 childView = cvCell{:};
-                todo = 'let the children do whatever with the axes';
+                childView.update;
             end
         end
     end

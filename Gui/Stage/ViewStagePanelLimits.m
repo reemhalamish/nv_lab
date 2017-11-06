@@ -29,10 +29,9 @@ classdef ViewStagePanelLimits < GuiComponent & EventListener
             obj@EventListener(stage.name);
             obj.stageName = stage.name;
             obj.stageAxes = stage.availableAxes;
+            
             axesLen = length(obj.stageAxes);
             stage = getObjByName(obj.stageName);
-            [limNeg, limPos] = stage.ReturnLimits(stage.SCAN_AXES);
-            
             
             %%%% panel init %%%%
             panelLimits = uix.Panel('Parent', parent.component,'Title','Stage Limits', 'Padding', 5);
@@ -50,18 +49,19 @@ classdef ViewStagePanelLimits < GuiComponent & EventListener
             % 2nd column: lower lim
             uicontrol(obj.PROP_LABEL{:}, 'Parent', gridLeftSide, 'String', 'Lower');
             obj.edtLower = gobjects(1,axesLen);
-            
             for i = 1: axesLen
-                axis = ClassStage.GetAxis(obj.stageAxes(i));
-                obj.edtLower(i) = uicontrol(obj.PROP_EDIT{:}, 'Parent', gridLeftSide, 'String', limNeg(axis));
+                axis = ClassStage.getAxis(obj.stageAxes(i));
+                [limNeg, ~] = stage.ReturnLimits(axis);
+                obj.edtLower(i) = uicontrol(obj.PROP_EDIT{:}, 'Parent', gridLeftSide, 'String', limNeg);
             end
             
             % 3rd column: upper lim
             uicontrol(obj.PROP_LABEL{:}, 'Parent', gridLeftSide, 'String', 'Upper');
             obj.edtUpper = gobjects(1,axesLen);
             for i = 1: axesLen
-                axis = ClassStage.GetAxis(obj.stageAxes(i));
-                obj.edtUpper(i) = uicontrol(obj.PROP_EDIT{:}, 'Parent', gridLeftSide, 'String', limPos(axis));
+                axis = ClassStage.getAxis(obj.stageAxes(i));
+                [~, limPos] = stage.ReturnLimits(axis);
+                obj.edtUpper(i) = uicontrol(obj.PROP_EDIT{:}, 'Parent', gridLeftSide, 'String', limPos);
             end
             
             gridWidths = [15 50 50];
@@ -132,19 +132,20 @@ classdef ViewStagePanelLimits < GuiComponent & EventListener
             % refresh the info shown in the GUI based on values from the
             % stage
             stage = getObjByName(obj.stageName);
-            [limNeg, limPos] = stage.ReturnLimits(stage.SCAN_AXES);
-            
-            for i = 1 : length(obj.stageAxes)
-                axis = ClassStage.GetAxis(obj.stageAxes(i));
-                obj.edtLower(i).String = limNeg(axis);
-                obj.edtUpper(i).String = limPos(axis);
+                        
+            for i = 1 : length(stage.availableAxes)
+                axis = ClassStage.getAxis(stage.availableAxes(i));
+                [limNeg, limPos] = stage.ReturnLimits(axis);
+
+                obj.edtLower(i).String = limNeg;
+                obj.edtUpper(i).String = limPos;
             end
         end
         
         function edtLowerLimitCallback(obj, index)
             % index - int. [1 to length(obj.stageAxes)] which view was changed
             stage = getObjByName(obj.stageName);
-            axis = ClassStage.GetAxis(obj.stageAxes(index));
+            axis = ClassStage.getAxis(obj.stageAxes(index));
             [limNeg, limPos] = stage.ReturnLimits(axis);
             [negHardLimit, posHardLimit] = stage.ReturnHardLimits(axis);
             
@@ -171,7 +172,7 @@ classdef ViewStagePanelLimits < GuiComponent & EventListener
         function edtUpperLimitCallback(obj, index)
             % index - int. [1 to length(obj.stageAxes)] which view was changed
             stage = getObjByName(obj.stageName);
-            axis = ClassStage.GetAxis(obj.stageAxes(index));
+            axis = ClassStage.getAxis(obj.stageAxes(index));
             [limNeg, limPos] = stage.ReturnLimits(axis);
             [negHardLimit, posHardLimit] = stage.ReturnHardLimits(axis);
             
@@ -208,7 +209,7 @@ classdef ViewStagePanelLimits < GuiComponent & EventListener
             around = str2double(around);
             
             for i = 1 : length(obj.stageAxes)
-                axis = ClassStage.GetAxis(obj.stageAxes(i));
+                axis = ClassStage.getAxis(obj.stageAxes(i));
                 curPosition = stage.Pos(axis);
                 if obj.cbxAxis(i).Value
                     if obj.cbxLowerLim.Value % set the lower lim
@@ -227,7 +228,7 @@ classdef ViewStagePanelLimits < GuiComponent & EventListener
             % sets the stage limits to the current stage position
             stage = getObjByName(obj.stageName); 
             for i = 1 : length(obj.stageAxes)
-                axis = ClassStage.GetAxis(obj.stageAxes(i));
+                axis = ClassStage.getAxis(obj.stageAxes(i));
                 curPos = stage.Pos(axis);
                 if obj.cbxAxis(i).Value
                     if obj.cbxLowerLim.Value % set the lower lim
@@ -244,7 +245,7 @@ classdef ViewStagePanelLimits < GuiComponent & EventListener
             % sets the stage limits to their maximum avaliability
             stage = getObjByName(obj.stageName); 
             for i = 1 : length(obj.stageAxes)
-                axis = ClassStage.GetAxis(obj.stageAxes(i));
+                axis = ClassStage.getAxis(obj.stageAxes(i));
                 [limHardNeg, limHardPos] = stage.ReturnHardLimits(axis);
                 if obj.cbxAxis(i).Value
                     if obj.cbxLowerLim.Value % set the lower lim

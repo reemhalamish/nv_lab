@@ -11,6 +11,7 @@ classdef ViewImageResult < ViewVBox
         function obj = ViewImageResult(parent, controller)
             obj@ViewVBox(parent, controller);
             obj.vHeader = ViewImageResultHeader(obj, controller);
+            try removeBaseObject(ViewImageResultImage.NAME); catch; end;
             obj.vImage = ViewImageResultImage(obj, controller);
             
             obj.height = obj.vHeader.height + obj.vImage.height + 10;
@@ -21,8 +22,8 @@ classdef ViewImageResult < ViewVBox
     end
     
     methods(Static = true)
-        % get the axes() in the GUI figure
         function axesFig = getAxes
+            % get the axes() in the GUI figure
             view = getObjByName(ViewImageResultImage.NAME);
             axesFig = view.vAxes;
         end
