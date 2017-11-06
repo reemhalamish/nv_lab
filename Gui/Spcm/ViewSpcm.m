@@ -23,7 +23,7 @@ classdef ViewSpcm < ViewVBox & EventListener
     end
     
     methods
-        function obj = ViewSpcm(parent, controller)
+        function obj = ViewSpcm(parent, controller, heightOpt, widthOpt)
             padding = 5;
             obj@ViewVBox(parent, controller, padding);
             spcmCount = getObjByName(SpcmCounter.NAME);
@@ -90,9 +90,14 @@ classdef ViewSpcm < ViewVBox & EventListener
 
             obj.refresh;
             
-        %%%% Define size %%%%            
-            obj.height = 500;
-            obj.width = 850;
+            %%%% Define size %%%%
+            if ~exist('heightOpt','var') ||  ~exist('widthOpt','var')
+                obj.height = 500;
+                obj.width = 850;
+            else
+                obj.height = heightOpt;
+                obj.width = widthOpt;
+            end
 
             controlsHeight = 80;
             obj.setHeights([-1, controlsHeight]);
@@ -122,6 +127,7 @@ classdef ViewSpcm < ViewVBox & EventListener
         %%%% Callbacks %%%%
         function cbxUsingWrapCallback(obj,~,~)
             obj.recolor(obj.edtWrap,~obj.isUsingWrap)
+            obj.refresh;
         end
         function edtWrapCallback(obj,~,~)
             if ~ValidationHelper.isValuePositiveInteger(obj.edtWrap.String)
@@ -129,6 +135,7 @@ classdef ViewSpcm < ViewVBox & EventListener
                 obj.edtWrap.String = obj.wrap;
             end
             obj.wrap = str2double(obj.edtWrap.String);
+            obj.refresh;
         end
         function btnStartCallback(~,~,~)
             spcmCount = getObjByName(SpcmCounter.NAME);
