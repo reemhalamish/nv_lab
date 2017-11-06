@@ -121,8 +121,8 @@ classdef SpcmCounterSavable < EventSender & Savable
                 % subCategory - string. could be empty string
     
                 if ~strcmp(category,Savable.CATEGORY_IMAGE) || ...
-                        ~strcmp(subCategory,obj.SAVABLE_RECORDS ...  % reem - the sub-category is defined in Savable, it has nothing to do with a specific object!
-                        )
+                        ~strcmp(subCategory,{Savable.SUBCETGEORY_RECORDS, ... 
+                        Savable.SUBCETGEORY_DEFAULT})
                     return;
                 end
     

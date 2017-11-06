@@ -10,11 +10,12 @@ classdef ViewSpcmPlot < ViewHBox & EventListener
         edtWrap
     end
     properties(Constant = true)
-        BOTTOM_LABEL = 'Result Number'; % Text for horiz. axis
-        LEFT_LABEL = 'kCounts/sec';     % Text for vert. axis
+        BOTTOM_LABEL = 'time [sec]'; % Text for horiz. axis
+        LEFT_LABEL = 'kcps';     % Text for vert. axis
         
-        DEFAULT_WRAP_VALUE = 50;        % Value of wrap set in initiation
+        DEFAULT_WRAP_VALUE = 50;    % Value of wrap set in initiation
         DEFAULT_USING_WRAP = true;  % boolean, does this window uses wrap
+        
     end
     
     methods
@@ -24,6 +25,7 @@ classdef ViewSpcmPlot < ViewHBox & EventListener
             obj.wrap = obj.DEFAULT_WRAP_VALUE;
             
             obj.vAxes = axes('Parent', obj.component, 'ActivePositionProperty', 'outerposition');
+            
             xlabel(obj.vAxes,obj.BOTTOM_LABEL);
             ylabel(obj.vAxes,obj.LEFT_LABEL);
             
@@ -77,24 +79,16 @@ classdef ViewSpcmPlot < ViewHBox & EventListener
             spcmCount = event.creator;
             if isfield(event.extraInfo, spcmCount.EVENT_SPCM_COUNTER_UPDATED)   % event = update
                 if obj.isUsingWrap
-                    xVector = 1:obj.wrap;
-                    difference = length(spcmCount.records) - obj.wrap;
-                    if difference < 0
-                        padding = abs(difference) - 1;
-                        data = [spcmCount.records NaN(1,padding) 0];
-                    elseif length(spcmCount.records) == obj.wrap
-                        data = spcmCount.records;
-                    else
-                        position = difference + 1;                        
-                        data = spcmCount.records(position:end);
-                    end
+                    [time,kcps,std] = spcmCount.getRecords(obj.wrap);
                 else
-                    data = spcmCount.records;
-                    xVector = 1:length(data);
+                    [time,kcps,std] = spcmCount.getRecords;
                 end
                 dimNum = 1;
-                AxesHelper.fillAxes(obj.vAxes, data, dimNum, xVector, nan, obj.BOTTOM_LABEL, obj.LEFT_LABEL);
-                drawnow;
+                AxesHelper.fillAxes(obj.vAxes, kcps, dimNum, time, nan, obj.BOTTOM_LABEL, obj.LEFT_LABEL);   %Still requires std implementation
+                errorbar(obj.vAxes, time, kcps, std);   % needs to be inside $fillAxes
+                
+                set(obj.vAxes,'XLim',[-inf, inf]);  % Creates smooth "sweep" of data
+                drawnow;                            % consider using animatedline
             end
             if isfield(event.extraInfo, spcmCount.EVENT_SPCM_COUNTER_RESET)    % event = reset
                 line = obj.vAxes.Children;
