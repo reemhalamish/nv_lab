@@ -97,7 +97,6 @@ classdef (Abstract) Savable < BaseObject
     methods
         % destructor
         function delete(obj)
-            % why not call baseobject?
             if JsonInfoReader.getJson.debugMode
                 fprintf('deleting savable object "%s" of type %s\n', obj.name, class(obj));
             end

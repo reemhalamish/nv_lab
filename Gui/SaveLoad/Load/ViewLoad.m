@@ -54,7 +54,7 @@ classdef ViewLoad < ViewVBox & EventListener
             hbox3rdRow = uix.HBox('Parent', obj.component, 'Spacing', 15);
             labels = obj.getDisplayLoadToSystemButtons(saveLoadCategory);
             subCats = obj.getSubCategoriesForLoadToSystemButtons(saveLoadCategory);
-            if length(labels) ~= length(subCats); error('lengths must be same! coding work must be done here please. category: %s', saveLoadCategory); end
+            if length(labels) ~= length(subCats); error('Lengths must be same! Coding work must be done here please. category: %s', saveLoadCategory); end
             len = length(labels);
             obj.btnLoadToSystem = gobjects(1, len);
             for i = 1 : len

@@ -37,9 +37,9 @@ classdef AxesHelper
                         'Parent', axesFig);
                     xlabel(axesFig,bottomLabel);
                     ylabel(axesFig,leftLabel);
-                    axis xy tight normal
-                    axis manual
-                    c = colorbar('peer', axesFig, 'location', 'EastOutside');
+                    axis(axesFig,'xy','tight','normal')
+                    axis(axesFig,'manual')
+                    c = colorbar('peer', axesFig, 'location', 'EastOutside');   % todo: peer is outdated
                     xlabel(c, 'kcps')
                 otherwise
                     EventStation.anonymousWarning('Can''t understand and display %d-dimensional scan!', dimNumber);
