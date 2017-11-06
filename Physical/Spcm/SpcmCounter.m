@@ -29,13 +29,15 @@ classdef SpcmCounter < EventSender
         
         NAME = 'SpcmCounter';
         INTEGRATION_TIME_DEFAULT_MILLISEC = 100;
+        DEFAULT_EMPTY_STRUCT = struct('time',0,'kcps',NaN,'std',NaN);
+        ZERO_STRUCT = struct('time',0,'kcps',0,'std',0);
     end
     
     methods
         function obj = SpcmCounter
             obj@EventSender(SpcmCounter.NAME);
             obj.integrationTimeMillisec = obj.INTEGRATION_TIME_DEFAULT_MILLISEC;
-            obj.records = [];
+            obj.records = obj.DEFAULT_EMPTY_STRUCT;
             obj.isOn = false;
         end
         
@@ -45,7 +47,7 @@ classdef SpcmCounter < EventSender
         function sendEventStopped(obj); obj.sendEvent(struct(obj.EVENT_SPCM_COUNTER_STOPPED,true));end
         
         function run(obj)
-            obj.isOn = true;    % redundant?
+            obj.isOn = true;
             obj.sendEventStarted;
             integrationTime = obj.integrationTimeMillisec;
             
@@ -53,8 +55,12 @@ classdef SpcmCounter < EventSender
             spcm.setSPCMEnable(true);
             spcm.prepareReadByTime(integrationTime/1000);
             while obj.isOn
-                temp = spcm.readFromTime;       % takes time; maybe reset in the meantime
-                obj.records(end + 1) = temp;    
+                % creating data to be saved
+                [kcps,std] = spcm.readFromTime;
+                %%%% replace with obj.newRecord(time,kcps,std)
+                    time = obj.records(end).time + integrationTime/1000;
+                    obj.records(end + 1) = struct('time',time,'kcps',kcps,'std',std);
+                %%%% (upto here)
                 obj.sendEventUpdated;
                 if integrationTime ~= obj.integrationTimeMillisec
                     integrationTime = obj.integrationTimeMillisec;
@@ -73,8 +79,39 @@ classdef SpcmCounter < EventSender
         end
         
         function reset(obj)
-            obj.records = [];
+            obj.records = obj.DEFAULT_EMPTY_STRUCT;
             obj.sendEventReset;
+        end
+        
+        function newRecord(obj,time,kpcs,std) %#ok<INUSD>
+            % creates new record in a struct of the type "record" =
+            % record.{time,kcps,std}, with proper validation.
+        end
+        
+        function [time,kcps,std] = getRecords(obj,lenOpt)
+            lenRecords = length(obj.records);
+            if ~exist('lenOpt','var')
+                lenOpt = lenRecords;
+            end
+            
+            difference = lenRecords - lenOpt;
+            if difference < 0
+                padding = abs(difference) - 1;
+                maxTime = lenOpt*obj.integrationTimeMillisec/1000;  % Create time for end of wrap
+                zeroStruct = struct('time', maxTime, 'kcps', 0, 'std', 0);
+                data = [obj.records, ...
+                    repelem(obj.DEFAULT_EMPTY_STRUCT,padding), ...
+                    zeroStruct];
+            elseif difference == 0
+                data = obj.records;
+            else
+                position = difference + 1;
+                data = obj.records(position:end);
+            end
+            
+            time = [data.time];
+            kcps = [data.kcps];
+            std = [data.std];
         end
     end
     
