@@ -18,9 +18,15 @@ classdef GuiControllerImage < GuiController
             view = ViewMainImage(figureWindowParent, obj);
         end
         
+        function onStarted(obj)
+            obj.windowMinHeight = 1;
+            obj.windowMinWidth = 1;
+        end
+        
         function onClose(obj)
             % callback. things to run when need to close the GUI.
-            StageControlEvents.sendCloseConnection;
+%             StageControlEvents.sendCloseConnection;
+                        % requires GUI for closing connection demand
         end
     end
     

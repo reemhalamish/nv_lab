@@ -26,19 +26,15 @@ classdef GuiControllerSpcmCounter < GuiController
             obj.moveToMiddleOfScreen();
         end
         
-        function onStarted(obj)
-            % callback. thigs to run after the window is already started
-            % and running.
-            % child classes can override this method
-            drawnow;
-        end
-        
         function onClose(obj)
             % callback. things to run when need to close the GUI.
             spcmCounter = getObjByName(SpcmCounter.NAME);
             if ~spcmCounter.isOn; return; end
             EventStation.anonymousWarning('SPCM Counter is now turned off');
             spcmCounter.stop;
+            spcmCounter.reset;
+                % maybe implement static property of class that counts
+                % instances
         end
     end
     

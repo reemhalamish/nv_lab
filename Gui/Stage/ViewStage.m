@@ -5,8 +5,6 @@ classdef ViewStage < ViewVBox
     %   2. movement control
     
     properties
-        vScan       % view responsible for the scan area
-        vMovement   % view responsible for the movement control
     end
     
     methods

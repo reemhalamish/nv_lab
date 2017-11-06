@@ -75,19 +75,24 @@ classdef GuiController < handle
                 sprintf('%s is already open!', obj.windowName);
                 figure(openAlready);
             else
-                obj.figureWindow = obj.createNewFigureInvis();
-                screenSize = get(groot, 'MonitorPositions');
-                obj.screenWidth = screenSize(obj.POSITION_INDEX_WIDTH);
-                obj.screenHeight = screenSize(obj.POSITION_INDEX_HEIGHT);
-                
-                dummyGuiComponent.component = obj.figureWindow;
-                mainView = obj.getMainView(dummyGuiComponent);
-                obj.windowMinHeight = mainView.height;
-                obj.windowMinWidth = mainView.width;
-                
-                obj.onAboutToStart();
-                obj.figureWindow.Visible = 'on';
-                obj.onStarted();
+                try
+                    obj.figureWindow = obj.createNewFigureInvis();
+                    screenSize = get(groot, 'MonitorPositions');
+                    obj.screenWidth = screenSize(obj.POSITION_INDEX_WIDTH);
+                    obj.screenHeight = screenSize(obj.POSITION_INDEX_HEIGHT);
+                    
+                    dummyGuiComponent.component = obj.figureWindow;
+                    mainView = obj.getMainView(dummyGuiComponent);
+                    obj.windowMinHeight = mainView.height;
+                    obj.windowMinWidth = mainView.width;
+                    
+                    obj.onAboutToStart();
+                    obj.figureWindow.Visible = 'on';
+                    obj.onStarted();
+                catch err
+                    delete(obj.figureWindow);
+                    rethrow(err);
+                end
             end
         end  % constructor
         
@@ -150,7 +155,15 @@ classdef GuiController < handle
                     obj.views{k}.onCloseGui();
                 end
                 
-                obj.onClose();
+                try 
+                    obj.onClose();
+                catch err
+                    delete(hObject);
+                    EventStation.anonymousWarning( ...
+                        'Failed to properly terminate process. Closing window anyway.');
+                    rethrow(err);
+                end
+                
                 delete(hObject);
             end
         end

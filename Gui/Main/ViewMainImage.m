@@ -8,7 +8,8 @@ classdef ViewMainImage < ViewVBox
     %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    properties
+    properties (Constant = true)
+        
     end
     
     methods
@@ -25,9 +26,10 @@ classdef ViewMainImage < ViewVBox
             column3.component.Padding = 5;
             
             viewLaserContainer = ViewLasersContainer(column3, controller);
-            
             viewSaveLoad = ViewSaveLoad(column3, controller, Savable.CATEGORY_IMAGE);
-            column3.setHeights([viewLaserContainer.height, viewSaveLoad.height]);
+            viewSpcmInImage = ViewSpcmInImage(column3, controller);
+            
+            column3.setHeights([viewLaserContainer.height, viewSaveLoad.height, viewSpcmInImage.height]);
             column3width = max(viewLaserContainer.width, viewSaveLoad.width);
 
             columnsWidths = [column1.width, column2.width, column3width];

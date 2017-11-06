@@ -13,17 +13,23 @@ classdef ViewLasersContainer < ViewVBox
             
             lasers = LaserGate.getLasers();
             heights = [];
+            width = 0;
             
             for i = 1 : length(lasers)
                 laserGate = lasers{i};
                 viewLaser = ViewLaser(obj, controller, laserGate);
-                obj.width = viewLaser.width;
+                width = viewLaser.width;
                 heights(i) = viewLaser.height; %#ok<AGROW>
             end
-            set(obj.component, 'Heights', heights);
-            set(obj.component, 'Spacing', 5);
+            
+            if ~isempty(heights)
+                set(obj.component, 'Heights', heights);
+                set(obj.component, 'Spacing', 5);
+            end
+            
             
             obj.height = sum(heights) + length(heights) * 3;
+            obj.width = width;
         end
     end 
 end
