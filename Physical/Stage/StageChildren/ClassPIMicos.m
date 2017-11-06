@@ -543,18 +543,20 @@ classdef ClassPIMicos < ClassStage
                     break;
                 end
                 
+                % todo: $what options need to be set as constant properties for
+                % external methods to invoke
                 switch what
                     case 'MovementDone'
                         [~, moving] = SendPICommand(obj, 'PI_IsMoving', obj.ID, szAxes, zeroVector);
                         wait = any(moving);
                     case 'onTarget'
-                        [~,onTarget] = SendPICommand(obj, 'PI_qONT', obj.ID, szAxes, zeroVector);
+                        [~, onTarget] = SendPICommand(obj, 'PI_qONT', obj.ID, szAxes, zeroVector);
                         wait = ~all(onTarget);
                     case 'ControllerReady'
                         ready = SendPICommand(obj, 'PI_IsControllerReady', obj.ID, 0);
                         wait = ~ready;
                     case 'WaveGeneratorDone'
-                        running = SendPICommand(obj, 'PI_IsGeneratorRunning', obj.ID, [], 1, 1);
+                        [~, running] = SendPICommand(obj, 'PI_IsGeneratorRunning', obj.ID, [], 1, 1);
                         wait = running;
                     otherwise
                         error('Wrong Input %s', what);
@@ -705,6 +707,7 @@ classdef ClassPIMicos < ClassStage
         
         function Reconnect(obj)
             % Reconnects the controller.
+            CloseConnection(obj);
             Connect(obj);
             Initialization(obj);
         end

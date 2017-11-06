@@ -82,6 +82,11 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
         end
         
         function axis = SwitchXYAxis(obj, axis, type) %#ok<INUSL>
+            % This function replaces axis X & Y for both strings and
+            % integers.
+            % This function switches between the x & y axes for the stage
+            % so that it will be a right handed system with the same
+            % orienation as the other stages.
             switch type
                 case 'szAxes'
                     axis = strrep(strrep(strrep(axis, '1', '9'), '2', '1'), '9', '2');
@@ -277,8 +282,8 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             % for z).
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             scanAxis = GetAxis(obj, scanAxis);
-            SendPICommand(obj, 'PI_WGO', obj.ID, SwitchXYAxis(obj, scanAxis, 'integer'), 129, 1); % 128+1: 128 is for use DDL & 1 is for start
-            WaitFor(obj, 'WaveGeneratorDone')
+            SendPICommand(obj, 'PI_WGO', obj.ID, SwitchXYAxis(obj, scanAxis, 'integer'), 129, 1);% 128+1: 128 is for use DDL & 1 is for start
+            WaitFor(obj, 'WaveGeneratorDone');
         end
         
         function PrepareScanInTwoDimensions(obj, macroScanAxisVector, normalScanAxisVector, nFlat, nOverRun, tPixel, macroScanAxis, normalScanAxis)
@@ -380,7 +385,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             SendPICommand(obj, 'PI_WGO', obj.ID, SwitchXYAxis(obj, obj.macroScanAxis, 'integer'), 129, 1); % 128+1: 128 is for use DDL & 1 is for start
             forwards = 1;
             
-            WaitFor(obj, 'WaveGeneratorDone')
+            WaitFor(obj, 'WaveGeneratorDone');
             obj.macroIndex = obj.macroIndex+1;
         end
             

@@ -77,7 +77,7 @@ classdef NiDaqControlledSpcm < Spcm & NiDaqControlled
         function prepareReadByStage(obj, stageName, nPixels, timeout, fastScan)
             % Prepare the SPCM to a scan by a stage. Before a multiline
             % scan, this should be called only once.
-            if ~ValidationHelper.isValuePositiveInteger(readingTimesInt)
+            if ~ValidationHelper.isValuePositiveInteger(nPixels)
                 obj.sendError('can''t prepare for reading %s points, only positive integers allowed! Igonring');
             end
             obj.nScanCounts = BooleanHelper.ifTrueElse(fastScan, nPixels+1, nPixels); % Fast scans works by edges, so an extra count is needed.
@@ -167,11 +167,11 @@ classdef NiDaqControlledSpcm < Spcm & NiDaqControlled
             % Creates the measurment in the DAQ according to the parameters
             % in the object.
             if obj.fastScan
-                obj.counterScanSPCMTask = niDaq.CreateDAQEdgeCountingMeas(obj.nScanCounts, obj.niDaqCountChannelName, obj.stageName, 0);
-                obj.counterScanTimeTask = niDaq.CreateDAQEdgeCountingMeas(obj.nScanCounts, niDaq.CHANNEL_100MHZ, obj.stageName, 1);
+                obj.counterScanSPCMTask = niDaq.CreateDAQEdgeCountingMeas(obj.nScanCounts, obj.niDaqCountChannelName, obj.scanningStageName, 0);
+                obj.counterScanTimeTask = niDaq.CreateDAQEdgeCountingMeas(obj.nScanCounts, niDaq.CHANNEL_100MHZ, obj.scanningStageName, 1);
             else
-                obj.counterScanSPCMTask = niDaq.CreateDAQPulseWidthMeas(obj.nScanCounts, obj.niDaqCountChannelName, obj.stageName, 0);
-                obj.counterScanTimeTask = niDaq.CreateDAQPulseWidthMeas(obj.nScanCounts, niDaq.CHANNEL_100MHZ, obj.stageName, 1);
+                obj.counterScanSPCMTask = niDaq.CreateDAQPulseWidthMeas(obj.nScanCounts, obj.niDaqCountChannelName, obj.scanningStageName, 0);
+                obj.counterScanTimeTask = niDaq.CreateDAQPulseWidthMeas(obj.nScanCounts, niDaq.CHANNEL_100MHZ, obj.scanningStageName, 1);
             end
         end
     end
