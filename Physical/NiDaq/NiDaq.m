@@ -118,7 +118,7 @@ classdef NiDaq < EventSender
                 status = DAQmxCreateAIVoltageChan(task, sprintf('/%s/%s', obj.deviceName, channel), '', DAQmx_Val_RSE, 0, 1, DAQmx_Val_Volts, '');
                 obj.checkError(status);
                 
-                obj.startTask();
+                obj.startTask(task);
                 
                 readArray = zeros(1, 1);
                 [status, voltageInt]= DAQmxReadAnalogF64(task, 1, 1, DAQmx_Val_GroupByScanNumber, readArray, 1, int32(0));
@@ -143,7 +143,7 @@ classdef NiDaq < EventSender
                 status = DAQmxCreateAOVoltageChan(task, sprintf('/%s/%s', obj.deviceName, channel), 0, 1, DAQmx_Val_Volts);
                 obj.checkError(status);
                 
-                obj.startTask();
+                obj.startTask(task);
                 
                 status = DAQmxWriteAnalogF64(task, 1, 1, 10, DAQmx_Val_GroupByScanNumber, newVoltage, 0);
                 obj.checkError(status);
@@ -167,7 +167,7 @@ classdef NiDaq < EventSender
                 status = DAQmxCreateDOChan(task, sprintf('/%s/%s', obj.deviceName, channel), '', DAQmx_Val_ChanForAllLines);
                 obj.checkError(status);
                 
-                obj.startTask();
+                obj.startTask(task);
                 
                 % todo - check read function (probably it is wrong now)
                 [status, digitalInt] = DAQmxReadDigitalU32(task, 1, 1, DAQmx_Val_GroupByChannel, gate*2^line, 1);
@@ -192,22 +192,28 @@ classdef NiDaq < EventSender
                 
                 status = DAQmxCreateDOChan(task, sprintf('/%s/%s', obj.deviceName, channel), '', DAQmx_Val_ChanForAllLines);
                 obj.checkError(status);
+                line = str2double(channel(end));
                 
-                obj.startTask();
-                
-                status = DAQmxWriteDigitalU32(task, 1, 1, 10, DAQmx_Val_GroupByChannel, gate*2^line, 1);
+                obj.startTask(task);
+                               
+                status = DAQmxWriteDigitalU32(task, 1, 1, 10, DAQmx_Val_GroupByChannel, newLogicalValue*2^line, 1);
                 obj.checkError(status);
                 
                 obj.endTask(task);
             end
         end
         
-        function task = CreateDAQEdgeCountingMeas(obj, nCounts, countChannelName, pixelsChannelName)
+        function task = CreateDAQEdgeCountingMeas(obj, nCounts, countChannelName, pixelsChannelName, ctrNumberOpt)
             % Creates an edge counting measurement task.
             % (countChannelName, countEdgeChannelName) use cases:
-            % For counting photons by stage: (SPCM, Stages)
+            % For counting photons by stage: (SPCM, Stage)
             % For counting time by stage: (NiDaq.CHANNEL_100MHZ, Stage)
             % For counting photons by time: (SPCM, NiDaq.CHANNEL_100kHZ)
+            % ctrNumber can be 0 or 1, if not specified then it is 0.
+            if ~exist('ctrNumberOpt', 'var')
+                ctrNumberOpt = 0;
+            end
+            device = sprintf('/%s/Ctr%d', obj.deviceName, ctrNumberOpt);
             
             DAQmx_Val_Rising = daq.ni.NIDAQmx.DAQmx_Val_Rising;
             DAQmx_Val_Falling = daq.ni.NIDAQmx.DAQmx_Val_Falling;
@@ -216,15 +222,21 @@ classdef NiDaq < EventSender
             
             task = obj.createTask();
             
-            status = DAQmxCreateCICountEdgesChan(task, obj.deviceName, '', DAQmx_Val_Rising, 0, DAQmx_Val_CountUp);
+            status = DAQmxCreateCICountEdgesChan(task, device, '', DAQmx_Val_Rising, 0, DAQmx_Val_CountUp);
             obj.checkError(status);
             
             pixelsChannel = obj.getChannelFromIndex(obj.getIndexFromChannelOrName(pixelsChannelName));
-            status = DAQmxCfgSampClkTiming(task, sprintf('/%s/%s', obj.deviceName, pixelsChannel), 1000000.0, DAQmx_Val_Falling, DAQmx_Val_ContSamps, nCounts);
+            switch pixelsChannelName
+                case obj.CHANNEL_100kHZ
+                    sampleRate = 100e3;
+                otherwise
+                    sampleRate = 1e6;
+            end
+            status = DAQmxCfgSampClkTiming(task, sprintf('/%s/%s', obj.deviceName, pixelsChannel), sampleRate, DAQmx_Val_Falling, DAQmx_Val_ContSamps, nCounts);
             obj.checkError(status);
             
             countChannel = obj.getChannelFromIndex(obj.getIndexFromChannelOrName(countChannelName));
-            status = DAQmxSet(task, 'CI.CountEdgesTerm', obj.deviceName, sprintf('/%s/%s', obj.deviceName, countChannel));
+            status = DAQmxSet(task, 'CI.CountEdgesTerm', device, sprintf('/%s/%s', obj.deviceName, countChannel));
             obj.checkError(status);
         end
         
@@ -286,10 +298,10 @@ classdef NiDaq < EventSender
         function checkError(obj, status)
             % Checks for DAQ errors according to the status and sends an error event.
             if status ~= 0
-                obj.reset;
                 bufferSize = uint32(500);
                 errorString = char(ones(1,bufferSize));
                 [statusInternal, errorString]=daq.ni.NIDAQmx.DAQmxGetErrorString(status, errorString, bufferSize);
+                obj.reset;
                 if statusInternal ~= 0 || isempty(errorString)
                     obj.sendError(['NIDAQ Error ' num2str(status)])
                 else
@@ -300,7 +312,7 @@ classdef NiDaq < EventSender
         end
         
         function reset(obj)
-            DAQmxResetobj.deviceName(obj.deviceName);
+            DAQmxResetDevice(obj.deviceName);
             fprintf('DAQ Card Ready! (reset)\n');
             obj.sendEvent(struct(NiDaq.EVENT_NIDAQ_RESET, true));
         end

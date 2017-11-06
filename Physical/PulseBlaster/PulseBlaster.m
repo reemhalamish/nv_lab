@@ -328,7 +328,7 @@ classdef PulseBlaster < EventSender
             
             obj.PBesrStartProgramming(); % enter the programming mode
             
-            % todo - is there a cleaner way to do so?
+            % todo - is there a cleaner way to do so without this "if"?
             if ~any(obj.mChannelStatuses)
                 channels = 0;
             else 

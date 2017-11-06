@@ -1,13 +1,15 @@
 function LoadNIDAQmx
 
 if ~libisloaded('mynidaqmx')
-    disp('Matlab: Load nicaiu.dll')
-    % Added by Jero
-    % nidaxmx.h C:\Program Files\National Instruments\NI-DAQ\DAQmx ANSI C
-    % Dev\include
-    % nicaiu.dll C:\WINDOWS\system32
-    funclist = loadlibrary('nicaiu.dll','nidaqmx.h','alias','mynidaqmx');
+    disp('Matlab: Loading nicaiu.dll')
+%     libPath = 'C:\Windows\SysWOW64\nicaiu.dll'; % Not working, but 32bit
+%     version supports 64
+    libPath = 'C:\Windows\System32\nicaiu.dll';
+    headerPath = 'C:\Program Files (x86)\National Instruments\Shared\ExternalCompilerSupport\C\include\nidaqmx.h';
+    funclist = loadlibrary(libPath, headerPath, 'alias', 'mynidaqmx');
     %funclist = libfunctions('myni','-full')
     %libfunctionsview('myni')
 end
-disp('Matlab: dll loaded')
+disp('Matlab: NI DAQ dll loaded')
+
+end

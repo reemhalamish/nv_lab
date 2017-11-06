@@ -37,8 +37,12 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                 stagesCellContainer = CellContainer;
                 
                 for i = 1: length(stagesJson)
-                    curStage = stagesJson(i);
-                    stageType = curStage.type;
+                    if iscell(stagesJson)
+                        curStageStruct = stagesJson{i};
+                    else
+                        curStageStruct = stagesJson(i);
+                    end
+                    stageType = curStageStruct.type;
                     switch stageType
                         case 'LPS-65'
                             newStage = ClassPILPS65.GetInstance(); % Setup 1 LPS-65
@@ -48,31 +52,39 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                             newStage = ClassECC.GetInstance(); % ECC100 stages used in setup 1 - > Very old and might not be comptiable
                         case 'ClassANC'
                             newStage = ClassANC.GetInstance(); % ANC stages used in setup 3
-                        case 'P562'
-                            newStage = ClassPI562.GetInstance();
+                        case 'PIP-562'
+                            try
+                                newStage = getObjByName(ClassPIP562.NAME);
+                            catch
+                                newStage = ClassPIP562.create(curStageStruct);
+                            end
+                        case 'PIM-686'
+                            newStage = ClassPIM686.GetInstance();
+                        case 'PIM-501'
+                            newStage = ClassPIM501.GetInstance();
                         case 'STEDCoarse'
                             newStage = ClassSTEDCoarse.GetInstance();
                         case 'Dummy'
-                            if isfield(curStage, 'name')
-                                stageName = curStage.name;
+                            if isfield(curStageStruct, 'name')
+                                stageName = curStageStruct.name;
                             else
                                 stageName = 'Dummy stage';
                             end
                             
-                            if isfield(curStage, 'is_scanable')
-                                stageScanable = curStage.is_scanable;
+                            if isfield(curStageStruct, 'is_scanable')
+                                stageScanable = curStageStruct.is_scanable;
                             else
                                 stageScanable = true;
                             end
                             
-                            if isfield(curStage, 'axes')
-                                stageAxes = curStage.axes;
+                            if isfield(curStageStruct, 'axes')
+                                stageAxes = curStageStruct.axes;
                             else
                                 stageAxes = ClassStage.SCAN_AXES;  % all of them
                             end
                             
-                            if isfield(curStage, 'tilt_available')
-                                tiltAvailable = curStage.tilt_available;
+                            if isfield(curStageStruct, 'tilt_available')
+                                tiltAvailable = curStageStruct.tilt_available;
                             else
                                 tiltAvailable = true;
                             end
@@ -92,7 +104,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
 
         end  % function getStages()
         
-        function axis = GetAxis(axis)
+        function axis = getAxis(axis)
             % Converts x,y,z into the corresponding numeric value (1,2,3).
             % If already in numeric value it does nothing.
             tempAxis = zeros(size(axis)); % Needed because axis could be of type string
@@ -111,7 +123,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         
         function string = GetLetterFromAxis(axis)
             % returns a letter from an axis. supports vectorial axis
-            axis = ClassStage.GetAxis(axis);
+            axis = ClassStage.getAxis(axis);
             string = ClassStage.SCAN_AXES(axis);
         end
         
@@ -121,10 +133,13 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         function obj = ClassStage(name, availableAxes, isScanable, tiltAvailable)
             % name - string
             % availableAxes - string. example: "xyz"
+            % isScannable - boolean, does it support scanning
+            % tiltAvailable - boolean, does it support tilt
             obj@EventSender(name);
             obj@Savable(name);
             obj@EventListener(StageControlEvents.NAME);
-            BaseObject.addObject(obj);  % so it can be reached by BaseObject.getByName()
+            addBaseObject(obj);  % so it can be reached by getObjByName()
+            
             
             obj.availableAxes = availableAxes;
             obj.isScanable = isScanable;
@@ -133,15 +148,19 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         end
         
         function initScanParams(obj)
-            [limNeg, limPos] = obj.ReturnLimits(obj.SCAN_AXES);
+            axis = ClassStage.getAxis(obj.availableAxes);
+            [limNeg, limPos] = obj.ReturnLimits(axis);
             obj.scanParams = StageScanParams;
-            obj.scanParams.from = limNeg;
-            obj.scanParams.to = limPos;
+            obj.scanParams.from(axis) = limNeg;
+            obj.scanParams.to(axis) = limPos;
             obj.scanParams.isFixed = ones(1, ClassStage.SCAN_AXES_SIZE);    % all fixed except what the stage supports (look 3 lines below)
-            for axis = obj.availableAxes
-                axisIndex = ClassStage.GetAxis(axis);
-                obj.scanParams.isFixed(axisIndex) = false;
-            end
+            obj.scanParams.isFixed(axis) = false;
+            obj.scanParams.fixedPos(axis) = obj.Pos(axis);
+        end
+        
+        % wrapper for the static method getAxis
+        function axes = GetAxis(~, axis)
+            axes = ClassStage.getAxis(axis);
         end
         
     end
@@ -406,13 +425,28 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             obj.sanityChecksRaiseErrorIfNeeded(params);
             axes = obj.SCAN_AXES(find(params.isFixed)); %#ok<FNDSB>
             fixedPos = params.fixedPos(find(params.isFixed)); %#ok<FNDSB>
-            obj.move(axes, fixedPos);
+            if isempty(axes)
+                obj.sendError('At least one axis needs to be fixed for this operation')
+            else
+                obj.move(axes, fixedPos);
+            end
         end
         
         function move(obj, axis, pos)
             % calls Move, sends an event. listens to errors to send errorEvent
             try
                 obj.Move(axis, pos);
+                obj.sendEvent(struct(ClassStage.EVENT_POSITION_CHANGED, true));
+            catch matlabError
+                obj.sendError(matlabError.message);
+            end
+        end
+        
+        function relativeMove(obj, axis, change)
+            % calls RelativeMove, sends an event. listens to errors to send errorEvent
+            % Vectorial axis is possible
+            try
+                obj.RelativeMove(axis, change);
                 obj.sendEvent(struct(ClassStage.EVENT_POSITION_CHANGED, true));
             catch matlabError
                 obj.sendError(matlabError.message);
@@ -427,7 +461,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             % degrees.
             try
                 if ~obj.tiltAvailable
-                    error('this stage doesn''t support tilt!');
+                    error('This stage doesn''t support tilt!');
                 end
                 
                 if ~ValidationHelper.isInBorders(thetaXZ, obj.TILT_MIN_LIM_DEG, obj.TILT_MAX_LIM_DEG)
@@ -449,7 +483,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             % sends an event
             try
                 if ~obj.tiltAvailable
-                    error('this stage doesn''t support tilt!');
+                    error('This stage doesn''t support tilt!');
                 end
                 obj.EnableTiltCorrection(enable);
                 obj.sendEvent(struct(obj.EVENT_TILT_CHANGED, true));
@@ -460,16 +494,16 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         
         
         function sanityChecksRaiseErrorIfNeeded(obj, scanParams)
-            % sanity checks on the scan parameters
+            % Sanity checks on the scan parameters
             % the way: copy the scan parameters, call updateByLimit() on
             % the new object and see if something has changed.  
             % 
-            % if nothing changed, than all the parameters were in the
-            % limits from the first place! 
-            [limNeg, limPos] = obj.ReturnLimits(ClassStage.SCAN_AXES);
-            wasChange = scanParams.copy.updateByLimit(ClassStage.SCAN_AXES, limNeg, limPos);
+            % If nothing changed, than all the parameters were in the
+            % limits in the first place! 
+            [limNeg, limPos] = obj.ReturnLimits(obj.availableAxes);
+            wasChange = scanParams.copy.updateByLimit(obj.availableAxes, limNeg, limPos);
             if wasChange
-                obj.sendError('sanity checks on the scan parameters failed!');
+                obj.sendError('Sanity checks on the scan parameters failed!');
             end
         end
         
@@ -480,22 +514,22 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         function set.scanParams(obj, newValue)
             % validates the input, sets the newValue, sends an event
             if isa(newValue, 'StageScanParams')
-                [newLimNeg, newLimPos] = obj.ReturnLimits(ClassStage.SCAN_AXES);
-                newValue.updateByLimit(ClassStage.SCAN_AXES, newLimNeg, newLimPos);
+                [newLimNeg, newLimPos] = obj.ReturnLimits(obj.availableAxes);
+                newValue.updateByLimit(obj.availableAxes, newLimNeg, newLimPos);
                 obj.scanParams = newValue;
                 obj.sendEventScanParamsChanged();
             else
-                obj.sendWarning('can only put object of type "StageScanParams"! ignoring');
+                obj.sendWarning('Can only put object of type "StageScanParams"! ignoring');
             end
         end
         
         function set.stepSize(obj, newValue)
             % validates the input, sets the newValue, sends an event
             if ~isnumeric(newValue)
-                obj.sendError('step size must be numeric!');
+                obj.sendError('Step size must be numeric!');
             end
             if newValue < obj.STEP_MINIMUM_SIZE
-                obj.sendError(sprintf('step size minimum is %d! (you tried %d)', obj.STEP_MINIMUM_SIZE, newValue));
+                obj.sendError(sprintf('Step size minimum is %d! (you tried %d)', obj.STEP_MINIMUM_SIZE, newValue));
             end
             
             obj.stepSize = newValue;
@@ -517,15 +551,15 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                 if zeroForLowerOneForUpper == 0
                     % lower lim should be in [hardLowerLim, softUpperLim]
                     if any(newValue < lowerHardLim) || any(newValue > upperSoftLim)
-                        error('new value out of limits! limits: [%d, %d]', lowerHardLim, upperSoftLim)
+                        error('New value is out of limits! limits: [%d, %d]', lowerHardLim, upperSoftLim)
                     end
                 elseif zeroForLowerOneForUpper == 1
                     % upper lim should be in [softLowerLim, hardUpperLim]
                     if any(newValue < lowerSoftLim) || any(newValue > upperHardLim)
-                        error('new value out of limits! limits: [%d, %d]', lowerSoftLim, upperHardLim)
+                        error('New value out of limits! limits: [%d, %d]', lowerSoftLim, upperHardLim)
                     end
                 else
-                    error('parameter "zeroForLowerOneForUpper" should only be 0 or 1')
+                    error('Parameter "zeroForLowerOneForUpper" should only be 0 or 1')
                 end
                 
                 
@@ -543,7 +577,6 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                     
                     if zeroForLowerOneForUpper
                         msgLimUpperOrLower = 'upper';
-                        
                     else
                         msgLimUpperOrLower = 'lower';
                     end
@@ -592,9 +625,10 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                 obj.sendError(matlabError.message);
             end
         end
+        
     end
     
-    %% overriding from Savable
+    %% overriden from Savable
     methods(Access = protected) 
         function outStruct = saveStateAsStruct(obj, category) %#ok<*MANU>
             % saves the state as struct. if you want to save stuff, make 

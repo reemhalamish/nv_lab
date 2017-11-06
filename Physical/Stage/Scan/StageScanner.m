@@ -62,7 +62,7 @@ classdef StageScanner < EventSender & Savable
         end
         
         function startScan(obj)
-            if isnan(obj.mStageName); obj.sendError('can''t start scan - unknown stage name! please call stageScanner.switchTo(your_stage_name) before calling stageScanner.startScan(). exiting'); end
+            if isnan(obj.mStageName); obj.sendError('Can''t start scan: unknown stage name! please call stageScanner.switchTo(your_stage_name) before calling stageScanner.startScan(). exiting'); end
             
             obj.mCurrentlyScanning = true;
             obj.sendEventScanStarting();
@@ -82,17 +82,13 @@ classdef StageScanner < EventSender & Savable
             
             timerVal = tic;
             disp('Initiating scan...');
-            prevScanMatrix = obj.mScan;
-            
-            if isnan(prevScanMatrix)
-                kcpsScanMatrix = obj.scan(stage, spcm, obj.mStageScanParams);
-            else
-                kcpsScanMatrix = obj.scan(stage, spcm, obj.mStageScanParams, prevScanMatrix);
-            end
+            kcpsScanMatrix = obj.scan(stage, spcm, obj.mStageScanParams);
             % kcps = kilo counts per second
             
             while (stage.scanParams.continuous && obj.mCurrentlyScanning)
-                obj.mStageScanParams = stage.scanParams.copy;
+                %Yoav: Should not update during scan, probably next
+                %line should stay commented
+%                 obj.mStageScanParams = stage.scanParams.copy;
                 kcpsScanMatrix = obj.scan(stage, spcm, obj.mStageScanParams, kcpsScanMatrix);
                 drawnow; % todo check what happens if removing this line
             end
@@ -109,20 +105,21 @@ classdef StageScanner < EventSender & Savable
 %                 stage.scanParams = currentScanParams;  % and... bring them back
 %             end
             
+
+            % autosave - when sending this event there will be a save.
+            % so let's save with the correct scan parameters
+            currentScanParams = stage.scanParams;    % save current as temp
+            stage.scanParams = obj.mStageScanParams;  % revert to old ones
+            obj.sendEventScanFinished();  % to be catched by the saveLoad
+            stage.scanParams = currentScanParams;  % and... bring them back
+            
             scanStoppedManually = ~obj.mCurrentlyScanning; % maybe someone has changed this boolean meanwhile
             if scanStoppedManually
                 obj.sendEventScanStopped();
-            else   
-                % autosave - when sending this event there will be a save.
-                % so let's save with the correct scan parameters
-                currentScanParams = stage.scanParams;    % save current as temp
-                stage.scanParams = obj.mStageScanParams;  % revert to old ones
-                
-                obj.sendEventScanFinished();  % to be catched by the saveLoad
-                
-                stage.scanParams = currentScanParams;  % and... bring them back
-                
             end
+            
+            stage.sendEvent(struct(ClassStage.EVENT_POSITION_CHANGED, true));
+            obj.mCurrentlyScanning = false;
         end
         
         
@@ -138,11 +135,11 @@ classdef StageScanner < EventSender & Savable
                 % because we already trust the scan params
             end
             
-            
+            kcpsScanMatrix = [];        % Return value for nonvalid dinemsion number
             nDimentions = sum(~scanParams.isFixed);
             switch nDimentions
                 case 0
-                    disp('Nothing to scan dude!');
+                    EventStation.anonymousWarning('Nothing to scan, dude!');
                     return;
                 case 1
                     % One dimensional scanning
@@ -170,11 +167,7 @@ classdef StageScanner < EventSender & Savable
             
             % if the area to scan is bigger than the maximum scanning-area
             % of the stage, divide it to smallers chunks to scan
-            if ~obj.mCurrentlyScanning
-                return
-            end
-            
-            
+ 
             % ~~~~ preparing variables: ~~~~
             isFastScan = scanParams.fastScan;
             nFlat = 0;      % A flat section at the start of ramp. parameter not needed genrally, a stage can overwrite if needed
@@ -188,6 +181,9 @@ classdef StageScanner < EventSender & Savable
             y = scanParams.getScanAxisVector(2); %#ok<NASGU> % vector between [min, max] or the fixed position if exist
             z = scanParams.getScanAxisVector(3); %#ok<NASGU> % vector between [min, max] or the fixed position if exist
             
+            if ~obj.mCurrentlyScanning
+                return
+            end
             
             % ~~~~ checks on size of scan ~~~~
             if (nPixels > maxScanSize)
@@ -214,6 +210,7 @@ classdef StageScanner < EventSender & Savable
                     try
                         if ~obj.mCurrentlyScanning
                             stage.AbortScan();
+                            spcm.clearScanRead();  % todo - added to try resolving the problem. wasn't here at the first place!
                             return
                         end
                         
@@ -231,7 +228,7 @@ classdef StageScanner < EventSender & Savable
                             obj.sendError('No Signal Detected!')
                         end
                         scanOk = true;
-                        obj.sendEventScanUpdated(kcpsScanVector);
+                        %obj.sendEventScanUpdated(kcpsScanVector); %Yoav: not needed
                         break;
                     catch err
                         rethrow(err) % Uncomment to debug
@@ -286,15 +283,15 @@ classdef StageScanner < EventSender & Savable
             % ~~~~ preparing variables: ~~~~
             maxScanSize = stage.ReturnMaxScanSize(2);
             [axisAIndex, axisBIndex] = StageScanner.optimize2dScanDirections(maxScanSize, scanParams.copy);
-            axisCIndex = setdiff(ClassStage.GetAxis(ClassStage.SCAN_AXES), [axisAIndex, axisBIndex]);
+            axisCIndex = setdiff(ClassStage.getAxis(ClassStage.SCAN_AXES), [axisAIndex, axisBIndex]);
             % axis c is where the zero point is not moving throgh the scan
             isFlipped = axisAIndex > axisBIndex;  % (for example, if axis y is before axis x, than "isFlipped" == true)
             isFastScan = scanParams.fastScan;    % a boolean
             tPixel = scanParams.pixelTime;   % time for each pixel
             numPointsAxisA = scanParams.numPoints(axisAIndex);
             numLinesAxisB = scanParams.numPoints(axisBIndex);
-            letterAxisA = ClassStage.GetAxis(axisAIndex);
-            letterAxisB = ClassStage.GetAxis(axisBIndex);
+            letterAxisA = ClassStage.getAxis(axisAIndex);
+            letterAxisB = ClassStage.getAxis(axisBIndex);
             vectorAxisA = scanParams.getScanAxisVector(axisAIndex);
             vectorAxisB = scanParams.getScanAxisVector(axisBIndex);
             pointAxisC = scanParams.getScanAxisVector(axisCIndex);
@@ -360,7 +357,7 @@ classdef StageScanner < EventSender & Savable
                 obj.sendError('can''t scan - mismatch size of vector!')
             end
             
-            if ~obj.mCurrentlyScanning; return; end
+            if ~obj.mCurrentlyScanning; return; end %Yoav: Will create error because no output
             
             % for each in {x, y, z}, it could be one of:
             % the axisA vector, the axisB vector, or the axisC point
@@ -378,9 +375,10 @@ classdef StageScanner < EventSender & Savable
                 if ~obj.mCurrentlyScanning; break; end
                 for trial = 1 : StageScanner.TRIALS_AMOUNT_ON_ERROR
                     try
-                        isFinishedLastLine = false;
+                        isStartedLine = false;
                         spcm.startScanRead()
-                        isFinishedLastLine = true;
+                        
+                        isStartedLine = true;
                         wasScannedForward = stage.ScanNextLine();
                         % forwards - if true, the line was scanned normally,
                         % false - should flip the results
@@ -394,7 +392,7 @@ classdef StageScanner < EventSender & Savable
                         obj.sendEventScanUpdated(kcpsMatrix);
                         break;
                     catch err
-                        %                       rethrow(err);  % Uncomment to debug
+                        rethrow(err);  % Uncomment to debug
                         obj.sendWarning(err.message);
                         if ~obj.mCurrentlyScanning
                             stage.AbortScan();
@@ -403,7 +401,7 @@ classdef StageScanner < EventSender & Savable
                         
                         fprintf('Line %d failed at trial %d, attempting to rescan line.\n', i, trial);
                         
-                        if isFinishedLastLine
+                        if ~isStartedLine
                             try
                                 stage.PrepareRescanLine(); % Prepare to rescan the line
                             catch err2
@@ -427,7 +425,7 @@ classdef StageScanner < EventSender & Savable
             for letter = ClassStage.SCAN_AXES
                 % iterate over the string "xyz" letter by letter
                 ll = lower(letter);
-                switch ClassStage.GetAxis(letter)
+                switch ClassStage.getAxis(letter)
                     case axisADirectionIndex
                         eval(sprintf('%s = axisAPointsPerLine;', ll));
                     case axisBDirectionIndex
@@ -456,7 +454,7 @@ classdef StageScanner < EventSender & Savable
         end
         
         function number = getScanDimensions(obj)
-            number = BooleanHelper.ifTrueElse(any(size(obj.mScan)==1), 1, 2);
+            number = sum(~obj.mStageScanParams.isFixed);
         end
     end
     
@@ -488,12 +486,13 @@ classdef StageScanner < EventSender & Savable
         end
         
         function string = getBottomScanLabel(obj)
+            axisString = '%s (\x03bcm)';    % the '\x03bc' string is converted to upright greek mu
+            axisLetters = obj.mStageScanParams.getScanAxes;
             switch obj.getScanDimensions
                 case 1
-                    string = ['axis ' obj.mStageScanParams.getScanAxes];
+                    string = sprintf(axisString, axisLetters);
                 case 2
-                    scanAxes = obj.mStageScanParams.getScanAxes;
-                    string = ['axis ' scanAxes(1)];
+                    string = sprintf(axisString, axisLetters(1));
                 otherwise
                     string = 'bottom label :)';
             end
@@ -504,8 +503,9 @@ classdef StageScanner < EventSender & Savable
                 case 1
                     string = 'kcps';
                 case 2
-                    secondAxisLetter = obj.mStageScanParams.getScanAxes;
-                    string = ['axis ' secondAxisLetter];
+                    axisString = '%s (\x03bcm)';
+                    axisLetters = obj.mStageScanParams.getScanAxes;
+                    string = sprintf(axisString, axisLetters(2));
                 otherwise
                     string = 'left label :)';
             end
@@ -544,16 +544,16 @@ classdef StageScanner < EventSender & Savable
             secondAxisNumPoints = scanParams.numPoints(secondAxisIndex);
             
             % option ONE: scan each line by axis 1, move between lines in axis 2
-            % calculate how much scans would be needed than:
+            % calculate how much many would be needed than:
             timesMaxInFirst = ceil(firstAxisNumPoints / stageMaxScanSizeInt);
             totalTimesOptionOne = timesMaxInFirst * secondAxisNumPoints;
             
             % option TWO: scan each line by axis 2, move between lines in axis 1
-            % calculate how much scans would be needed than:
+            % calculate how many scans would be needed than:
             timesMaxInSecond = ceil(secondAxisNumPoints / stageMaxScanSizeInt);
             totalTimesOptionTwo = timesMaxInSecond * firstAxisNumPoints;
             
-            if totalTimesOptionOne < totalTimesOptionTwo
+            if totalTimesOptionOne <= totalTimesOptionTwo
                 axisAIndex = firstAxisIndex;
                 axisBIndex = secondAxisIndex;
             else
