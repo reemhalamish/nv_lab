@@ -189,12 +189,12 @@ classdef SaveLoad < Savable & EventSender
 
             myStruct = obj.mLocalSaveStruct;
             if ~isstruct(myStruct)
-                errorMsg = 'no local struct has been loaded\saved. nothing to save! consider calling obj.saveSystemToLocalStruct() or obj.loadFileToLocal()';                
+                errorMsg = 'No local struct has been loaded\saved. Nothing to save! Consider calling obj.saveSystemToLocalStruct() or obj.loadFileToLocal()';                
                 obj.sendError(errorMsg);
             end
             
             if ~endsWith(fileFullPath, SaveLoad.SAVE_FILE_SUFFIX)
-                errorMsg = sprintf('file suffix incorrct! (suffix needed:"%s", file to save: "%s"', obj.SAVE_FILE_SUFFIX, fileFullPath);
+                errorMsg = sprintf('Incorrect file suffix! (suffix needed: "%s", file to save: "%s"', obj.SAVE_FILE_SUFFIX, fileFullPath);
                 obj.sendError(errorMsg, struct(SaveLoad.EVENT_ERR_SUFFIX_INVALID, true, SaveLoad.EVENT_FILENAME, fileFullPath));
             end
             

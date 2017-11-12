@@ -4,7 +4,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
     
     properties(GetAccess = public, SetAccess = private)
         mData       % the matrix
-        mDimNumber  % dimentions number
+        mDimNumber  % dimensions number
         mFirstAxis  % vector
         mSecondAxis % vector or point
         mLabelBot   % string

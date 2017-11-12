@@ -8,7 +8,8 @@ classdef ViewImageResultPanelCursor < GuiComponent
         radioLocation
         
         drawn = [];
-        crosshairs = struct;
+        crosshairs = struct
+        
     end
     
     methods
@@ -180,32 +181,32 @@ classdef ViewImageResultPanelCursor < GuiComponent
             hold on % Keep image while creating crosshair/arrow
             
             if quadrant == 4 % Inside
-                if isfield(obj.crosshairs, 'arrowHandle')
-                    delete(obj.crosshairs.arrowHandle);
+                if isfield(obj.drawSquare, 'arrowHandle') && ishandle(obj.drawSquare.arrowHandle)
+                    delete(obj.drawSquare.arrowHandle);
                 end
-                if ~isfield(obj.crosshairs, 'xLineHandle') || ~isvalid(obj.crosshairs.xLineHandle)
-                    obj.crosshairs.xLineHandle = line([0 0], [0 0], 'Color', 'b', 'HitTest', 'Off');
+                if ~isfield(obj.drawSquare, 'xLineHandle') || ~ishandle(obj.drawSquare.xLineHandle)
+                    obj.drawSquare.xLineHandle = line([0 0], [0 0], 'Color', 'b', 'HitTest', 'Off');
                 end
-                if ~isfield(obj.crosshairs, 'yLineHandle') || ~isvalid(obj.crosshairs.yLineHandle)
-                    obj.crosshairs.yLineHandle = line([0 0], [0 0], 'Color', 'b', 'HitTest', 'Off');
+                if ~isfield(obj.drawSquare, 'yLineHandle') || ~ishandle(obj.drawSquare.yLineHandle)
+                    obj.drawSquare.yLineHandle = line([0 0], [0 0], 'Color', 'b', 'HitTest', 'Off');
                 end
                 
                 hold off % Allow picture to change when needed
                 
-                set(obj.crosshairs.xLineHandle, 'XData', xLimits);
-                set(obj.crosshairs.xLineHandle, 'YData', [pos(2) pos(2)]);
-                set(obj.crosshairs.yLineHandle, 'XData', [pos(1) pos(1)]);
-                set(obj.crosshairs.yLineHandle, 'YData', yLimits);
+                set(obj.drawSquare.xLineHandle, 'XData', xLimits);
+                set(obj.drawSquare.xLineHandle, 'YData', [pos(2) pos(2)]);
+                set(obj.drawSquare.yLineHandle, 'XData', [pos(1) pos(1)]);
+                set(obj.drawSquare.yLineHandle, 'YData', yLimits);
                 
             else % Outside
-                if isfield(obj.crosshairs, 'xLineHandle')
-                    delete(obj.crosshairs.xLineHandle);
+                if isfield(obj.drawSquare, 'xLineHandle') && ishandle(obj.drawSquare.xLineHandle)
+                    delete(obj.drawSquare.xLineHandle);
                 end
-                if isfield(obj.crosshairs,'yLineHandle')
-                    delete(obj.crosshairs.yLineHandle);
+                if isfield(obj.drawSquare,'yLineHandle') && ishandle(obj.drawSquare.yLineHandle)
+                    delete(obj.drawSquare.yLineHandle);
                 end
-                if ~isfield(obj.crosshairs, 'arrowHandle') || ~ishandle(obj.crosshairs.arrowHandle)
-                    obj.crosshairs.arrowHandle = quiver(0, 0, 0, 0, 0, 'Color', 'b', 'LineWidth', 1, 'MaxHeadSize', 10, 'HitTest', 'Off');
+                if ~isfield(obj.drawSquare, 'arrowHandle') || ~ishandle(obj.drawSquare.arrowHandle)
+                    obj.drawSquare.arrowHandle = quiver(0, 0, 0, 0, 0, 'Color', 'b', 'LineWidth', 1, 'MaxHeadSize', 10, 'HitTest', 'Off');
                 end
                 
                 hold off % Allow picture to change when needed
@@ -214,34 +215,34 @@ classdef ViewImageResultPanelCursor < GuiComponent
                 row = mod(quadrant,3);
                 switch row
                     case 0 % in bottom row
-                        set(obj.crosshairs.arrowHandle, 'YData', yLimits(1)+(yLimits(2)-yLimits(1))/10);
-                        set(obj.crosshairs.arrowHandle, 'VData', (yLimits(1)-yLimits(2))/10);
+                        set(obj.drawSquare.arrowHandle, 'YData', yLimits(1)+(yLimits(2)-yLimits(1))/10);
+                        set(obj.drawSquare.arrowHandle, 'VData', (yLimits(1)-yLimits(2))/10);
                     case 1 % middle row
-                        set(obj.crosshairs.arrowHandle, 'YData', pos(2));
-                        set(obj.crosshairs.arrowHandle, 'VData', 0);
+                        set(obj.drawSquare.arrowHandle, 'YData', pos(2));
+                        set(obj.drawSquare.arrowHandle, 'VData', 0);
                     case 2 % top row
-                        set(obj.crosshairs.arrowHandle, 'YData', yLimits(2)+(yLimits(1)-yLimits(2))/10);
-                        set(obj.crosshairs.arrowHandle, 'VData', (yLimits(2)-yLimits(1))/10);
+                        set(obj.drawSquare.arrowHandle, 'YData', yLimits(2)+(yLimits(1)-yLimits(2))/10);
+                        set(obj.drawSquare.arrowHandle, 'VData', (yLimits(2)-yLimits(1))/10);
                 end
                 
                 column = floor(quadrant/3);
                 switch column
                     case 0 % left column
-                        set(obj.crosshairs.arrowHandle, 'XData', xLimits(1)+(xLimits(2)-xLimits(1))/10);
-                        set(obj.crosshairs.arrowHandle, 'UData', (xLimits(1)-xLimits(2))/10);
+                        set(obj.drawSquare.arrowHandle, 'XData', xLimits(1)+(xLimits(2)-xLimits(1))/10);
+                        set(obj.drawSquare.arrowHandle, 'UData', (xLimits(1)-xLimits(2))/10);
                     case 1 % middle column
-                        set(obj.crosshairs.arrowHandle, 'XData', pos(1));
-                        set(obj.crosshairs.arrowHandle, 'VData', 0);
+                        set(obj.drawSquare.arrowHandle, 'XData', pos(1));
+                        set(obj.drawSquare.arrowHandle, 'VData', 0);
                     case 2 % right column
-                        set(obj.crosshairs.arrowHandle, 'XData', xLimits(2)+(xLimits(1)-xLimits(2))/10);
-                        set(obj.crosshairs.arrowHandle, 'UData', (xLimits(2)-xLimits(1))/10);
+                        set(obj.drawSquare.arrowHandle, 'XData', xLimits(2)+(xLimits(1)-xLimits(2))/10);
+                        set(obj.drawSquare.arrowHandle, 'UData', (xLimits(2)-xLimits(1))/10);
                 end
             end
             
             
             % If 1D, don't draw horizontal line
-            if dim == 1 && isfield(obj.crosshairs,'xLineHandle') && ishandle(obj.crosshairs.xLineHandle)
-                delete(obj.crosshairs.xLineHandle);
+            if dim == 1 && isfield(obj.drawSquare,'xLineHandle') && ishandle(obj.drawSquare.xLineHandle)
+                delete(obj.drawSquare.xLineHandle);
             end
             
         end

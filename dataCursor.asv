@@ -1,4 +1,4 @@
-classdef dataCursor < handle
+classdef DataCursor < handle
     %DATACURSOR class for wrapping data cursor with options specified for
     %it
     
@@ -8,78 +8,28 @@ classdef dataCursor < handle
     end
     
     methods
-        function obj = dataCursor(fig)
+        function obj = DataCursor(fig)
         obj@handle;
         obj.fig = fig;        % todo: check if really needed
         obj.cursor = datacursormode(figure, ...
             'UpdateFcn', @obj.update);
         end
         
+        %%%% Callback %%%%
         function update(obj)
             % triggered when new data tip is created
-        
-        function setCursor(obj)     % todo
-            % Manage the cursor according to what was chosen: Marker, Zoom
-            % or Location
-            
-            if (get(handles.bCursorMarker, 'Value') == 1)
-                % display cursor with specific data tip
-                obj.ClearCursorData(handles);
-                datacursormode on;
-                cursorObj = datacursormode(gcf);
-                set(cursorObj,'UpdateFcn', @obj.CursorMarkerDisplay);
-                
-            elseif (get(handles.bZoom, 'Value') == 1)
-                % Creates a rectangle on the selected area, and updates the
-                % GUI's min and max values accordingly
-                obj.ClearCursorData(handles);
-                set(handles.bCursorMarker, 'Enable', 'Off');
-                set(handles.bCursorLocation, 'Enable', 'Off');
-                obj.UpdataDataByZoom(handles);
-                set(handles.bCursorMarker, 'Enable', 'On');
-                set(handles.bCursorLocation, 'Enable', 'On');
-                set(handles.bZoom, 'Value',0);
-                obj.ClearCursorData(handles);
-                
-            elseif (get(handles.bCursorLocation, 'Value') == 1)
-                % Draws horizontal and vertical line on the selected
-                % location, and moves the stage to this location.
-                obj.ClearCursorData(handles);
-                imageHandle = imhandles(handles.axes1);
-                if isempty(imhandles(handles.axes1))
-                    imageHandle = gca;
-                end
-                set(imageHandle, 'ButtonDownFcn', {@obj.SetLocationFromCursor, handles});
-                
-            else
-                % Stop zoom if active
-                global GETRECT_H1 %#ok<TLEV>
-                if ~isempty(GETRECT_H1) && ishghandle(GETRECT_H1)
-                    set(GETRECT_H1, 'UserData', 'Completed');
-                end
-                obj.ClearCursorData(handles);
-                set(gcf, 'Pointer', 'arrow');
-            end            
-        end
-        
-        function ClearCursorData(obj, handles) %#ok<INUSL>
-            % Clear the cursor data between passing from one cursor type to
-            % another. To avoid collision.
-            delete(findall(gcf,'Type','hggroup')); % Delete data tip
-            datacursormode off; % Disables cursor mode
-            
-            % Disable button press
-            imageHandle = imhandles(handles.axes1);
-            set(imageHandle, 'ButtonDownFcn', '');
             
         end
-        
-        function txt = cursorMarkerDisplay(obj, ~, event_obj)
+    end
+    
+    methods (Static = true)
+        function txt = cursorMarkerDisplay(~, event_obj)
             % Displays the location of the cursor on the plot and the kcps
             % (the color level from the colormap)
-            image = getimage(obj.vAxes);
+            resultImageView = getObjByName(ViewImageResultImage.NAME);
+            img = getimage(resultImageView.vAxes);
             
-            if isempty(image)
+            if isempty(img)
                 EventStation.anonymousWarning('Image is empty');
                 return
             end
@@ -90,21 +40,20 @@ classdef dataCursor < handle
             sp = stageScanner.mStageScanParams;
             firstAxis = sp.getFirstScanAxisLetter;
             secondAxis = sp.getSecondScanAxisLetter;
-
+            
             % Customizes text of data tips
-            pos = get(event_obj, 'Position');
+            pos = event_obj.Position;
             
             if dim == 1
                 txt = sprintf('%s = %.3f\nkcps = %.1f', firstAxis, pos(1), pos(2));
             else
                 dataIndex = get(event_obj, 'DataIndex');
+                index = img.CData
                 txt = sprintf('(%s,%s) = (%.3f, %.3f)\nkcps = %.1f', ...
                     firstAxis, secondAxis,...
-                    pos(1), pos(2), image(dataIndex));
+                    pos(1), pos(2), img(dataIndex));
             end
         end
-    end
-    
     end
 end
 

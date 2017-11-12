@@ -7,7 +7,8 @@ classdef HandleHelper
     
     methods (Static)
         function bool = isType(handle,typeName)
-            bool = ~isempty(handle) && isvalid(handle) &&  handle.Type == typeName;
+            bool = ~isempty(handle) && isvalid(handle) ...
+                && isfield(handle, 'Type') && handle.Type == typeName;
         end
     end
     

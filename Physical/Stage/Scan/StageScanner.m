@@ -111,7 +111,7 @@ classdef StageScanner < EventSender & Savable
             currentScanParams = stage.scanParams;    % save current as temp
             stage.scanParams = obj.mStageScanParams;  % revert to old ones
             obj.sendEventScanFinished();  % to be catched by the saveLoad
-            stage.scanParams = currentScanParams;  % and... bring them back
+              stage.scanParams = currentScanParams;  % and... bring them back
             
             scanStoppedManually = ~obj.mCurrentlyScanning; % maybe someone has changed this boolean meanwhile
             if scanStoppedManually
@@ -136,8 +136,8 @@ classdef StageScanner < EventSender & Savable
             end
             
             kcpsScanMatrix = [];        % Return value for nonvalid dinemsion number
-            nDimentions = sum(~scanParams.isFixed);
-            switch nDimentions
+            nDimensions = sum(~scanParams.isFixed);
+            switch nDimensions
                 case 0
                     EventStation.anonymousWarning('Nothing to scan, dude!');
                     return;
@@ -154,7 +154,7 @@ classdef StageScanner < EventSender & Savable
                 case 3
                     EventStation.anonymousWarning('3D scan not implemented!');
                 otherwise
-                    EventStation.anonymousWarning('%d dimensional scan request. String thoery not yet implemented!\n', nDimensions);
+                    EventStation.anonymousWarning('%d-dimensional scan requested. String thoery not yet implemented!\n', nDimensions);
             end
         end
         
@@ -628,7 +628,7 @@ classdef StageScanner < EventSender & Savable
                 end
             end
             
-            string = ['axes: ' obj.mStageScanParams.getScanAxes];
+            string = ['Axes: ' obj.mStageScanParams.getScanAxes];
         end
     end
 end

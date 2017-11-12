@@ -179,7 +179,7 @@ classdef (Abstract) Savable < BaseObject
             %       NI_DAQ: [1ª1 struct]
             %
             if JsonInfoReader.getJson.debugMode
-                fprintf('loading! category: %s, sub-category: %s\n', category, subCategory)
+                fprintf('Loading! Category: %s, sub-category: %s\n', category, subCategory)
             end
             allObjects = Savable.getAllSavableObjects();
             for i = 1 : length(allObjects.cells)
