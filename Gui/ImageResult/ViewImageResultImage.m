@@ -38,11 +38,19 @@ classdef ViewImageResultImage < GuiComponent & EventListener & BaseObject
                 botLabel = stageScanner.getBottomScanLabel;
                 leftLabel = stageScanner.getLeftScanLabel;
                 AxesHelper.fillAxes(obj.vAxes, stageScanner.mScan, dim, firstAxis, secondOptionalAxis, botLabel, leftLabel);
-                obj.parent.vHeader.updateAxes(obj.vAxes);  % let the other views in the header draw on the axes
+                obj.parent.vHeader.updateAxes;  % let the other views in the header draw on the axes
             end
             
             obj.height = 600;   % minimum
             obj.width = 600;    % minimum
+        end
+        
+        function delete(obj)
+            try
+                removeBaseObject(obj.NAME);
+            catch err
+                EventStation.anonymousWarning(err.message);
+            end
         end
     end
     
@@ -55,7 +63,6 @@ classdef ViewImageResultImage < GuiComponent & EventListener & BaseObject
             if isfield(event.extraInfo, ImageScanResult.EVENT_IMAGE_UPDATED)
                 isr = getObjByName(ImageScanResult.NAME);
                 AxesHelper.fillAxes(obj.vAxes, isr.mData, isr.mDimNumber, isr.mFirstAxis, isr.mSecondAxis, isr.mLabelBot, isr.mLabelLeft);
-                obj.parent.vHeader.updateAxes(obj.vAxes);  % let the other views in the header draw on the axes
             end
         end
     end

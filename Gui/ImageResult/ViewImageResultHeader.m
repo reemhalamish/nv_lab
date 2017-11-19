@@ -1,4 +1,4 @@
-classdef ViewImageResultHeader < ViewHBox
+classdef ViewImageResultHeader < ViewHBox & EventListener
     %VIEWSTAGESCANHEADER the header for the ImageResults view
     %   consists of 3 panels.
     
@@ -15,6 +15,7 @@ classdef ViewImageResultHeader < ViewHBox
             padding = 5;
             spacing = 10;
             obj@ViewHBox(panel, controller, padding, spacing);
+            obj@EventListener;
             
             obj.vPlotOptions = ViewImageResultPanelPlot(obj,controller);
             obj.vColorMap = ViewImageResultPanelColormap(obj,controller);
@@ -29,11 +30,18 @@ classdef ViewImageResultHeader < ViewHBox
             obj.height = max(heights) + 10;
         end
         
-        function updateAxes(obj, axesFigure)
-            % maybe replace loop with cellfun
-            for cvCell = obj.views
-                childView = cvCell{:};
-                childView.update;
+        function updateAxes(obj)
+            cellfun(@(v) v.update, obj.views);
+        end
+    end
+    
+    %% overridden from EventListener
+    methods
+        % when event happen, this function jumps.
+        % event is the event sent from the EventSender
+        function onEvent(obj, event)
+            if isfield(event.extraInfo, ImageScanResult.EVENT_IMAGE_UPDATED)
+                obj.updateAxes;
             end
         end
     end

@@ -108,10 +108,10 @@ classdef StageScanner < EventSender & Savable
 
             % autosave - when sending this event there will be a save.
             % so let's save with the correct scan parameters
-            currentScanParams = stage.scanParams;    % save current as temp
-            stage.scanParams = obj.mStageScanParams;  % revert to old ones
+%             currentScanParams = stage.scanParams;    % save current as temp
+%             stage.scanParams = obj.mStageScanParams;  % revert to old ones
             obj.sendEventScanFinished();  % to be catched by the saveLoad
-              stage.scanParams = currentScanParams;  % and... bring them back
+%             stage.scanParams = currentScanParams;  % and... bring them back
             
             scanStoppedManually = ~obj.mCurrentlyScanning; % maybe someone has changed this boolean meanwhile
             if scanStoppedManually
@@ -439,11 +439,14 @@ classdef StageScanner < EventSender & Savable
         
         function stopScan(obj)
             obj.mCurrentlyScanning = false;
+            % todo: check maybe we need also
+            %   stage = getObjByName(obj.mStageName);
+            %   stage.scanRunning = false;
         end
         
         function switchTo(obj, newStageName)
             if obj.mCurrentlyScanning && ~strcmp(obj.mStageName, newStageName)
-                obj.sendError('can''t switch stage when scan running!');
+                obj.sendError('Can''t switch stage when scan running!');
             end
             obj.mStageName = newStageName;
         end

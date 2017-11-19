@@ -12,15 +12,10 @@ classdef DataCursor < handle
     
     methods
         function obj = DataCursor(imageView)
-            obj@handle;
             obj.vAxes = imageView.vAxes;
             fig = ancestor(obj.vAxes,'figure');
             obj.cursor = datacursormode(fig);
             set(obj.cursor,'UpdateFcn',@obj.cursorMarkerDisplay);
-        end
-        
-        function delete(obj)
-            obj.ClearCursorData;
         end
         
         function ClearCursorData(obj)
@@ -44,7 +39,8 @@ classdef DataCursor < handle
             end
             
             % Disable button press
-            set(obj.img, 'ButtonDownFcn', '');
+            img = imhandles(obj.vAxes);
+            set(img, 'ButtonDownFcn', '');
         end
         
         function setUpdateFcn(obj)      % for ease of use for other objects
@@ -72,7 +68,7 @@ classdef DataCursor < handle
             secondAxis = sp.getSecondScanAxisLetter;
             
             % Customizes text of data tips
-            data = getimage(obj.img);
+            data = getimage(obj.vAxes);
             pos = event_obj.Position;
             
             if dim == 1
@@ -129,7 +125,9 @@ classdef DataCursor < handle
             end
             
             % "try" getting user input
+            warning('off','all');
             rect = getrect(obj.vAxes);
+            warning('on','all');
             if rect(3) == 0; return; end  % selection has no width. No use in continuing
             
             % Get scanning parameters
@@ -155,10 +153,10 @@ classdef DataCursor < handle
             for i = 1:dim
                 axisIndex = scanAxes(i);
                 
-                minimum = rect(i);              % rect(1)==horizontal position, rect(2)==vertical position
-                maximum = rect(i)+rect(i+2);    % rect(3)==width;	rect(4)==height
-                stage.scanParams.updateByLimit(axisIndex, minimum, maximum);
+                stage.scanParams.from(axisIndex) = rect(i);            % rect(1)==horizontal position, rect(2)==vertical position
+                stage.scanParams.to(axisIndex) = rect(i)+rect(i+2);    % rect(3)==width;	rect(4)==height
             end
+            stage.sendEventScanParamsChanged;
         end
         
         function drawCrosshairs(obj, limits, pos)
@@ -290,4 +288,3 @@ classdef DataCursor < handle
         end
     end
 end
-
