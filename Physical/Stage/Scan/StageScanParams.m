@@ -99,10 +99,10 @@ classdef StageScanParams < handle
             oldTo = obj.to;
             oldFixedPos = obj.fixedPos;
             
-            fromTemp = obj.from(axis);
-            fromTemp(fromTemp > newLimPos) = newLimPos(fromTemp > newLimPos);
-            fromTemp(fromTemp < newLimNeg) = newLimNeg(fromTemp < newLimNeg);
-            obj.from(axis) = fromTemp;
+            from_ = obj.from(axis);
+            from_(from_ > newLimPos) = newLimPos(from_ > newLimPos);
+            from_(from_ < newLimNeg) = newLimNeg(from_ < newLimNeg);
+            obj.from(axis) = from_;
             
             to_ = obj.to(axis);            
             to_(to_ > newLimPos) = newLimPos(to_ > newLimPos);

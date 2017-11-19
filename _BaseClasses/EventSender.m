@@ -26,7 +26,8 @@ classdef EventSender < BaseObject
             else
                 eventToSend = Event(obj, struct);
             end
-            EventStation.getInstance().newEvent(eventToSend);
+            station = EventStation.getInstance;
+            station.newEvent(eventToSend);
         end
         
         function sendWarning(obj, errorString, extraInfoStructIfNeeded)

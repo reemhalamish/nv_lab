@@ -13,8 +13,8 @@ classdef (Abstract) EventListener < handle
     
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% override this in child classes to get notified about the event!    %
-% copy paste the lines below:                                        %
+% Override this in child classes to get notified about the event!    %
+% Copy & paste the lines below:                                        %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -72,7 +72,7 @@ classdef (Abstract) EventListener < handle
     methods
         %% constructor
         function obj = EventListener(namesToListenTo)
-            % namesToListenTo - can be a empty, a string or cell of strings
+            % namesToListenTo - can be either empty, a string or cell of strings
             obj@handle();
             obj.namesToListenTo = {};
             if exist('namesToListenTo', 'var')

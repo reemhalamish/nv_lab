@@ -189,7 +189,7 @@ classdef SaveLoad < Savable & EventSender
 
             myStruct = obj.mLocalSaveStruct;
             if ~isstruct(myStruct)
-                errorMsg = 'No local struct has been loaded\saved. Nothing to save! Consider calling obj.saveSystemToLocalStruct() or obj.loadFileToLocal()';                
+                errorMsg = 'No local struct has been loaded\saved. Nothing to save! Consider calling obj.saveSystemToLocalStruct() or obj.loadFileToLocal()';
                 obj.sendError(errorMsg);
             end
             
@@ -232,7 +232,7 @@ classdef SaveLoad < Savable & EventSender
         function autoSave(obj)
             % saves the state to the local struct
             % and then saves the struct to a file in the AUTOSAVE folder
-            obj.saveSystemToLocalStruct();
+%             obj.saveSystemToLocalStruct();
             
             filename = obj.mLoadedFileName;
             fullPath = sprintf('%s%s', obj.PATH_DEFAULT_AUTO_SAVE, filename);
@@ -269,7 +269,7 @@ classdef SaveLoad < Savable & EventSender
             % loads the local struct into the system
             % subCategoryOptional - string. the subCat to load to
             if ~isstruct(obj.mLocalSaveStruct)
-                warningMsg = 'no local struct has been loaded\saved. nothing to save! consider calling obj.saveSystemToLocalStruct() or obj.loadFileToLocal()';
+                warningMsg = 'No local struct has been loaded\saved. Nothing to save! Consider calling obj.saveSystemToLocalStruct() or obj.loadFileToLocal()';
                 obj.sendWarning(warningMsg);
                 success = false;
                 return

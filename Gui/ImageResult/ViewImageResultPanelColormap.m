@@ -57,16 +57,16 @@ classdef ViewImageResultPanelColormap < GuiComponent
         
         function update(obj)
             viewImage = getObjByName(ViewImageResultImage.NAME);
-            axes = viewImage.vAxes;
+            vAxes = viewImage.vAxes;
             if obj.cbxAuto.Value
-                obj.autoSetColormapLimits(axes);
+                obj.autoSetColormapLimits(vAxes);
             else
                 % Update the plot with the specified min/max values from the GUI
                 minColor = str2double(obj.edtMin.String);
                 maxColor = str2double(obj.edtMax.String);
                 obj.edtMin.UserData = minColor;
                 obj.edtMax.UserData = maxColor;
-                caxis(axes, [minColor maxColor]);
+                caxis(vAxes, [minColor maxColor]);
             end
         end
         

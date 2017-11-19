@@ -44,7 +44,7 @@ classdef ViewImageResultPanelPlot < GuiComponent
         end
         
         %%%% Callbacks %%%%        
-        function btnOpenInFigureCallback(obj,~,~)
+        function btnOpenInFigureCallback(obj,~,~) %#ok<INUSD>
             resultImage = getObjByName(ViewImageResultImage.NAME);
             hFigure = figure;
             axes = resultImage.vAxes;
