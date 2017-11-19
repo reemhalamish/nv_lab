@@ -1,0 +1,3 @@
+﻿$ cat .gitignore
+*.asv
+ToDo.xlsx
