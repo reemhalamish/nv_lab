@@ -62,7 +62,7 @@ classdef StageScanner < EventSender & Savable
         end
         
         function startScan(obj)
-            if isnan(obj.mStageName); obj.sendError('Can''t start scan: unknown stage name! please call stageScanner.switchTo(your_stage_name) before calling stageScanner.startScan(). exiting'); end
+            if isnan(obj.mStageName); obj.sendError('Can''t start scan: unknown stage name! please call stageScanner.switchTo(your_stage_name) before calling stageScanner.startScan(). Exiting'); end
             
             obj.mCurrentlyScanning = true;
             obj.sendEventScanStarting();
@@ -96,15 +96,6 @@ classdef StageScanner < EventSender & Savable
             
             spcm.setSPCMEnable(false);
             obj.mScan = kcpsScanMatrix;
-            
-%             %%%%% autoSave %%%%%
-%             if obj.mStageScanParams.autoSave
-%                 currentScanParams = stage.scanParams;    % save current as temp
-%                 stage.scanParams = obj.mStageScanParams;  % revert to old ones
-%                 obj.autosaveAfterScan(); % so saving will be with the old scan parameters
-%                 stage.scanParams = currentScanParams;  % and... bring them back
-%             end
-            
 
             % autosave - when sending this event there will be a save.
             % so let's save with the correct scan parameters
@@ -231,7 +222,7 @@ classdef StageScanner < EventSender & Savable
                         %obj.sendEventScanUpdated(kcpsScanVector); %Yoav: not needed
                         break;
                     catch err
-                        rethrow(err) % Uncomment to debug
+%                         rethrow(err) % Uncomment to debug
                         warning(err.message);
                         
                         if ~obj.mCurrentlyScanning
@@ -290,8 +281,8 @@ classdef StageScanner < EventSender & Savable
             tPixel = scanParams.pixelTime;   % time for each pixel
             numPointsAxisA = scanParams.numPoints(axisAIndex);
             numLinesAxisB = scanParams.numPoints(axisBIndex);
-            letterAxisA = ClassStage.getAxis(axisAIndex);
-            letterAxisB = ClassStage.getAxis(axisBIndex);
+            letterAxisA = ClassStage.getAxis(axisAIndex);       %todo: needed?
+            letterAxisB = ClassStage.getAxis(axisBIndex);       %todo: needed?
             vectorAxisA = scanParams.getScanAxisVector(axisAIndex);
             vectorAxisB = scanParams.getScanAxisVector(axisBIndex);
             pointAxisC = scanParams.getScanAxisVector(axisCIndex);
@@ -351,10 +342,10 @@ classdef StageScanner < EventSender & Savable
                 )
             % this function scans a chunk from the scan-matrix
             if length(axisAPixelsPerLine) ~= matrixIndexPixelInLineEnd - matrixIndexPixelInLineStart + 1
-                obj.sendError('can''t scan - mismatch size of vector!')
+                obj.sendError('Can''t scan - mismatch size of vector!')
             end
             if length(axisBLinesPerScan) ~= matrixIndexLineEnd - matrixIndexLineStart + 1
-                obj.sendError('can''t scan - mismatch size of vector!')
+                obj.sendError('Can''t scan - mismatch size of vector!')
             end
             
             if ~obj.mCurrentlyScanning; return; end %Yoav: Will create error because no output
@@ -371,18 +362,20 @@ classdef StageScanner < EventSender & Savable
             spcm.prepareReadByStage(stage.name, length(axisAPixelsPerLine), tPixel, isFastScan);
             
             % do the scan
+            spcm.startScanRead();
             for lineIndex = matrixIndexLineStart : matrixIndexLineEnd
                 if ~obj.mCurrentlyScanning; break; end
                 for trial = 1 : StageScanner.TRIALS_AMOUNT_ON_ERROR
                     try
-                        isStartedLine = false;
-                        spcm.startScanRead()
-                        
-                        isStartedLine = true;
+%                         isStartedLine = false;
+%                         spcm.startScanRead()
+%                         
+%                         isStartedLine = true;
                         wasScannedForward = stage.ScanNextLine();
                         % forwards - if true, the line was scanned normally,
-                        % false - should flip the results
+                        %            if false - should flip the results
                         kcpsVector = spcm.readFromScan();
+                                                
                         kcpsVector = BooleanHelper.ifTrueElse(wasScannedForward, kcpsVector, fliplr(kcpsVector));
                         if isFlipped
                             kcpsMatrix(matrixIndexPixelInLineStart: matrixIndexPixelInLineEnd, lineIndex) = kcpsVector;
@@ -392,32 +385,30 @@ classdef StageScanner < EventSender & Savable
                         obj.sendEventScanUpdated(kcpsMatrix);
                         break;
                     catch err
-                        rethrow(err);  % Uncomment to debug
+%                         rethrow(err);  % Uncomment to debug
                         obj.sendWarning(err.message);
                         if ~obj.mCurrentlyScanning
                             stage.AbortScan();
+                            spcm.clearScanRead();
                             return;
                         end
                         
-                        fprintf('Line %d failed at trial %d, attempting to rescan line.\n', i, trial);
+                        fprintf('Line %d failed at trial %d, attempting to rescan line.\n', i, trial); %#ok<IJCL>
                         
                         if ~isStartedLine
                             try
                                 stage.PrepareRescanLine(); % Prepare to rescan the line
                             catch err2
                                 stage.AbortScan();
+                                spcm.clearScanRead();
                                 rethrow(err2)
                             end
-                        end
-                        
-                        
-                        
+                        end           
                     end % try catch
                 end % for trial = 1 : StageScanner.TRIALS_AMOUNT_ON_ERROR
-                
-                
             end % lineIndex = 1 : length(axisBLinesPerScan)
             stage.AbortScan();
+            spcm.clearScanRead();
         end
         
         function [x,y,z] = getXYZfor2dScanChunk(obj, axisAPointsPerLine, axisBLinesPerScan, axisADirectionIndex, axisBDirectionIndex, axisCPoint0) %#ok<STOUT,INUSL>

@@ -3,9 +3,8 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
     properties
         availableAxes           % string. for example - "xy"
         scanParams              % object of type StageScanParams
-        isScanable              % logical
+        availableProperties = struct;
         stepSize                % double
-        tiltAvailable           % logical
     end
     
     properties(Abstract = true, Constant = true)
@@ -19,6 +18,13 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
              
         TILT_MIN_LIM_DEG = -5;
         TILT_MAX_LIM_DEG = 5;
+        
+        HAS_FAST_SCAN = 'hasFastScan';
+        HAS_SLOW_SCAN = 'hasSlowScan';
+        TILTABLE = 'tiltable';
+        HAS_CLOSED_LOOP = 'hasClosedLoop';
+        HAS_OPEN_LOOP = 'hasOpenLoop';
+        HAS_JOYSTICK = 'hasJoystick';
                     
         EVENT_SCAN_PARAMS_CHANGED = 'scanParamsChanged';
         EVENT_LIM_CHANGED = 'limitChanged';
@@ -62,6 +68,8 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                             newStage = ClassPIM686.GetInstance();
                         case 'PIM-501'
                             newStage = ClassPIM501.GetInstance();
+                        case 'PIM-686&PIM-501'
+                            newStage = ClassPIM686M501.GetInstance();
                         case 'STEDCoarse'
                             newStage = ClassSTEDCoarse.GetInstance();
                         case 'Dummy'
@@ -130,21 +138,16 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
     end  % methods(static, public)
     
     methods (Access = protected)
-        function obj = ClassStage(name, availableAxes, isScanable, tiltAvailable)
+        function obj = ClassStage(name, availableAxes)
             % name - string
             % availableAxes - string. example: "xyz"
-            % isScannable - boolean, does it support scanning
-            % tiltAvailable - boolean, does it support tilt
             obj@EventSender(name);
             obj@Savable(name);
             obj@EventListener(StageControlEvents.NAME);
             addBaseObject(obj);  % so it can be reached by getObjByName()
             
-            
             obj.availableAxes = availableAxes;
-            obj.isScanable = isScanable;
             obj.stepSize = obj.STEP_DEFAULT_SIZE;
-            obj.tiltAvailable = tiltAvailable;
         end
         
         function initScanParams(obj)
@@ -156,6 +159,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             obj.scanParams.isFixed = ones(1, ClassStage.SCAN_AXES_SIZE);    % all fixed except what the stage supports (look 3 lines below)
             obj.scanParams.isFixed(axis) = false;
             obj.scanParams.fixedPos(axis) = obj.Pos(axis);
+            obj.scanParams.fastScan = obj.hasFastScan;
         end
         
         % wrapper for the static method getAxis
@@ -197,6 +201,8 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         
         [tiltEnabled, thetaXZ, thetaYZ] = GetTiltStatus(obj)
         % Return the status of the tilt control.
+        
+        
     end
     
     
@@ -519,7 +525,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                 obj.scanParams = newValue;
                 obj.sendEventScanParamsChanged();
             else
-                obj.sendWarning('Can only put object of type "StageScanParams"! ignoring');
+                obj.sendWarning('Can only put object of type "StageScanParams"! Ignoring');
             end
         end
         
@@ -624,6 +630,42 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             catch matlabError
                 obj.sendError(matlabError.message);
             end
+        end
+        
+    end
+    
+    methods % Available properties    
+        function properties = getAvailableProperties(obj)
+            properties = obj.avilableProperties;
+        end
+
+        function bool = isScanable(obj)
+            bool = isfield(obj.availableProperties,obj.HAS_SLOW_SCAN) || ...
+                isfield(obj.availableProperties,obj.HAS_FAST_SCAN);
+        end
+        
+        function bool = hasFastScan(obj)
+            bool = isfield(obj.availableProperties,obj.HAS_FAST_SCAN);
+        end
+        
+        function bool = hasSlowScan(obj)
+            bool = isfield(obj.availableProperties,obj.HAS_SLOW_SCAN);
+        end
+        
+        function bool = tiltAvailable(obj)
+            bool = isfield(obj.availableProperties,obj.TILTABLE);
+        end
+        
+        function bool = hasOpenLoop(obj)
+            bool = isfield(obj.availableProperties,obj.HAS_OPEN_LOOP);
+        end
+        
+        function bool = hasClosedLoop(obj)
+            bool = isfield(obj.availableProperties,obj.HAS_OPEN_LOOP);
+        end
+        
+        function bool = hasJoystick(obj)
+            bool = isfield(obj.availableProperties,obj.HAS_OPEN_LOOP);
         end
         
     end

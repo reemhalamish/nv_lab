@@ -60,8 +60,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             % Private default constructor.
             name = ClassPIP562.NAME;
             availAxis = ClassPIP562.validAxes;
-            isScanable = true;
-            obj = obj@ClassPIMicos(name, availAxis, isScanable);
+            obj = obj@ClassPIMicos(name, availAxis);
             
             daq = getObjByName(NiDaq.NAME);
             daq.registerChannel(niDaqChannel, obj.name);
@@ -76,6 +75,12 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             obj.curVel = [0 0 0];
             obj.forceStop = 0;
             obj.scanRunning = 0;
+            
+            obj.availableProperties.(obj.HAS_FAST_SCAN) = true;
+            obj.availableProperties.(obj.TILTABLE) = true;
+            obj.availableProperties.(obj.HAS_CLOSED_LOOP) = true;
+            obj.availableProperties.(obj.HAS_OPEN_LOOP) = true;
+            
             obj.Connect();
             obj.Initialization();
             obj.scanStruct = struct([]);

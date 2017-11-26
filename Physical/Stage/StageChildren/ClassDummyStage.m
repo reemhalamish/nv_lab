@@ -49,6 +49,13 @@ classdef (Sealed) ClassDummyStage  < ClassStage
     methods
        function obj = ClassDummyStage(name, availableAxes, isScanable, tiltAvailable)
             obj@ClassStage(name, availableAxes, isScanable, tiltAvailable);
+            if isScanable
+                obj.availableProperties.(HAS_FAST_SCAN) = true;
+                obj.availableProperties.(HAS_SLOW_SCAN) = true;
+            end
+            if tiltAvailable
+                obj.availableProperties.(TILTABLE) = true;
+            end
         end 
     end
     

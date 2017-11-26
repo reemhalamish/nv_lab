@@ -240,12 +240,17 @@ classdef NiDaq < EventSender
             obj.checkError(status);
         end
         
-        function task = CreateDAQPulseWidthMeas(obj, nCounts, countChannelName, pixelsChannelName)
+        function task = CreateDAQPulseWidthMeas(obj, nCounts, countChannelName, pixelsChannelName, ctrNumberOpt)
             % Creates a pulse width measurement task
             % (countChannelName, countEdgeChannelName) use cases:
             % For counting photons by stage: (SPCM, Stages)
             % For counting time by stage: (NiDaq.CHANNEL_100MHZ, Stage)
             % For counting photons by time: (SPCM, NiDaq.CHANNEL_100kHZ)
+            % ctrNumber can be 0 or 1, if not specified then it is 0.
+            if ~exist('ctrNumberOpt', 'var')
+                ctrNumberOpt = 0;
+            end
+            device = sprintf('/%s/Ctr%d', obj.deviceName, ctrNumberOpt);
             
             DAQmx_Val_Rising = daq.ni.NIDAQmx.DAQmx_Val_Rising; % Rising
             DAQmx_Val_FiniteSamps = daq.ni.NIDAQmx.DAQmx_Val_FiniteSamps; % Finite Samples
@@ -253,7 +258,7 @@ classdef NiDaq < EventSender
             
             task = obj.createTask();
             
-            status = DAQmxCreateCIPulseWidthChan(task, obj.deviceName, '', 0.000000100, 18.38860750, DAQmx_Val_Seconds, DAQmx_Val_Rising, '');
+            status = DAQmxCreateCIPulseWidthChan(task, device, '', 0.000000100, 18.38860750, DAQmx_Val_Seconds, DAQmx_Val_Rising, '');
             obj.checkError(status);
             
             status = DAQmxCfgImplicitTiming(task, DAQmx_Val_FiniteSamps , nCounts);

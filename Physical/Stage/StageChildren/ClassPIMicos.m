@@ -42,13 +42,10 @@ classdef ClassPIMicos < ClassStage
     end
     
     methods (Access = protected) % Protected Functions
-        function obj = ClassPIMicos(name, availableAxes, isScanable)
+        function obj = ClassPIMicos(name, availableAxes)
             % name - string
             % availableAxes - string. example: "xyz"
-            % isScannable - boolean, does it support scanning
-            tiltAvailable = true;
-            % tiltAvailable - boolean, does it support tilt
-            obj@ClassStage(name, availableAxes, isScanable, tiltAvailable)
+            obj@ClassStage(name, availableAxes)
             
             % Private default constructor.
             obj.debug = 0;

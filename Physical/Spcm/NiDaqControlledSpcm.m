@@ -52,16 +52,14 @@ classdef NiDaqControlledSpcm < Spcm & NiDaqControlled
         
         function [kcps, stdev] = readFromTime(obj)
             % Reads from the SPCM for the integration time and returns a
-            % single point which is the kcps.
+            % single point which is the kcps and also the standard error.
             niDaq = getObjByName(NiDaq.NAME);
             
             counts = diff(niDaq.ReadDAQCounter(obj.counterTimeTask, obj.nTimeCounts, obj.counterIntegrationTime));
             kiloCounts = double(counts)/1000;
             meanTime = obj.counterIntegrationTime/obj.nTimeCounts;                  % mean time for each reading
             kcps = mean(kiloCounts/meanTime);
-            stdev = std(kiloCounts/meanTime);
-%             SumSquareError = sum((kiloCounts/meanTime-kcps).^2);    % SSE
-%             stdev = sqrt(SumSquareError/length(kiloCounts));        % == RMS Error
+            stdev = std(kiloCounts/meanTime)/sqrt(length(kiloCounts));
         end
         
         function clearTimeRead(obj)
@@ -78,7 +76,7 @@ classdef NiDaqControlledSpcm < Spcm & NiDaqControlled
             % Prepare the SPCM to a scan by a stage. Before a multiline
             % scan, this should be called only once.
             if ~ValidationHelper.isValuePositiveInteger(nPixels)
-                obj.sendError('can''t prepare for reading %s points, only positive integers allowed! Igonring');
+                obj.sendError('Can''t prepare for reading %s points, only positive integers allowed! Igonring');
             end
             obj.nScanCounts = BooleanHelper.ifTrueElse(fastScan, nPixels+1, nPixels); % Fast scans works by edges, so an extra count is needed.
             obj.scanTimeoutTime = timeout;
@@ -95,6 +93,13 @@ classdef NiDaqControlledSpcm < Spcm & NiDaqControlled
             daq = getObjByName(NiDaq.NAME);
             daq.startTask(obj.counterScanSPCMTask);
             daq.startTask(obj.counterScanTimeTask);
+        end
+        
+        function stopScanRead(obj)
+            % Stops at the end of reading line
+            daq = getObjByName(NiDaq.NAME);
+            daq.stopTask(obj.counterScanSPCMTask);
+            daq.stopTask(obj.counterScanTimeTask);
         end
         
         function vectorOfKcps = readFromScan(obj)
@@ -125,7 +130,7 @@ classdef NiDaqControlledSpcm < Spcm & NiDaqControlled
         function clearScanRead(obj)
             % Clear the task that scans from stage.
             if obj.nScanCounts <= 0
-                obj.sendError('can''t clear without calling ''prepare()''! ');
+                obj.sendError('Can''t clear without calling ''prepare()''! ');
             end
             obj.nScanCounts = 0;
             daq = getObjByName(NiDaq.NAME);

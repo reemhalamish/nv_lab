@@ -50,8 +50,7 @@ classdef StageScanParams < handle
             end
             
             % check if "pixelTime" is a positive double
-            if ~ValidationHelper.isInBorders(pixelTime, 0, inf) ...
-                    || pixelTime == 0
+            if ~ValidationHelper.isValuePositive(pixelTime)
                 EventStation.anonymousError('"pixelTime" parameter should be a positive double!')
             end
             
@@ -162,8 +161,8 @@ classdef StageScanParams < handle
         end
         
         function index = getSecondScanAxisIndex(obj)
-            isScanable = obj.sendWarningIfNotScannable;
-            if ~isScanable
+            isScannable = obj.sendWarningIfNotScannable;
+            if ~isScannable
                 index = -1;
                 return
             end
@@ -225,7 +224,7 @@ classdef StageScanParams < handle
     methods(Access = protected)
         function isOk = sendWarningIfNotScannable(obj)
             if all(obj.isFixed)
-                EventStation.anonymousWarning('Attention - StageScanParams object is not scan-friendly! all the axes are fixed!');
+                EventStation.anonymousWarning('Attention - StageScanParams object is not scan-friendly! All the axes are fixed!');
                 isOk = false;
             else
                 isOk = true;

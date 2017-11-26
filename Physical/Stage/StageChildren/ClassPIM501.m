@@ -23,7 +23,7 @@ classdef (Sealed) ClassPIM501 < ClassPIMicos
     end
     
     properties(Constant = true)
-        NAME = 'stage (coarse) - ClassPIM501'
+        NAME = 'Stage (coarse) - ClassPIM501'
         
         STEP_MINIMUM_SIZE = 0.3
         STEP_DEFAULT_SIZE = 10
@@ -45,8 +45,7 @@ classdef (Sealed) ClassPIM501 < ClassPIMicos
             % Private default constructor.
             name = ClassPIM501.NAME;
             availAxis = ClassPIM501.validAxes;
-            isScanable = false;
-            obj = obj@ClassPIMicos(name, availAxis, isScanable);
+            obj = obj@ClassPIMicos(name, availAxis);
 
             obj.ID = -1;
             obj.posRangeLimit = 12500; % Units set to microns.
@@ -58,6 +57,9 @@ classdef (Sealed) ClassPIM501 < ClassPIMicos
             obj.curVel = 0;
             obj.forceStop = 0;
             obj.scanRunning = 0;
+            
+            obj.availableProperties.(obj.HAS_CLOSED_LOOP) = true;
+            obj.availableProperties.(obj.HAS_OPEN_LOOP) = true;
             
             obj.Connect();
             obj.Initialization();
