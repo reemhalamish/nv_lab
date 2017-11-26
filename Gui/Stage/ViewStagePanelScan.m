@@ -33,9 +33,17 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
             vboxFirst.Heights = [-1 -1 -1];
             
             %%%% Continous FastScan AutoSave %%%%
+            % Get scan speed parameters from stage
+            stage = getObjByName(obj.stageName);
+            fastScannable = stage.hasFastScan;
+            slowScannable = stage.hasSlowScan;
+            enable = BooleanHelper.boolToOnOff(fastScannable && slowScannable);
+            value = fastScannable;      % If fast Scan is implemented, it is the default
+            
+            % Create gui objects
             vboxSecond = uix.VBox('Parent', hboxMain, 'Spacing', 5, 'Padding', 0);
             obj.cbxContinous = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', vboxSecond, 'String', 'Continuous');
-            obj.cbxFastScan = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', vboxSecond, 'String', 'Fast Scan');
+            obj.cbxFastScan = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', vboxSecond, 'String', 'Fast Scan', 'Enable', enable, 'Value', value);
             obj.cbxAutoSave = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', vboxSecond, 'String', 'Auto-Save');
             
             
@@ -63,7 +71,7 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
             obj.cbxAutoSave.Value = scanParams.autoSave;
             obj.cbxContinous.Value = scanParams.continuous;
             obj.cbxFastScan.Value = scanParams.fastScan;
-            obj.edtPixelTime.String = scanParams.pixelTime;
+            obj.edtPixelTime.String = StringHelper.formatNumber(scanParams.pixelTime);
         end
         
         function cbxAutoSaveCallback(obj)
@@ -90,9 +98,9 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
         function edtPixelTimeCallback(obj)
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
-            if ~ValidationHelper.isValueNonNegative(obj.edtPixelTime.String)
-                obj.edtPixelTime.String = scanParams.pixelTime;
-                EventStation.anonymousError('"pixel time" has to be non-negative number! reverting.');
+            if ~ValidationHelper.isValuePositive(obj.edtPixelTime.String)
+                obj.edtPixelTime.String = StringHelper.formatNumber(scanParams.pixelTime);
+                EventStation.anonymousError('"Pixel time" has to be a positive number! Reverting.');
             end
             scanParams.pixelTime = str2double(obj.edtPixelTime.String);
             stage.sendEventScanParamsChanged();

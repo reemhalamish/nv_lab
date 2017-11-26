@@ -137,8 +137,8 @@ classdef ViewStagePanelLimits < GuiComponent & EventListener
                 axis = ClassStage.getAxis(stage.availableAxes(i));
                 [limNeg, limPos] = stage.ReturnLimits(axis);
 
-                obj.edtLower(i).String = limNeg;
-                obj.edtUpper(i).String = limPos;
+                obj.edtLower(i).String = StringHelper.formatNumber(limNeg);
+                obj.edtUpper(i).String = StringHelper.formatNumber(limPos);
             end
         end
         
@@ -148,21 +148,22 @@ classdef ViewStagePanelLimits < GuiComponent & EventListener
             axis = ClassStage.getAxis(obj.stageAxes(index));
             [limNeg, limPos] = stage.ReturnLimits(axis);
             [negHardLimit, posHardLimit] = stage.ReturnHardLimits(axis);
-            
-            if ~ValidationHelper.isStringValueANumber(obj.edtLower(index).String)
-                obj.edtLower(index).String = limNeg;
-                EventStation.anonymousError('Lower Limit should be a number! Reverting.')
-            end
-            
-            lowerLimEdt = str2double(obj.edtLower(index).String);
-            if~ValidationHelper.isInBorders(lowerLimEdt, negHardLimit, posHardLimit)
-                obj.edtLower(index).String = limNeg;
-                EventStation.anonymousError(sprintf('Lower Limit is not in hard limits! Reverting.\nhard limits: [%d, %d]', negHardLimit, posHardLimit));
-            end
-            
-            if lowerLimEdt > limPos
-                obj.edtLower(index).String = limNeg;
-                EventStation.anonymousError('Lower Limit can''t be bigger than upper limit! Reverting.\upper limit: %d, wanted lower limit: %d', limPos, lowerLimEdt);
+            try
+                if ~ValidationHelper.isStringValueANumber(obj.edtLower(index).String)
+                    error('Lower Limit should be a number! Reverting.')
+                end
+                
+                lowerLimEdt = str2double(obj.edtLower(index).String);
+                if~ValidationHelper.isInBorders(lowerLimEdt, negHardLimit, posHardLimit)
+                    error('Lower Limit is not in hard limits! Reverting.\nhard limits: [%d, %d]', negHardLimit, posHardLimit);
+                end
+                
+                if lowerLimEdt > limPos
+                    error('Lower Limit can''t be bigger than upper limit! Reverting.\upper limit: %d, wanted lower limit: %d', limPos, lowerLimEdt);
+                end
+            catch err
+                obj.edtLower(index).String = StringHelper.formatNumber(limNeg);
+                EventStation.anonymousError(err.message);
             end
             
             stage.setLim(lowerLimEdt, axis, obj.LIM_LOWER);
@@ -175,21 +176,23 @@ classdef ViewStagePanelLimits < GuiComponent & EventListener
             axis = ClassStage.getAxis(obj.stageAxes(index));
             [limNeg, limPos] = stage.ReturnLimits(axis);
             [negHardLimit, posHardLimit] = stage.ReturnHardLimits(axis);
-            
-            if ~ValidationHelper.isStringValueANumber(obj.edtUpper(index).String)
-                obj.edtUpper(index).String = limPos;
-                EventStation.anonymousError('Upper Limit should be a number! Reverting.')
-            end
-            
-            upperLimEdt = str2double(obj.edtUpper(index).String);
-            if~ValidationHelper.isInBorders(upperLimEdt, negHardLimit, posHardLimit)
-                obj.edtUpper(index).String = limPos;
-                EventStation.anonymousError('Upper Limit is not in hard limits! Reverting.\nhard limits: [%d, %d]', negHardLimit, posHardLimit);
-            end
-            
-            if upperLimEdt < limNeg
-                obj.edtUpper(index).String = limPos;
-                EventStation.anonymousError('Upper Limit can''t be lower than Lower limit! Reverting.\lower limit: %d, wanted upper limit: %d', limNeg, upperLimEdt);
+            try
+                if ~ValidationHelper.isStringValueANumber(obj.edtUpper(index).String)
+                    error('Upper Limit should be a number! Reverting.')
+                end
+                
+                upperLimEdt = str2double(obj.edtUpper(index).String);
+                if~ValidationHelper.isInBorders(upperLimEdt, negHardLimit, posHardLimit)
+                    error('Upper Limit is not in hard limits! Reverting.\nhard limits: [%d, %d]', negHardLimit, posHardLimit);
+                end
+                
+                if upperLimEdt < limNeg
+                    error('Upper Limit can''t be lower than Lower limit! Reverting.\lower limit: %d, wanted upper limit: %d', limNeg, upperLimEdt);
+                end
+
+            catch
+                obj.edtUpper(index).String = StringHelper.formatNumber(limPos);
+                EventStation.anonymousError(err.message);
             end
             
             stage.setLim(upperLimEdt, axis, obj.LIM_UPPER);
@@ -203,7 +206,7 @@ classdef ViewStagePanelLimits < GuiComponent & EventListener
             
             if ~ValidationHelper.isStringValueANumber(around)
                 obj.edtSetAround.String = obj.SET_AROUND_DEFAULT_STRING;
-                EventStation.anonymousError('"around" should be a number! reverting...');
+                EventStation.anonymousError('"around" should be a number! Reverting...');
             end
             
             around = str2double(around);

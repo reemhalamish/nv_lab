@@ -13,6 +13,7 @@ classdef ViewImageResultImage < GuiComponent & EventListener & BaseObject
     end
     properties(Constant = true)
         NAME = 'ViewImageResultImage';
+        DEFAULT_COLRMAP = 'Pink';
     end
     
     methods
@@ -24,6 +25,7 @@ classdef ViewImageResultImage < GuiComponent & EventListener & BaseObject
             
             obj.component = uicontainer('parent', parent.component);
             obj.vAxes = axes('Parent', obj.component, 'ActivePositionProperty', 'outerposition');
+            colormap(obj.vAxes,obj.DEFAULT_COLRMAP);
 
             colorbar(obj.vAxes);
             axes(); % creating floating axes() so that default calls to axes (such as image() surf() etc.) won't reach this view but the invis floating one

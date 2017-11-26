@@ -75,8 +75,8 @@ classdef ViewStagePanelTiltCorrection < GuiComponent & EventListener
             stage = getObjByName(obj.stageName);
             [tiltEnabled, thetaXZ, thetaYZ] = stage.GetTiltStatus();
             obj.cbxEnable.Value = tiltEnabled;
-            obj.edtThetaX.String = thetaXZ;
-            obj.edtThetaY.String = thetaYZ;
+            obj.edtThetaX.String = StringHelper.formatNumber(thetaXZ);
+            obj.edtThetaY.String = StringHelper.formatNumber(thetaYZ);
             
             obj.colorifybyCheckbox();
         end
@@ -109,8 +109,8 @@ classdef ViewStagePanelTiltCorrection < GuiComponent & EventListener
             if isError
                 stage = getObjByName(obj.stageName);
                 [~, thetaXZ, thetaYZ] = stage.GetTiltStatus();
-                obj.edtThetaX.String = thetaXZ;
-                obj.edtThetaY.String = thetaYZ;
+                obj.edtThetaX.String = StringHelper.formatNumber(thetaXZ);
+                obj.edtThetaY.String = StringHelper.formatNumber(thetaYZ);
                 return
             end
             

@@ -127,7 +127,7 @@ classdef ViewSpcm < ViewVBox & EventListener
         %%%% Callbacks %%%%
         function cbxUsingWrapCallback(obj,~,~)
             obj.recolor(obj.edtWrap,~obj.isUsingWrap)
-            % obj.update;
+            % obj.update;           todo: replot with relevant data
         end
         function edtWrapCallback(obj,~,~)
             if ~ValidationHelper.isValuePositiveInteger(obj.edtWrap.String)
@@ -135,11 +135,16 @@ classdef ViewSpcm < ViewVBox & EventListener
                 obj.edtWrap.String = obj.wrap;
             end
             obj.wrap = str2double(obj.edtWrap.String);
-            % obj.update;
+            % obj.update;           todo: replot with relevant data
         end
         function btnStartCallback(~,~,~)
             spcmCount = getObjByName(SpcmCounter.NAME);
-            spcmCount.run;
+            try
+                spcmCount.run;
+            catch err
+                spcmCount.stop;     % sets spcmCount = false
+                rethrow(err);
+            end
         end
         function btnStopCallback(~,~,~)
             spcmCount = getObjByName(SpcmCounter.NAME);

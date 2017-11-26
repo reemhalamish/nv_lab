@@ -467,7 +467,7 @@ classdef SaveLoad < Savable & EventSender
             end
             
             if ~PathHelper.isFileExists(obj.mLoadedFileFullPath)
-               obj.sendWarning(sprintf('can''t delete file - file not exists! ignoring\n(file name: %s)', obj.mLoadedFileFullPath));
+               obj.sendWarning(sprintf('Can''t delete file - file does not exist! Ignoring\n(file name: %s)', obj.mLoadedFileFullPath));
                 return
             end 
             

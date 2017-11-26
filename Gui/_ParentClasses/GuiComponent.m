@@ -13,18 +13,18 @@ classdef GuiComponent < handle
     
     properties(Constant = true)
         %% properties for design
-        PROP_TEXT_NO_BG =           {'Style', 'text',       'FontSize', 8,                        'ForegroundColor', 'black',                             'HorizontalAlignment', 'left'};
-        PROP_TEXT_NORMAL =          {'Style', 'text',       'FontSize', 8,                        'ForegroundColor', 'black', 'BackgroundColor', 'white', 'HorizontalAlignment', 'left'};
-        PROP_LABEL =                {'Style', 'edit',       'FontSize', 10, 'FontWeight', 'bold', 'ForegroundColor', 'white', 'BackgroundColor', 'black', 'HorizontalAlignment', 'center', 'Enable', 'inactive'};
-        PROP_EDIT =                 {'Style', 'edit',       'FontSize', 10, 'FontWeight', 'bold', 'ForegroundColor', 'black', 'BackgroundColor', 'white', 'HorizontalAlignment', 'center'};
-        PROP_EDIT_SMALL =           {'Style', 'edit',       'FontSize', 8, 'FontWeight', 'normal','ForegroundColor', 'Black', 'BackgroundColor', 'white', 'HorizontalAlignment', 'left'};
+        PROP_TEXT_NO_BG =           {'Style', 'text',       'FontSize', 8,                       	'ForegroundColor', 'black',                             'HorizontalAlignment', 'left'};
+        PROP_TEXT_NORMAL =          {'Style', 'text',       'FontSize', 8,                       	'ForegroundColor', 'black', 'BackgroundColor', 'white', 'HorizontalAlignment', 'left'};
+        PROP_LABEL =                {'Style', 'edit',       'FontSize', 10, 'FontWeight', 'bold',	'ForegroundColor', 'white', 'BackgroundColor', 'black', 'HorizontalAlignment', 'center', 'Enable', 'inactive'};
+        PROP_EDIT =                 {'Style', 'edit',       'FontSize', 10, 'FontWeight', 'bold',	'ForegroundColor', 'black', 'BackgroundColor', 'white', 'HorizontalAlignment', 'center'};
+        PROP_EDIT_SMALL =           {'Style', 'edit',       'FontSize', 8,  'FontWeight', 'normal', 'ForegroundColor', 'Black', 'BackgroundColor', 'white', 'HorizontalAlignment', 'left'};
         PROP_BUTTON =               {'Style', 'pushbutton', 'FontSize', 10, 'FontWeight', 'bold'};
-        PROP_BUTTON_SMALL =         {'Style', 'pushbutton', 'FontSize', 8, 'FontWeight', 'bold'};
-        PROP_BUTTON_BIG_GREEN =     {'Style', 'pushbutton','FontSize', 14,'FontWeight', 'bold','ForegroundColor', 'white',  'BackgroundColor', 'green'};
-        PROP_BUTTON_BIG_RED =       {'Style', 'pushbutton','FontSize', 14,'FontWeight', 'bold','ForegroundColor', 'white',  'BackgroundColor', 'red'};
+        PROP_BUTTON_SMALL =         {'Style', 'pushbutton', 'FontSize', 8,  'FontWeight', 'bold'};
+        PROP_BUTTON_BIG_GREEN =     {'Style', 'pushbutton', 'FontSize', 14, 'FontWeight', 'bold',   'ForegroundColor', 'white', 'BackgroundColor', 'green'};
+        PROP_BUTTON_BIG_RED =       {'Style', 'pushbutton', 'FontSize', 14, 'FontWeight', 'bold',   'ForegroundColor', 'white', 'BackgroundColor', 'red'};
         PROP_CHECKBOX =             {'Style', 'checkbox',   'FontSize', 10};
-        PROP_POPUP =                {'Style', 'popup',      'FontSize', 10,                                                 'BackgroundColor', 'white'};
-        PROP_RADIO =                {'Style', 'radiobutton', 'FontSize', 10};
+        PROP_POPUP =                {'Style', 'popup',      'FontSize', 10,                                                     'BackgroundColor', 'white'};
+        PROP_RADIO =                {'Style', 'radiobutton','FontSize', 10};
         PROP_SLIDER =               {'Style', 'slider'};
         COLOR_ENABLE_OFF_BG = [0.9 0.9 0.9];
         COLOR_ENABLE_OFF_FG = [0.3 0.3 0.3];
@@ -78,13 +78,10 @@ classdef GuiComponent < handle
             position = get(uicontrol, 'Position');  % "Position" returns an array --> [left bottom width height]
             out = position(3);
         end
-        
-        
-    
+            
         function out = getHeight(uicontrol)
             position = get(uicontrol, 'Position');  % "Position" returns an array --> [left bottom width height]
             out = position(4);
         end
-        
     end
 end

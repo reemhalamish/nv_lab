@@ -7,12 +7,15 @@ classdef ViewImageResultPanelColormap < GuiComponent
         cbxAuto
         edtMin
         edtMax
+        
+        minVal = 0;
+        maxVal = 1;
     end
     
     properties (Constant = true)
-        TYPE_OPTIONS = {'Jet', 'HSV', 'Hot', 'Cool', ...
+        TYPE_OPTIONS = {'Pink', 'Jet', 'HSV', 'Hot', 'Cool', ...
             'Spring', 'Summer', 'Autumn', 'Winter', ...
-            'Gray', 'Bone', 'Copper', 'Pink', 'Lines'};
+            'Gray', 'Bone', 'Copper', 'Lines'};
     end
     
     methods
@@ -40,13 +43,13 @@ classdef ViewImageResultPanelColormap < GuiComponent
                 'String', 'Min');  % Label
             obj.edtMin = uicontrol(obj.PROP_EDIT{:}, ...
                 'Parent', colormap2ndRow, ...
-                'String', '0', ...
+                'String', obj.minVal, ...
                 'Callback', @obj.edtMinCallback);
             uicontrol(obj.PROP_LABEL{:}, 'Parent', colormap2ndRow, ...
                 'String', 'Max');  % Label
             obj.edtMax = uicontrol(obj.PROP_EDIT{:}, ...
                 'Parent', colormap2ndRow, ...
-                'String', '1', ...
+                'String', obj.maxVal, ...
                 'Callback', @obj.edtMaxCallback);
             colormap2ndRow.Widths =  [-1 -1 -1 -1];
             
@@ -62,11 +65,7 @@ classdef ViewImageResultPanelColormap < GuiComponent
                 obj.autoSetColormapLimits(vAxes);
             else
                 % Update the plot with the specified min/max values from the GUI
-                minColor = str2double(obj.edtMin.String);
-                maxColor = str2double(obj.edtMax.String);
-                obj.edtMin.UserData = minColor;
-                obj.edtMax.UserData = maxColor;
-                caxis(vAxes, [minColor maxColor]);
+                caxis(vAxes, [obj.minVal obj.maxVal]);
             end
         end
         
@@ -90,10 +89,10 @@ classdef ViewImageResultPanelColormap < GuiComponent
                                             % only if there are no extra arguments
             
             % update the GUI's min and max values with the auto values
-            minColor = sprintf('%.2f', min(cAxisLimits));
-            maxColor = sprintf('%.2f', max(cAxisLimits));
-            set(obj.edtMin, 'String', minColor, 'UserData', minColor);
-            set(obj.edtMax, 'String', maxColor, 'UserData', maxColor);
+            obj.minVal = min(cAxisLimits);
+            obj.maxVal = max(cAxisLimits);
+            obj.edtMin.String = StringHelper.formatNumber(obj.minVal,2);
+            obj.edtMax.String = StringHelper.formatNumber(obj.maxVal,2);
         end
         
         %%%% Callbacks %%%%
@@ -111,32 +110,32 @@ classdef ViewImageResultPanelColormap < GuiComponent
         
         function edtMinCallback(obj,~,~)
             if ~ValidationHelper.isStringValueANumber(obj.edtMin.String)
-                obj.edtMin.String = obj.edtMin.UserData;
+                obj.edtMin.String = StringHelper.formatNumber(obj.minVal,2);
                 EventStation.anonymousError('Minimum colormap value must be a number! Reverting.')
             else
-                minVal = str2double(obj.edtMin.String);
-                maxVal = str2double(obj.edtMax.String);
-                if minVal>maxVal
-                    obj.edtMin.String = obj.edtMin.UserData;
+                newMinVal = str2double(obj.edtMin.String);
+                if newMinVal > obj.maxVal
+                    obj.edtMin.String = StringHelper.formatNumber(obj.minVal,2);
                     EventStation.anonymousError('Minimum colormap value can''t be larger than Maximum! Reverting.')
                 end
             end
+            obj.minVal = newMinVal;
             obj.cbxAuto.Value = false;
             obj.update;
         end
         
         function edtMaxCallback(obj,~,~)
             if ~ValidationHelper.isStringValueANumber(obj.edtMax.String)
-                obj.edtMax.String = obj.edtMax.UserData;
+                obj.edtMax.String = StringHelper.formatNumber(obj.maxVal,2);
                 EventStation.anonymousError('Maximum colormap value must be a number! Reverting.')
             else
-                minVal = str2double(obj.edtMin.String);
-                maxVal = str2double(obj.edtMax.String);
-                if minVal>maxVal
-                    obj.edtMax.String = obj.edtMax.UserData;
+                newMaxVal = str2double(obj.edtMax.String);
+                if obj.minVal > newMaxVal
+                    obj.edtMax.String = StringHelper.formatNumber(obj.maxVal,2);
                     EventStation.anonymousError('Maximum colormap value can''t be smaller than Minimum! Reverting.')
                 end
             end
+            obj.maxVal = newMaxVal;
             obj.cbxAuto.Value = false;
             obj.update;
         end

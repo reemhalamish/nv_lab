@@ -111,13 +111,15 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             
             
             %%%% buttons (fix, query, halt) & joystick %%%%
+            joystickHeight = [];
             vboxRight = uix.VBox('Parent',hboxMain, 'Spacing', 6);
             if enableEdt        % Stage is not scannable
                 obj.btnMoveToBlue = uicontrol(obj.PROP_BUTTON{:}, ...
                     'Parent', vboxRight, ...
                     'String', 'Move To Blue', ...
                     'Enable', 'off');   % the starting state - off
-                heights = [-2 -2 -1];
+                heights = [-2 -2];
+                joystickHeight = -1;    % if it is available
             else
                 obj.btnMoveStageToFixedPos = uicontrol(obj.PROP_BUTTON{:}, ...
                     'Parent', vboxRight, ...
@@ -127,14 +129,18 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
                     'Parent', vboxRight, ...
                     'String', sprintf('Current \x2192 Fixed'), ...
                     'TooltipString', 'Set fixed position to actual stage position');
-                heights = [-5 -5 -5 -4];
+                heights = [-5 -5 -5];
+                joystickHeight = -1;
             end
             obj.btnHaltStage = uicontrol(obj.PROP_BUTTON_BIG_RED{:}, ...
                 'Parent', vboxRight, ...
                 'String', 'Halt Stages');
-            obj.cbxJoystick = uicontrol(obj.PROP_CHECKBOX{:}, ...
-                'Parent', vboxRight, ...
-                'String', 'Joystick');
+            if stage.hasJoystick
+                obj.cbxJoystick = uicontrol(obj.PROP_CHECKBOX{:}, ...
+                    'Parent', vboxRight, ...
+                    'String', 'Joystick');
+                heights = [heights joystickHeight];
+            end
             vboxRight.Heights = heights;
             rightSideTotalWidth = 120;
             
@@ -175,24 +181,26 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
         function refresh(obj)
             stage = getObjByName(obj.stageName);
             
-            obj.edtSteps.String = stage.stepSize;
+            obj.edtSteps.String = StringHelper.formatNumber(stage.stepSize);
             currentPosition = stage.Pos(obj.stageAxes);
             for i = 1: length(obj.stageAxes)
-                obj.tvCurPos(i).String = sprintf('%.3f',currentPosition(i));
+                obj.tvCurPos(i).String = StringHelper.formatNumber(currentPosition(i));
             end
         end
         
         function edtStepSizeCallback(obj)
             stepSizeString = obj.edtSteps.String;
             stage = getObjByName(obj.stageName);
-            if ~ValidationHelper.isStringValueANumber(stepSizeString)
-                obj.edtSteps.String = stage.stepSize;
-                EventStation.anonymousError('step size must be a valid number! reverting.');
-            end
-            
-            if ~ValidationHelper.isStringValueInBorders(stepSizeString, stage.STEP_MINIMUM_SIZE, inf)
-                obj.edtSteps.String = stage.stepSize;
-                EventStation.anonymousError('step size must be >= minimum step-size! reverting.\nminimum step-size: %d, wanted step size: %s', stage.STEP_MINIMUM_SIZE, stepSizeString);
+            try
+                if ~ValidationHelper.isStringValueANumber(stepSizeString)
+                    error('Step size must be a valid number! Reverting.');
+                end
+                if ~ValidationHelper.isStringValueInBorders(stepSizeString, stage.STEP_MINIMUM_SIZE, inf)
+                    error('step size must be >= minimum step-size! reverting.\nminimum step-size: %d, wanted step size: %s', stage.STEP_MINIMUM_SIZE, stepSizeString);
+                end
+            catch err
+                obj.edtSteps.String = StringHelper.formatNumber(stage.stepSize);
+                EventStation.anonymousError(err.message);
             end
             
             stage.stepSize = str2double(stepSizeString);
@@ -237,7 +245,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
                 obj.showEdtCurPos(index, true);
                 obj.checkEdtCurPosValue(index);
             else
-                EventStation.anonymousWarning('must be a number between %d and %d, reverting!', limNeg, limPos)
+                EventStation.anonymousWarning('Position must be a number between %d and %d, reverting!', limNeg, limPos)
             end
             
             stage = getObjByName(obj.stageName);
@@ -280,7 +288,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             else
                 EventStation.anonymousWarning('must be a number between %d and %d, reverting!', limNeg, limPos)
             end
-            obj.edtCurPos(index).String = obj.edtCurPosValue(index);
+            obj.edtCurPos(index).String = StringHelper.formatNumber(obj.edtCurPosValue(index));
         end
         
         function clearEdtCurPos(obj, index)

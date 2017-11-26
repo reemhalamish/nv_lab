@@ -154,8 +154,8 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             edtScan = obj.edtScanAround(index);
             valueLimStr = edtScan.String;
             if ~ValidationHelper.isValueNonNegative(valueLimStr)
-                edtScan.String = '';
-                obj.sendError(sprintf('"scan around" (axis %s) value should be non-negative! ignoring', obj.stageAxes(index)));
+                edtScan.String = obj.SCAN_AROUND_DEFAULT_STRING;
+                obj.sendError(sprintf('"scan around" (axis %s) value should be non-negative! Reverting to default', obj.stageAxes(index)));
             end
             valueLimHalf = floor(str2double(valueLimStr)/2);
             stage = getObjByName(obj.stageName);
@@ -192,7 +192,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             end
 
             scanParams.from(axis) = from;
-            viewFrom.String = from;
+            viewFrom.String = StringHelper.formatNumber(from);
         end
         
         function edtToChangedCallback(obj, index)
@@ -218,7 +218,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             end
             
             scanParams.to(axis) = to;
-            viewTo.String = to;
+            viewTo.String = StringHelper.formatNumber(to);
             
         end
         
@@ -249,7 +249,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             end
             
             scanParams.fixedPos(axis) = fixedPos;
-            viewFixed.String = fixedPos;
+            viewFixed.String = StringHelper.formatNumber(fixedPos);
             
         end
         
@@ -286,8 +286,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
                 obj.edtTo(i).String = scanParams.to(axisIndex);
                 obj.edtNumPoints(i).String = scanParams.numPoints(axisIndex);
                 obj.cbxFixed(i).Value = scanParams.isFixed(axisIndex);
-                fixedPos = sprintf('%.3f',scanParams.fixedPos(axisIndex));  % cast to string before removing trailing zeros
-                obj.edtFixedPos(i).String = StringHelper.removeTrailingZeros(fixedPos);
+                obj.edtFixedPos(i).String = StringHelper.formatNumber(scanParams.fixedPos(axisIndex),3);
                 
                 obj.colorifyFixed(i);
             end
