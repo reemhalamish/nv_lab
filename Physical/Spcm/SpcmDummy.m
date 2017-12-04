@@ -17,7 +17,7 @@ classdef SpcmDummy < Spcm
     methods
         function obj = SpcmDummy
             obj@Spcm(Spcm.NAME);
-            addBaseObject(obj);   %Redundant
+            addBaseObject(obj);   % Redundant? Anyway, it's harmless
             obj.timesToRead = 0;
             obj.isEnabled = false;
             obj.integrationTime = 0;
@@ -30,11 +30,11 @@ classdef SpcmDummy < Spcm
         
         function [kcps, std] = readFromTime(obj)
             if obj.integrationTime <= 0
-                obj.sendError('can''t call readFromTime() without calling obj.prepareReadByTime() first!');
+                obj.sendError('Can''t call readFromTime() without calling obj.prepareReadByTime() first!');
             end
             pause(obj.integrationTime)
             kcps = randi([0 obj.MAX_RANDOM_READ],1,1);
-            std = randi([0 obj.MAX_RANDOM_READ],1,1)/sqrt(12);  % looks legit
+            std = sqrt(obj.integrationTime)*randi([0 obj.MAX_RANDOM_READ],1,1)/sqrt(12);  % looks legit
         end
         
         function clearTimeRead(obj)
@@ -45,9 +45,9 @@ classdef SpcmDummy < Spcm
         
         
         % prepare to read from the spcm, when using a stage as a signal
-        function prepareReadByStage(obj, stageName, nPixels, timeout, fastScan)
+        function prepareReadByStage(obj, ~, nPixels, timeout, ~)
             if ~ValidationHelper.isValuePositiveInteger(nPixels)
-                obj.sendError(sprintf('can''t prepare for reading %s times, only positive integers allowed! igonring',nPixels));
+                obj.sendError(sprintf('Can''t prepare for reading %s times, only positive integers allowed! igonring',nPixels));
             end
             obj.timesToRead = nPixels;
             obj.integrationTime = timeout;
@@ -61,15 +61,15 @@ classdef SpcmDummy < Spcm
         % read vector of signals from the spcm
         function vectorOfKcps = readFromScan(obj)
             if ~obj.isEnabled
-                obj.sendError('can''t readFromScan() without calling ''setSPCMEnabled()''!');
+                obj.sendError('Can''t readFromScan() without calling ''setSPCMEnabled()''!');
             end
             
             if obj.timesToRead <= 0
-                obj.sendError('can''t readFromScan() without calling ''prepareReadByStage()''!  ');
+                obj.sendError('Can''t readFromScan() without calling ''prepareReadByStage()''!  ');
             end
             
             if ~obj.calledStart
-                obj.sendError('can''t readFromScan() without calling startScanRead()!');
+                obj.sendError('Can''t readFromScan() without calling startScanRead()!');
             end
             
             pause(obj.integrationTime / 1000);

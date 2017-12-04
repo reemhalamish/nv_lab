@@ -98,7 +98,7 @@ classdef (Abstract) Savable < BaseObject
         % destructor
         function delete(obj)
             if JsonInfoReader.getJson.debugMode
-                fprintf('deleting savable object "%s" of type %s\n', obj.name, class(obj));
+                fprintf('Deleting savable object "%s" of type %s\n', obj.name, class(obj));
             end
             Savable.removeSavable(obj);
         end
@@ -147,13 +147,13 @@ classdef (Abstract) Savable < BaseObject
                 savableObject = allObjects.cells{i};
                 objectStruct = savableObject.saveStateAsStruct(category);
                 if isstruct(objectStruct)
-                    % readable string - get the string
+                    % Readable string - get the string
                     readableString = savableObject.returnReadableString(objectStruct);
                     if ischar(readableString) && ~isempty(readableString)
                         objectStruct.(Savable.CHILD_PROPERTY_READABLE_STRING) = readableString;
                     end
                     
-                    % property name - replace all spaces with underscores
+                    % Property name - replace all spaces with underscores
                     nameToSave = matlab.lang.makeValidName(savableObject.name);
                     outStruct.(nameToSave) = objectStruct;
                 end
@@ -179,7 +179,7 @@ classdef (Abstract) Savable < BaseObject
             %       NI_DAQ: [1ª1 struct]
             %
             if JsonInfoReader.getJson.debugMode
-                fprintf('Loading! Category: %s, sub-category: %s\n', category, subCategory)
+                fprintf('Loading! Category: %s, Sub-category: %s\n', category, subCategory)
             end
             allObjects = Savable.getAllSavableObjects();
             for i = 1 : length(allObjects.cells)

@@ -538,12 +538,12 @@ classdef StageScanner < EventSender & Savable
             secondAxisNumPoints = scanParams.numPoints(secondAxisIndex);
             
             % option ONE: scan each line by axis 1, move between lines in axis 2
-            % calculate how much many would be needed than:
+            % calculate how many steps would be needed then:
             timesMaxInFirst = ceil(firstAxisNumPoints / stageMaxScanSizeInt);
             totalTimesOptionOne = timesMaxInFirst * secondAxisNumPoints;
             
             % option TWO: scan each line by axis 2, move between lines in axis 1
-            % calculate how many scans would be needed than:
+            % calculate how many steps would be needed then:
             timesMaxInSecond = ceil(secondAxisNumPoints / stageMaxScanSizeInt);
             totalTimesOptionTwo = timesMaxInSecond * firstAxisNumPoints;
             

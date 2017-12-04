@@ -111,7 +111,6 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             
             
             %%%% buttons (fix, query, halt) & joystick %%%%
-            joystickHeight = [];
             vboxRight = uix.VBox('Parent',hboxMain, 'Spacing', 6);
             if enableEdt        % Stage is not scannable
                 obj.btnMoveToBlue = uicontrol(obj.PROP_BUTTON{:}, ...
@@ -130,7 +129,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
                     'String', sprintf('Current \x2192 Fixed'), ...
                     'TooltipString', 'Set fixed position to actual stage position');
                 heights = [-5 -5 -5];
-                joystickHeight = -1;
+                joystickHeight = -1;    % if it is available
             end
             obj.btnHaltStage = uicontrol(obj.PROP_BUTTON_BIG_RED{:}, ...
                 'Parent', vboxRight, ...
@@ -225,6 +224,13 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
         
         function btnMoveToBlueCallback(obj)
             stage = getObjByName(obj.stageName);
+            isBeingGrayed = true;
+            for i = 1 : length(obj.stageAxes)
+                obj.btnMoveLeft(i).Enable = 'off';
+                obj.recolor(obj.tvCurPos(i),isBeingGrayed)
+                obj.btnMoveRight(i).Enable = 'off';
+            end
+            
             for i = 1 : length(obj.stageAxes)
                 axis = ClassStage.getAxis(obj.stageAxes(i));
                 pos = obj.edtCurPosValue(i); 
@@ -232,6 +238,13 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
                     stage.move(axis, pos);
                     obj.clearEdtCurPos(i);
                 end 
+            end
+            
+            isBeingGrayed = false;
+            for i = 1 : length(obj.stageAxes)
+                obj.btnMoveLeft(i).Enable = 'on';
+                obj.recolor(obj.tvCurPos(i),isBeingGrayed)
+                obj.btnMoveRight(i).Enable = 'on';
             end
             obj.btnMoveToBlue.Enable = 'off';
         end

@@ -204,7 +204,7 @@ classdef ClassPIMicos < ClassStage
                         fprintf('Error was unresolved after %d tries\n',tries);
                         rethrow(error)
                     end
-                    if (tries == 1); triesString = 'time'; else triesString = 'times'; end
+                    triesString = BooleanHelper.ifTrueElse(tries == 1,'time','times');
                     fprintf('Tried %d %s, Trying again...\n', tries, triesString);
                     pause(1);
                 end
@@ -266,7 +266,7 @@ classdef ClassPIMicos < ClassStage
                     [errorMessageRetrieved, errorMessage] = SendPICommandWithoutReturnCode(obj, 'PI_TranslateError', errorNumber, blanks(buffer), buffer);
                 end
                 
-                if (errorNumber > 0); device = 'Controller'; else device = 'Interface'; end
+                device = BooleanHelper.ifTrueElseif(errorNumber > 0,'Controller','Interface');
                 errorIdent = sprintf('PIMicos:%s%d', device, abs(errorNumber));
                 error(errorIdent,'The following error was received while attempting to communicate with controller %d:\n%s Error %d - %s\n',...
                     axisID, device, errorNumber, errorMessage);
@@ -321,7 +321,7 @@ classdef ClassPIMicos < ClassStage
             [USBNum, USBDescription, ~] = SendPICommandWithoutReturnCode(obj, 'PI_EnumerateUSB', blanks(128), 128, model);
             
             if USBNum < 1
-                if ForceCloseConnection(obj, model);
+                if ForceCloseConnection(obj, model)
                     fprintf('Reconnecting...\n');
                     USBDescription = FindController(obj, model);
                 else
@@ -1116,7 +1116,7 @@ classdef ClassPIMicos < ClassStage
         function success = EnableTiltCorrection(obj, enable)
             % Enables the tilt correction according to the angles.
             if ~strcmp(obj.validAxes, obj.axesName)
-                if length(obj.validAxes) == 1; string = 'axis'; else string = 'axes'; end
+                string = BooleanHelper.ifTrueElseif(length(obj.validAxes) == 1, 'axis', 'axes');
                 warning('Controller %s has only %s %s, cannot do tilt correction.', obj.controllerModel, obj.validAxes, string);
                 success = 0;
                 return;

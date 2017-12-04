@@ -40,13 +40,15 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         end
         
         function fullpath = savePlottingImage(obj, folder, filename)
-            % create a new invisible figure, and than save it with a same
+            % Create a new invisible figure, and than save it with a same
             % filename.
             %
-            % folder - string. the path.
-            % filename - string. the file that was saved by the SaveLoad
+            % Input:
+            %   folder - string. the path.
+            %   filename - string. the file that was saved by the SaveLoad
             %
-            % returns: the fullpath of the image file that was saved
+            % Output:
+            % fullpath - the fullpath of the image file that was saved
             
             if isempty(obj.mData) || isempty(obj.mData); return; end
             
@@ -135,10 +137,10 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         % when event happen, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
-            % check if event is "loaded file to SaveLoad" and need to show the image
+            % Check if event is "loaded file to SaveLoad" and need to show the image
             if strcmp(event.creator.name, SaveLoadCatImage.NAME) ...
                     && isfield(event.extraInfo, SaveLoad.EVENT_LOAD_SUCCESS_FILE_TO_LOCAL)
-                % need to load the image!
+                % Need to load the image!
                 category = Savable.CATEGORY_IMAGE;
                 subcat = Savable.SUB_CATEGORY_DEFAULT;
                 saveLoad = event.creator;
@@ -148,7 +150,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                 end
             end
             
-            % check if event is "SaveLoad wants to save a file" and need to
+            % Check if event is "SaveLoad wants to save a file" and need to
             % save an image file of the figure
             if strcmp(event.creator.name, SaveLoadCatImage.NAME) ...
                     && isfield(event.extraInfo, SaveLoad.EVENT_SAVE_SUCCESS_LOCAL_TO_FILE) ...
@@ -160,7 +162,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             end
                 
             
-            % check if event is "scanner has a new line scanned" and need
+            % Check if event is "scanner has a new line scanned" and need
             % to updated the image
             if strcmp(event.creator.name, StageScanner.NAME) ...
                     && isfield(event.extraInfo, StageScanner.EVENT_SCAN_UPDATED)

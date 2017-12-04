@@ -142,7 +142,7 @@ classdef ViewSpcm < ViewVBox & EventListener
             try
                 spcmCount.run;
             catch err
-                spcmCount.stop;     % sets spcmCount = false
+                spcmCount.stop;     % sets spcmCount.isOn = false
                 rethrow(err);
             end
         end
@@ -182,9 +182,9 @@ classdef ViewSpcm < ViewVBox & EventListener
                     [time,kcps,std] = spcmCount.getRecords;
                 end
                 dimNum = 1;
-                errorbar(obj.vAxes, time, kcps, std);   % needs to be inside $fillAxes
                 AxesHelper.fillAxes(obj.vAxes, kcps, dimNum, time, nan, obj.BOTTOM_LABEL, obj.LEFT_LABEL,std);   %Still requires std implementation
-
+                
+                obj.vAxes.Children.HitTest = 'off'; % So as not to be interacted by "marker" cursor
                 
                 set(obj.vAxes,'XLim',[-inf, inf]);  % Creates smooth "sweep" of data
                 drawnow;                            % consider using animatedline

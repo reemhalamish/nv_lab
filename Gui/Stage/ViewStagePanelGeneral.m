@@ -21,7 +21,7 @@ classdef ViewStagePanelGeneral < GuiComponent
             
             %getting closed-loop options
             hasClosedLoop = stage.hasClosedLoop;
-            hasOpenLoop = stage.hasSlowScan;
+            hasOpenLoop = stage.hasOpenLoop;
             
             obj.btnResetStage = uicontrol(obj.PROP_BUTTON{:}, ...
                 'Parent', vboxMain, ...

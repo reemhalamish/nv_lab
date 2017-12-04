@@ -661,11 +661,11 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         end
         
         function bool = hasClosedLoop(obj)
-            bool = isfield(obj.availableProperties,obj.HAS_OPEN_LOOP);
+            bool = isfield(obj.availableProperties,obj.HAS_CLOSED_LOOP);
         end
         
         function bool = hasJoystick(obj)
-            bool = isfield(obj.availableProperties,obj.HAS_OPEN_LOOP);
+            bool = isfield(obj.availableProperties,obj.HAS_JOYSTICK);
         end
         
     end

@@ -51,8 +51,8 @@ classdef SaveLoad < Savable & EventSender
     
     methods(Static, Sealed)
         function obj = getInstance(category)
-            % this method gets the rellevant SaveLoad object based on the
-            % needed mCategory. so that calling
+            % This method gets the relevant SaveLoad object based on the
+            % needed mCategory, so that calling
             % SaveLoad.getInstance('image') will return a SaveLoad
             % different than calling SaveLoad.getInstance('experiments')
             %
@@ -61,7 +61,7 @@ classdef SaveLoad < Savable & EventSender
             saveLoadName = SaveLoad.getInstanceName(category);
             try
                 obj = getObjByName(saveLoadName);
-            catch matlabExp %#ok<NASGU>   ---> if wasn't yet created   
+            catch matlabExp %#ok<NASGU>   ---> if hasn't been created yet
                 obj = SaveLoad(category);
             end
         end
@@ -71,15 +71,16 @@ classdef SaveLoad < Savable & EventSender
         end
         
         function init
-            % init the relevant SaveLoad objects.
-            % currently only one is special enough to init - the SaveLoad
-            % of category image, It's in a derived class as it has
-            % different behaviour - it needs to listen to the StageScanner
-            % (on events of type EVENT_SCAN_FINISH) to save the scans
+            % Initialize the relevant SaveLoad objects.
+            % Currently only one is special enough to need init() -
+            % the SaveLoad of category image. It's in a derived class as it
+            % has different behaviour - it needs to listen to the
+            % StageScanner (on events of type EVENT_SCAN_FINISH) to save
+            % the scans
             try
                 getObjByName(SaveLoadCatImage.NAME);
-            catch
-                SaveLoadCatImage;  % init this object
+            catch               % i.e. no available object
+                SaveLoadCatImage;	% init this object
             end
         end
     end
@@ -114,7 +115,7 @@ classdef SaveLoad < Savable & EventSender
                     end
                 end
             else
-                obj.sendWarning('newNotes parameter is not a char-array! ignoring');
+                obj.sendWarning('newNotes parameter is not a character array! Ignoring');
             end
         end
                 
@@ -144,7 +145,7 @@ classdef SaveLoad < Savable & EventSender
             %       AND WILL CHANGE obj.mSavingFolder AS WELL, so 
             %       that next calls to obj.save() will save in the same folder!
             if ~ischar(newLoadingFolderString)
-                obj.sendWarning('please call saveLoad.setmLoadingFolder() only will folder full path! only strings will be accepted');
+                obj.sendWarning('Please call saveLoad.setmLoadingFolder() only will folder full path! only strings will be accepted');
                 return
             end
             
@@ -160,13 +161,13 @@ classdef SaveLoad < Savable & EventSender
                 obj.mLoadingFolder = newLoadingFolderString;
                 obj.mSavingFolder = newLoadingFolderString;
             else
-                obj.sendWarning(sprintf('can''t set loading folder - path is not a folder! %s', newLoadingFolderString));
+                obj.sendWarning(sprintf('Can''t set loading folder - path is not a folder! %s', newLoadingFolderString));
             end
             obj.sendEvent(struct(obj.EVENT_FOLDER, obj.mLoadingFolder));
         end
         
         function saveSystemToLocalStruct(obj)
-            % saves the system state to the local struct
+            % Saves the system state to the local struct
             structToSave = Savable.saveAllObjects(obj.mCategory);
             obj.mLocalSaveStruct = structToSave;
             obj.mLocalStructStatus = SaveLoad.STRUCT_STATUS_NOT_SAVED;
@@ -232,7 +233,7 @@ classdef SaveLoad < Savable & EventSender
         function autoSave(obj)
             % saves the state to the local struct
             % and then saves the struct to a file in the AUTOSAVE folder
-%             obj.saveSystemToLocalStruct();
+            obj.saveSystemToLocalStruct();
             
             filename = obj.mLoadedFileName;
             fullPath = sprintf('%s%s', obj.PATH_DEFAULT_AUTO_SAVE, filename);
@@ -326,10 +327,10 @@ classdef SaveLoad < Savable & EventSender
             % that matches the terms:
             %        @ finishes with '.mat'
             %        @ has same mCategory as obj.mCategory
-            irellevant = {obj.STRUCT_STATUS_NOT_SAVED, obj.STRUCT_STATUS_NOTHING};
+            irrelevant = {obj.STRUCT_STATUS_NOT_SAVED, obj.STRUCT_STATUS_NOTHING};
             
-            if any(strcmp(obj.mLocalStructStatus, irellevant))
-                obj.sendWarning('can''t load next - no file has been already loaded to be next to!');
+            if any(strcmp(obj.mLocalStructStatus, irrelevant))
+                obj.sendWarning('Can''t load previous - no file has been loaded, so there''s no previous file!');
                 return
             end
             currentFileFullPath = obj.mLoadedFileFullPath;
@@ -338,7 +339,7 @@ classdef SaveLoad < Savable & EventSender
             folder = obj.mLoadingFolder;
             allFiles = PathHelper.getAllFilesInFolder(folder, obj.SAVE_FILE_SUFFIX);
             if isempty(allFiles)
-                obj.sendWarning('empty folder, can''t load file!');
+                obj.sendWarning('Empty folder - can''t load file!');
                 return
             end
             
@@ -352,7 +353,7 @@ classdef SaveLoad < Savable & EventSender
             end
             
             if fileIndex == 1
-                obj.sendWarning('first file is loaded - no possible previous!');
+                obj.sendWarning('First file is loaded - no previous file exists!');
                 return;
                 % todo dependent property 'can load next' and 'can load previous'
                 % ONE_DAY
@@ -368,7 +369,7 @@ classdef SaveLoad < Savable & EventSender
                     return
                 end
             end
-            obj.sendWarning('all next files can''t be loaded.');
+            obj.sendWarning('Can''t load previous - none of the previous files is loadable.');
         end
         
         function loadNextFile(obj)
@@ -377,10 +378,10 @@ classdef SaveLoad < Savable & EventSender
             % that matches the terms:
             %        @ finishes with '.mat'
             %        @ has same mCategory as obj.mCategory
-            irellevant = {obj.STRUCT_STATUS_NOT_SAVED, obj.STRUCT_STATUS_NOTHING};
+            irrelevant = {obj.STRUCT_STATUS_NOT_SAVED, obj.STRUCT_STATUS_NOTHING};
             
-            if any(strcmp(obj.mLocalStructStatus, irellevant))
-                obj.sendWarning('can''t load next - no file has been already loaded to be next to!');
+            if any(strcmp(obj.mLocalStructStatus, irrelevant))
+                obj.sendWarning('Can''t load next - no file has been loaded, so there''s no next file!');
                 return
             end
             currentFileFullPath = obj.mLoadedFileFullPath;
@@ -389,13 +390,13 @@ classdef SaveLoad < Savable & EventSender
             folder = obj.mLoadingFolder;
             allFiles = PathHelper.getAllFilesInFolder(folder, obj.SAVE_FILE_SUFFIX);
             if isempty(allFiles)
-                obj.sendWarning('empty folder, can''t load file!');
+                obj.sendWarning('Empty folder - can''t load file!');
                 return
             end
             
             ispresent = cellfun(@(string) strcmp(currentFileFullPath, string), allFiles);
             % if file not found in folder, make it load the first file
-            % (fileIndex will be than 0, as it will load the file AFTER fileIndex)
+            % (fileIndex will be then 0, as it will load the file AFTER fileIndex)
             if ~any(ispresent)
                 fileIndex = 0;
             else
@@ -403,7 +404,7 @@ classdef SaveLoad < Savable & EventSender
             end
             
             if fileIndex == length(allFiles)
-                obj.sendWarning('last file is loaded - no possible next!');
+                obj.sendWarning('Last file is loaded - next file has not been created (yet)!');
                 return;
                 % todo dependent property 'can load next' and 'can load previous'
                 % ONE_DAY
@@ -416,7 +417,7 @@ classdef SaveLoad < Savable & EventSender
                     return
                 end
             end
-            obj.sendWarning('all next files can''t be loaded.');
+            obj.sendWarning('Can''t load next - none of the following files is loadable.');
             
         end
         
@@ -557,10 +558,10 @@ classdef SaveLoad < Savable & EventSender
         end
         
         function structOfThisSavable = getStructToSavable(obj, savable)
-            % a savable can access this method to get thier part in the
+            % A savable can access this method to get their part in the
             % SaveLoad local struct. 
-            % savable - the savable object requesting
-            % returns - the local struct or nan if not exists
+            % Input:    savable - the savable object requesting
+            % Output:   structOfThisSavable - the local struct or NaN if not exists
             if ~isstruct(obj.mLocalSaveStruct)
                 structOfThisSavable = nan;
                 return;
