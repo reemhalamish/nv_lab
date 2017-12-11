@@ -2,4 +2,8 @@
 *.asv
 *.gsheet
 *.ini
+_ManualSaves/
+_AutoSave
+_OldSaves
+Experiment/Old Hovav's
 ToDo.xlsx

@@ -3,15 +3,20 @@ classdef ViewError < GuiComponent & EventListener
     %   this view listens for all the event, and shows the error events. it uses a timer to remove the display from the event
     
     properties(Access = protected, Constant = true)
-        PROP_ERROR_TEXT = {'Style', 'text', 'ForegroundColor', 'red','BackgroundColor', 'white', 'HorizontalAlignment', 'center'};
+        PROP_ERROR_TEXT = {'Style', 'text', 'ForegroundColor', 'red', 'BackgroundColor', 'white', 'HorizontalAlignment', 'center'};
+        PROP_BLINK_TEXT = {'ForegroundColor', 'white', 'BackgroundColor', 'red'};
         PROP_ERROR_MSG = {'FontSize',14,'String', 'Errors will be displayed here!'};
         PROP_ERROR_FROM = {'FontSize',12, 'String', ''};
         PROP_ERROR_MAIN = {'BackgroundColor', 'white', 'Spacing', 20, 'Padding', 5};
+        
         DELAY_SHOW_ERRORS_SEC = 12;
+        DELAY_BLINK_END_SEC = 0.5;
     end
     
     properties(Access = protected)
-        timerDisappearError;
+        timerDisappearError
+        timerEndBlink
+        
         tvFrom
         tvMsg
     end
@@ -61,15 +66,29 @@ classdef ViewError < GuiComponent & EventListener
                     stop(obj.timerDisappearError);
                     delete(obj.timerDisappearError);
                 end
+                if (isobject(obj.timerEndBlink))
+                    % if it was running from a previous error
+                    stop(obj.timerEndBlink);
+                    delete(obj.timerEndBlink);
+                end
             catch err
                 disp(err)
             end
+        end
+        
+        function blink(obj)
+%             doesn't work!
+%             fcn = @(x,y) set(obj.tvMsg,obj.PROP_ERROR_TEXT{:});
+%             obj.timerEndBlink = timer('TimerFcn',fcn,'StartDelay',ViewError.DELAY_BLINK_END_SEC);
+%             
+%             set(obj.tvMsg,obj.PROP_BLINK_TEXT{:});
+%             start(obj.timerEndBlink);
         end
     end
     
     
     methods
-        %% when error event happen, this function jumps.
+        %% When error event happens, this function jumps.
         % extraInfo is a struct sent from the physics
         function out = onEvent(obj, event)
             if ~(event.isError)
@@ -78,9 +97,10 @@ classdef ViewError < GuiComponent & EventListener
             end
             eventSender = event.creator.name;
             errorMsg = event.extraInfo.(Event.ERROR_MSG);
-            obj.tvFrom.String = sprintf('from %s', eventSender);
+            obj.tvFrom.String = sprintf('From %s', eventSender);
             obj.tvMsg.String = errorMsg;
             set(obj.component, 'Visible', 'on');
+            obj.blink;
             
             out = true;
             obj.cleanErrorAfterTime();
