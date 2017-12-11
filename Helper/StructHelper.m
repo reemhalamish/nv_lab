@@ -4,6 +4,9 @@ classdef StructHelper
     
     properties(Constant = true)
         WHITESPACES_STRUCT_DISP_AMNT = 4
+        
+        MERGE_OVERRIDE = 'override';
+        MERGE_SKIP = 'skip';
     end
     
     methods(Static)
@@ -14,6 +17,58 @@ classdef StructHelper
             % inputStruct - one struct. not array.
             %
             string = StructHelper.recGetStructOut(inputStruct, 0);
+        end
+        
+        function structCombined = merge(structOld,structNew,collisionBehavior)
+            % Merges two two structs by the following algorithm: Take 1st
+            % struct, and add any field from 2nd struct which is not a
+            % dupllicate
+            if ~exist('collisionBehavior','var') || strcmp(collisionBehavior,StructHelper.MERGE_SKIP)
+                shouldSkip = true;
+            else
+                shouldSkip = false;
+            end
+            
+            validateattributes(structOld,{'struct'},{'nonempty'},'','structOld');
+            validateattributes(structNew,{'struct'},{'nonempty'},'','structNew');
+            
+            % Preparing to scan fields of new struct
+            nameCellNew = fieldnames(structNew);
+            nCollisions = 0;
+            n = length(nameCellNew);
+            
+            % Create new struct
+            structCombined = structOld;
+            for i = 1:n     % try pushing new fields into old struct
+                str = nameCellNew{i};
+                if isfield(structCombined,str)
+                    if shouldSkip
+                        continue
+                    else % override
+                    end
+                    nCollisions = nCollisions + 1;
+                end
+                structCombined.(str) = structNew.(str);
+            end
+            
+            if nCollisions==0; return; end  % Nothing else to do here
+            
+            % Warnings, if any fields were skipped:
+            % Grammar is important (to me)
+            switch nCollisions
+                case 1
+                    numString = 'One field';
+                    verbString = 'was';
+                case n
+                    numString = 'All of the fields';
+                    verbString = 'were';
+                otherwise
+                    numString = sprintf('%d fields',nCollisions);
+                    verbString = 'were';
+            end
+            actionString = BooleanHelper.ifTrueElse(shouldSkip,'skipped','overridden');
+            
+            warning('%s in the new array already existed in the old one, and %s %s.',numString,verbString,actionString)
         end
     end
     

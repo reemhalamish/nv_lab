@@ -45,7 +45,9 @@ classdef ViewLoad < ViewVBox & EventListener
             vboxRadioButtons = uix.VBox('Parent', loadRadioPanel, 'Spacing', 5);
             obj.radioLoadAuto = uicontrol(obj.PROP_RADIO{:}, 'Parent', vboxRadioButtons, 'string', 'Autosave');
             obj.radioLoadManual = uicontrol(obj.PROP_RADIO{:}, 'Parent', vboxRadioButtons, 'string', 'Last saved');
-            obj.tvLoadedInfo = uicontrol(obj.PROP_TEXT_NORMAL{:}, 'Parent', hboxSecondRow, 'String', 'Loaded File Info');            
+            % in order to have scrolling in this box, we use a workaround: we define it as an editbox, which is inactive, and set 'Max'-'Min' > 1
+            obj.tvLoadedInfo = uicontrol(obj.PROP_EDIT_SMALL{:}, 'Parent', hboxSecondRow, 'String', 'Loaded File Info', ...
+                'Enable', 'inactive', 'Min', 0, 'Max', 2);    % These last three name-value pairs SHOULD make it a scrollable textview. Refer to MATLAB help for more explanations.
             vboxRadioButtons.Heights = [20 20];
             hboxSecondRow.Widths = [-38 -70];
             
@@ -177,13 +179,19 @@ classdef ViewLoad < ViewVBox & EventListener
                 obj.radioLoadAuto.Value = false;
                 obj.radioLoadManual.Value = true;
             end
+            
+            % If there is a saved struct, we want to be able to see its string
+            loadedStruct = saveLoad.mLocalSaveStruct;
+            if isstruct(loadedStruct)
+                obj.tvLoadedInfo.String = saveLoad.onlyReadableStrings(loadedStruct);
+            end
         end
         
     end
         
     %% overridden from EventListener
     methods
-        %% when event happen, this function jumps.
+        %% When events happen, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
             

@@ -9,13 +9,15 @@ classdef (Abstract) Savable < BaseObject
     
     %     %% overriding from Savable
     %     methods(Access = protected)
-    %         function outStruct = saveStateAsStruct(obj, category) %#ok<*MANU>
-    %             % saves the state as struct. if you want to save stuff, make
-    %             % (outStruct = struct;) and put stuff inside. if you dont
+    %         function outStruct = saveStateAsStruct(obj, category, type) %#ok<*MANU>
+    %             % Saves the state as struct. if you want to save stuff, make
+    %             % (outStruct = struct;) and put stuff inside. If you dont
     %             % want to save, make (outStruct = NaN;)
     %             %
-    %             % category - string. some objects saves themself only with
-    %             % specific category (image/experimetns/etc)
+    %             % category - string. Some objects saves themself only with
+    %             %                    specific category (image/experimetns/etc)
+    %             % type - string.     Whether the objects saves at the beginning
+    %             %                    of the run (parameter) or at its end (result)
     %
     %             outStruct = NaN;
     %         end
@@ -48,6 +50,9 @@ classdef (Abstract) Savable < BaseObject
     
     
     properties(Constant = true)
+        TYPE_PARAMS = 'parameters';
+        TYPE_RESULTS = 'results';
+        
         CATEGORY_IMAGE = 'image';
         CATEGORY_IMAGE_SUBCAT_STAGE = 'image_stage';
         CATEGORY_IMAGE_SUBCAT_LASER = 'image_laser';
@@ -58,20 +63,23 @@ classdef (Abstract) Savable < BaseObject
         
         TIMESTAMP_FORMAT = 'yyyymmdd_HHMMSS';
         PROPERTY_CATEGORY = 'savable___category';
-        PROPERTY_TIMESTAMP = 'savable___timestamp';
+        PROPERTY_TIMESTAMP_START = 'savable___start_timestamp';
+        PROPERTY_TIMESTAMP_END = 'savable___end_timestamp';
         CHILD_PROPERTY_READABLE_STRING = 'readable_string';
     end
     
     methods(Access = protected, Abstract = true)
-        saveStateAsStruct(obj, category) %#ok<*MANU>
-        % saves the state as struct.
-        % override this function to save.
-        % to save, you should return a new struct with your properties.
-        % if you don't want to save anything, return NaN.
+        saveStateAsStruct(obj, category, type) %#ok<*MANU>
+        % Saves the state as struct.
+        % Override this function to save.
+        % To save, you should return a new struct with your properties.
+        % If you don't want to save anything, return NaN.
         %
-        % category - a string, some savable objects will save stuff
-        %            only for the 'image' category and not for
-        %            'Experiments' category, for example
+        % category - a string. Some savable objects will save stuff
+        %                       only for the 'image' category and not for
+        %                       'Experiments' category, for example.
+        % type - string. Whether the objects saves at the beginning
+        %                       of the run (parameter) or at its end (result)
         %
         loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<*INUSD>
         % loads the state from a struct previousely saved.
@@ -98,14 +106,14 @@ classdef (Abstract) Savable < BaseObject
         % destructor
         function delete(obj)
             if JsonInfoReader.getJson.debugMode
-                fprintf('Deleting savable object "%s" of type %s\n', obj.name, class(obj));
+                fprintf('Deleting savable object "%s" of class %s\n', obj.name, class(obj));
             end
             Savable.removeSavable(obj);
         end
     end
     
     
-    methods(Static = true, Access = private)
+    methods(Static = true, Access = {?SaveLoad})
         function savableObjects = getAllSavableObjects()
             persistent allObjects
             if isempty(allObjects)
@@ -113,7 +121,9 @@ classdef (Abstract) Savable < BaseObject
             end
             savableObjects = allObjects;
         end
-        
+    end
+    
+    methods(Static = true, Access = private)
         function addSavable(savableObject)
             allObjects = Savable.getAllSavableObjects();
             allObjects.cells{end + 1} = savableObject;
@@ -127,73 +137,9 @@ classdef (Abstract) Savable < BaseObject
     end
     
     methods(Static = true, Hidden = true)
-        function outStruct = saveAllObjects(category)
-            % saves all the savable objects to a struct.
-            % this struct will look like that:
-            % (savable object name) ---> (inner struct. info this savable wants to save)
-            % whitespaces are not premitted in struct properties, so they
-            % are replaced with underscores
-            % for example, a simple struct could look like that:
-            %
-            %   struct with fields:
-            %       red_laser: [1ª1 struct]
-            %       NI_DAQ: [1ª1 struct]
-            %
-            % category - a string
-            %
-            outStruct = struct();
-            allObjects = Savable.getAllSavableObjects();
-            for i = 1 : length(allObjects.cells)
-                savableObject = allObjects.cells{i};
-                objectStruct = savableObject.saveStateAsStruct(category);
-                if isstruct(objectStruct)
-                    % Readable string - get the string
-                    readableString = savableObject.returnReadableString(objectStruct);
-                    if ischar(readableString) && ~isempty(readableString)
-                        objectStruct.(Savable.CHILD_PROPERTY_READABLE_STRING) = readableString;
-                    end
-                    
-                    % Property name - replace all spaces with underscores
-                    nameToSave = matlab.lang.makeValidName(savableObject.name);
-                    outStruct.(nameToSave) = objectStruct;
-                end
-            end
-            outStruct.(Savable.PROPERTY_CATEGORY) = category;
-            outStruct.(Savable.PROPERTY_TIMESTAMP) = datestr(now, Savable.TIMESTAMP_FORMAT);
-        end
-        
-        function loadAllObjects(structToLoadFrom, category, subCategory)
-            % loads all the savable objects from a struct.
-            %
-            % category - string
-            % subCategory - string. could be empty string
-            % 
-            % structToLoadFrom - this struct should look like that:
-            % (savable object name) ---> (inner struct. info this object saved before)
-            % whitespaces are not premitted in struct properties, so they
-            % are replaced with underscores
-            % for example, a simple struct could look like that:
-            %
-            %   struct with fields:
-            %       red_laser: [1ª1 struct]
-            %       NI_DAQ: [1ª1 struct]
-            %
-            if JsonInfoReader.getJson.debugMode
-                fprintf('Loading! Category: %s, Sub-category: %s\n', category, subCategory)
-            end
-            allObjects = Savable.getAllSavableObjects();
-            for i = 1 : length(allObjects.cells)
-                savableObject = allObjects.cells{i};
-                % replace all spaces with underscores
-                nameToLoad = matlab.lang.makeValidName(savableObject.name);
-                if isfield(structToLoadFrom, nameToLoad)
-                    savableObject.loadStateFromStruct(structToLoadFrom.(nameToLoad), category, subCategory);
-                end
-            end
-        end
         
         function longString = onlyReadableStrings(loadedStruct)
-            % extract all the readable strings
+            % Extract all the readable strings
             fields = fieldnames(loadedStruct);
             longString = '';
             for i = 1 : length(fields)
@@ -201,7 +147,7 @@ classdef (Abstract) Savable < BaseObject
                 field = fieldCell{:};
                 value = loadedStruct.(field);
                 if isstruct(value) && isfield(value, Savable.CHILD_PROPERTY_READABLE_STRING)
-                    % found a value with a readable string! extract the readable string...
+                    % Found a value with a readable string! extract the readable string...
                     readableString = value.(Savable.CHILD_PROPERTY_READABLE_STRING);
                     longString = sprintf('%s%s\n', longString, readableString);
                 end
@@ -211,9 +157,9 @@ classdef (Abstract) Savable < BaseObject
         end
         
         function smallStruct = extractSpecificSavableStruct(savableObject, bigStructToLoadFrom)
-            % extracts the part of the big struct that the savable object
+            % Extracts the part of the big struct that the savable object
             % has written
-            % returns - the small part of the struct, or nan if this
+            % Output: the small part of the struct, or nan if this
             % savable hasn't written anything
             nameToLoad = matlab.lang.makeValidName(savableObject.name);
             if isfield(bigStructToLoadFrom, nameToLoad)

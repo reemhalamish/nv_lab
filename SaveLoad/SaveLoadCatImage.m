@@ -15,20 +15,21 @@ classdef SaveLoadCatImage < SaveLoad & EventListener
     
      %% overridden from EventListener
     methods
-        % when event happen, this function jumps.
+        % When events happen, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
-            if ~isfield(event.extraInfo, StageScanner.EVENT_SCAN_FINISHED)
-                return
-            end
+            % There are two kinds of relevant events: Scan started and scan
+            % ended:
+            if isfield(event.extraInfo, StageScanner.EVENT_SCAN_STARTED)
+                obj.saveParamsToLocalStruct;
+                
+            elseif isfield(event.extraInfo, StageScanner.EVENT_SCAN_FINISHED)
+                obj.saveResultsToLocalStruct();
             
-            if event.extraInfo.(StageScanner.EVENT_SCAN_STOPPED_MANUALLY)
-                return  % stopped manually and not finished correctly
-            end
-            
-            scanParams = event.extraInfo.(StageScanner.PROPERTY_SCAN_PARAMS);
-            if scanParams.autoSave
-                obj.autoSave;
+                scanParams = event.extraInfo.(StageScanner.PROPERTY_SCAN_PARAMS);
+                if scanParams.autoSave
+                    obj.autoSave;
+                end
             end
         end
     end

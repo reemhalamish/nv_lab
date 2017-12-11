@@ -62,15 +62,11 @@ classdef StageScanner < EventSender & Savable
         end
         
         function startScan(obj)
-            if isnan(obj.mStageName); obj.sendError('Can''t start scan: unknown stage name! please call stageScanner.switchTo(your_stage_name) before calling stageScanner.startScan(). Exiting'); end
-            
-            obj.mCurrentlyScanning = true;
-            obj.sendEventScanStarting();
-            % todo here the track will need to catch this!
-            
-            
-            spcm = getObjByName(Spcm.NAME);
-            spcm.setSPCMEnable(true);
+            if isnan(obj.mStageName)
+                obj.sendError(['Can''t start scan: unknown stage name!' ...
+                    'Please call stageScanner.switchTo(your_stage_name)' ...
+                    'before calling stageScanner.startScan(). Exiting']);
+            end
             
             stage = getObjByName(obj.mStageName);
             obj.mStageScanParams = stage.scanParams.copy;
@@ -79,6 +75,13 @@ classdef StageScanner < EventSender & Savable
             
             % from now on, changes in the GUI (from\to\fixed\numPoints)
             % won't affect the StageScanParmas object stored here.
+            
+            obj.mCurrentlyScanning = true;
+            obj.sendEventScanStarting();
+            % todo here the tracker will need to catch this!
+            
+            spcm = getObjByName(Spcm.NAME);
+            spcm.setSPCMEnable(true);
             
             timerVal = tic;
             disp('Initiating scan...');
@@ -251,7 +254,7 @@ classdef StageScanner < EventSender & Savable
         end
         
         function kcpsScanMatrix = scan2D(obj, stage, spcm, scanParams, optionalKcpsScanMatrix)
-            % scans a 2D image.
+            % Scans a 2D image.
             % stage - an object deriving from ClassStage
             % spcm - an object deriving from Spcm
             % scanParams - the scan parameters. an object deriving from StageScanParams
@@ -259,12 +262,12 @@ classdef StageScanner < EventSender & Savable
             % returns - a matrix of the scan
             
             
-            % way to work:
-            % first, check what would be the best way to scan (minimize
+            % Method:
+            % First, check what would be the best way to scan (minimize
             % amount of scans needed)
-            % than, call scan2dChunk for each chunk to get scan results and combine them together
+            % Then, call scan2dChunk for each chunk to get scan results and combine them together
             
-            % the movement between pixels in each line is called "axis a",
+            % The movement between pixels in each line is called "axis a",
             % while movement between lines is called "axis b"
             
             if ~obj.mCurrentlyScanning
@@ -412,9 +415,9 @@ classdef StageScanner < EventSender & Savable
         end
         
         function [x,y,z] = getXYZfor2dScanChunk(obj, axisAPointsPerLine, axisBLinesPerScan, axisADirectionIndex, axisBDirectionIndex, axisCPoint0) %#ok<STOUT,INUSL>
-            % converts from "axisA", "axisB", to xyz: calculates the vectors for x,y,z to be used in scan2dChunk()
+            % Converts from "axisA", "axisB", to xyz: calculates the vectors for x,y,z to be used in scan2dChunk()
             for letter = ClassStage.SCAN_AXES
-                % iterate over the string "xyz" letter by letter
+                % Iterate over the string "xyz" letter by letter
                 ll = lower(letter);
                 switch ClassStage.getAxis(letter)
                     case axisADirectionIndex
@@ -537,13 +540,13 @@ classdef StageScanner < EventSender & Savable
             firstAxisNumPoints = scanParams.numPoints(firstAxisIndex);
             secondAxisNumPoints = scanParams.numPoints(secondAxisIndex);
             
-            % option ONE: scan each line by axis 1, move between lines in axis 2
-            % calculate how many steps would be needed then:
+            % Option ONE: scan each line by axis 1, move between lines in axis 2
+            % Calculate how many steps would be needed then:
             timesMaxInFirst = ceil(firstAxisNumPoints / stageMaxScanSizeInt);
             totalTimesOptionOne = timesMaxInFirst * secondAxisNumPoints;
             
-            % option TWO: scan each line by axis 2, move between lines in axis 1
-            % calculate how many steps would be needed then:
+            % Option TWO: scan each line by axis 2, move between lines in axis 1
+            % Calculate how many steps would be needed then:
             timesMaxInSecond = ceil(secondAxisNumPoints / stageMaxScanSizeInt);
             totalTimesOptionTwo = timesMaxInSecond * firstAxisNumPoints;
             
@@ -559,51 +562,61 @@ classdef StageScanner < EventSender & Savable
     
     %% overriding from Savable
     methods(Access = protected)
-        function outStruct = saveStateAsStruct(obj, category) %#ok<*MANU>
-            % saves the state as struct. if you want to save stuff, make
-            % (outStruct = struct;) and put stuff inside. if you dont
+        function outStruct = saveStateAsStruct(obj, category, type) %#ok<*MANU>
+            % Saves the state as struct. if you want to save stuff, make
+            % (outStruct = struct;) and put stuff inside. If you dont
             % want to save, make (outStruct = NaN;)
             %
-            % category - string. some objects saves themself only with
-            % specific category (image/experimetns/etc)
+            % category - string. Some objects saves themself only with
+            %                    specific category (image/experimetns/etc)
+            % type - string.     Whether the objects saves at the beginning
+            %                    of the run (parameter) or at its end (result)
             if ~strcmp(category, Savable.CATEGORY_IMAGE)
                 outStruct = nan;
                 return
             end
             
-            if isnan(obj.mScan)
-                outStruct = NaN;
-                return
-            end
-            
             outStruct = struct;
-            outStruct.scan = obj.mScan;
-            outStruct.scanParams = obj.mStageScanParams.asStruct();
-            outStruct.stageName = obj.mStageName;
+            switch type
+                case Savable.TYPE_PARAMS
+                    outStruct.scanParams = obj.mStageScanParams.asStruct();
+                    outStruct.stageName = obj.mStageName;
+                case Savable.TYPE_RESULTS
+                    if isnan(obj.mScan)
+                        outStruct = NaN;
+                    else
+                        outStruct.scan = obj.mScan;
+                    end
+            end
         end
         
         function loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<*INUSD>
-            % loads the state from a struct.
-            % to support older versoins, always check for a value in the
-            % struct before using it. view example in the first line.
+            % Loads the state from a struct.
+            % to support older versions, always check for a value in the
+            % struct before using it. View example in the first line.
             if ~strcmp(category, Savable.CATEGORY_IMAGE); return; end
             if ~any(strcmp(subCategory, {Savable.CATEGORY_IMAGE_SUBCAT_STAGE})); return; end
             
             
-            for field = {'scan', 'scanParams', 'stageName'}
+            % for field = {'scan', 'scanParams', 'stageName'} - removed 'scan', for when scan has not yet been saved.
+            for field = {'scanParams', 'stageName'}
                 if ~isfield(savedStruct, field{:})
                     return
                 end
             end
+            if ~isfield(savedStruct,'scan')
+                savedStruct.scan = [];
+                obj.sendWarning('No scan results found. Loading only scan parameters');
+            end
             try
                 getObjByName(savedStruct.stageName);
             catch
-                obj.sendWarning(sprintf('can''t load stage! no stage with name "%s"', savedStruct.stageName));
+                obj.sendWarning(sprintf('Can''t load stage! No stage with name "%s"', savedStruct.stageName));
                 return
             end
             obj.mStageScanParams = StageScanParams.fromStruct(savedStruct.scanParams);
             stage = getObjByName(savedStruct.stageName);
-            stage.scanParams = obj.mStageScanParams; % this will send an event that the scan-parameters have changed
+            stage.scanParams = obj.mStageScanParams; % This will send an event that the scan-parameters have changed
             
             obj.mScan = savedStruct.scan;
             obj.mStageName = savedStruct.stageName;
@@ -611,18 +624,44 @@ classdef StageScanner < EventSender & Savable
         end
         
         function string = returnReadableString(obj, savedStruct)
-            % return a readable string to be shown. if this object
+            % Return a readable string to be shown. If this object
             % doesn't need a readable string, make (string = NaN;) or
             % (string = '');
             
             string = NaN;
-            for field = {'scan', 'scanParams', 'stageName'}
+            % for field = {'scan', 'scanParams', 'stageName'} - removed 'scan', for when scan has not yet been saved.
+            for field = {'scanParams', 'stageName'}
                 if ~isfield(savedStruct, field{:})
                     return
                 end
             end
             
-            string = ['Axes: ' obj.mStageScanParams.getScanAxes];
+            % Getting initial information from scan parameters, ...
+            scanAxes = obj.mStageScanParams.getScanAxes;
+            nScanned = length(scanAxes);
+            fixAxes = obj.mStageScanParams.getFixedAxes;
+            nFixed = length(fixAxes);
+            stage = getObjByName(obj.mStageName);
+            
+            % so we can create the output string
+            string = sprintf('Scanning %s %s:', stage.name, upper(scanAxes));
+            
+            for i = 1:nFixed
+                ax = fixAxes(i);
+                position = stage.Pos(ax);
+                axisString = sprintf('%s position: %.3f', upper(ax), position);
+                string = sprintf('%s\n%s', string, axisString);
+            end
+            for i = 1:nScanned
+                ax = scanAxes(i);
+                index = stage.getAxis(ax);
+                from = obj.mStageScanParams.from(index);
+                to = obj.mStageScanParams.to(index);
+                numPoints = obj.mStageScanParams.numPoints(index);
+                axisString = sprintf('%s: %d points from %.3f to %.3f', upper(ax), numPoints, from, to);
+                string = sprintf('%s\n%s', string, axisString);
+            end
+
         end
     end
 end

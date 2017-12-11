@@ -106,7 +106,7 @@ classdef SaveLoad < Savable & EventSender
                     obj.mNotes = newNotes;
                     if isstruct(obj.mLocalSaveStruct)
                         % update the struct (and the file if needed)
-                        obj.mLocalSaveStruct.(obj.name) = obj.saveStateAsStruct(obj.mCategory);
+                        obj.mLocalSaveStruct.(obj.name) = obj.saveStateAsStruct(obj.mCategory,obj.TYPE_RESULTS);
                         if shouldSaveToFile
                             obj.saveLocalStructToFile(obj.mLoadedFileFullPath);
                         end
@@ -118,7 +118,7 @@ classdef SaveLoad < Savable & EventSender
                 obj.sendWarning('newNotes parameter is not a character array! Ignoring');
             end
         end
-                
+        
         function setFileName(obj, newFileName)
             % change the file name to save the struct when needed, using obj.autoSave()
             % newFileName - only the file name, not full path!
@@ -166,23 +166,136 @@ classdef SaveLoad < Savable & EventSender
             obj.sendEvent(struct(obj.EVENT_FOLDER, obj.mLoadingFolder));
         end
         
-        function saveSystemToLocalStruct(obj)
-            % Saves the system state to the local struct
-            structToSave = Savable.saveAllObjects(obj.mCategory);
-            obj.mLocalSaveStruct = structToSave;
+        function outStruct = saveAllObjects(obj, type)
+            % Saves all the savable objects to a struct.
+            % this struct will look like that:
+            % (savable object name) ---> (inner struct. info this savable wants to save)
+            % whitespaces are not premitted in struct properties, so they
+            % are replaced with underscores.
+            % For example, a simple struct could look like that:
+            %
+            %   struct with fields:
+            %       red_laser: [1ª1 struct]
+            %       NI_DAQ: [1ª1 struct]
+            %
+            % category - a string
+            %
+            category = obj.mCategory;
+            switch type
+                % We conceptualize an experiment as a black box, with some
+                % parameters as the input, and some results as the output.
+                % We therefore want to save in one of two cases:
+                case Savable.TYPE_PARAMS
+                    % at the beginning of an experiment, we save all
+                    % starting parameters (even if we try to change
+                    % them during run time, towards a new experiment, we
+                    % want only the old ones to be saved).
+                    % Every time we start a new experiment, we discard the
+                    % previous parameters, just in case they changed.
+                    outStruct = struct();
+                    outStruct.(Savable.PROPERTY_CATEGORY) = category;
+                case Savable.TYPE_RESULTS
+                    % at the end of the experiment (either when it
+                    % completed the measurement, or after it was manually
+                    % stopped). We now want to save only the results
+                    % (== data).
+                    outStruct = obj.mLocalSaveStruct;
+            end
+            
+            allObjects = Savable.getAllSavableObjects();
+            for i = 1 : length(allObjects.cells)
+                savableObject = allObjects.cells{i};
+                objectStruct = savableObject.saveStateAsStruct(category,type);
+                if isstruct(objectStruct)
+                    % Readable string - get the string
+                    readableString = savableObject.returnReadableString(objectStruct);
+                    if ischar(readableString) && ~isempty(readableString)
+                        objectStruct.(Savable.CHILD_PROPERTY_READABLE_STRING) = readableString;
+                    end
+                    
+                    % Property name - replace all spaces with underscores
+                    nameToSave = matlab.lang.makeValidName(savableObject.name);
+                    if isfield(outStruct,nameToSave)
+                        % If object was already saved in the parameter stage, merge structs
+                        outStruct.(nameToSave) = StructHelper.merge(outStruct.(nameToSave),objectStruct);
+                    else
+                        outStruct.(nameToSave) = objectStruct;
+                    end
+                end
+            end
+            
+            % Create timestamp, according to the type of save
+            switch type
+                case Savable.TYPE_PARAMS
+                    % An experiment starts now
+                    outStruct.(Savable.PROPERTY_TIMESTAMP_START) = datestr(now, Savable.TIMESTAMP_FORMAT);
+                case Savable.TYPE_RESULTS
+                    % Now it ends
+                    outStruct.(Savable.PROPERTY_TIMESTAMP_END) = datestr(now, Savable.TIMESTAMP_FORMAT);
+            end
+        end
+        
+        function loadAllObjects(~, structToLoadFrom, category, subCategory)
+            % loads all the savable objects from a struct.
+            %
+            % category - string
+            % subCategory - string. could be empty string
+            % 
+            % structToLoadFrom - this struct should look like that:
+            % (savable object name) ---> (inner struct. info this object saved before)
+            % whitespaces are not premitted in struct properties, so they
+            % are replaced with underscores
+            % for example, a simple struct could look like that:
+            %
+            %   struct with fields:
+            %       red_laser: [1ª1 struct]
+            %       NI_DAQ: [1ª1 struct]
+            %
+            if JsonInfoReader.getJson.debugMode
+                fprintf('Loading! Category: %s, Sub-category: %s\n', category, subCategory)
+            end
+            allObjects = Savable.getAllSavableObjects();
+            for i = 1 : length(allObjects.cells)
+                savableObject = allObjects.cells{i};
+                % Replace all spaces with underscores
+                nameToLoad = matlab.lang.makeValidName(savableObject.name);
+                if isfield(structToLoadFrom, nameToLoad)
+                    savableObject.loadStateFromStruct(structToLoadFrom.(nameToLoad), category, subCategory);
+                end
+            end
+        end
+        
+        function outputStructToSave = postProcessLocalSaveStruct(obj, inputStructToSave) %#ok<INUSL>
+            % To be overritten by image/expriment.
+            outputStructToSave = inputStructToSave;
+        end
+        
+        function saveParamsToLocalStruct(obj)
+            % Saves the parameters of the experiment to the local struct
+            structToSave = obj.saveAllObjects(Savable.TYPE_PARAMS);
+            obj.mLocalSaveStruct = obj.postProcessLocalSaveStruct(structToSave);
+%             obj.mLocalSaveStruct = structToSave;
             obj.mLocalStructStatus = SaveLoad.STRUCT_STATUS_NOT_SAVED;
-            obj.mLoadedFileName = sprintf('%s_%s.mat', obj.mCategory, structToSave.(Savable.PROPERTY_TIMESTAMP));
             
             eventStruct = struct(... 
                 obj.EVENT_STATUS_LOCAL_STRUCT, obj.mLocalStructStatus, ...
+                obj.EVENT_LOCAL_STRUCT, obj.mLocalSaveStruct);
+            obj.sendEvent(eventStruct);
+        end
+        
+        function saveResultsToLocalStruct(obj)
+            structToSave = obj.saveAllObjects(Savable.TYPE_RESULTS);
+            obj.mLocalSaveStruct = structToSave;
+            obj.mLoadedFileName = sprintf('%s_%s.mat', obj.mCategory, structToSave.(Savable.PROPERTY_TIMESTAMP_END));
+            eventStruct = struct(... 
+                obj.EVENT_STATUS_LOCAL_STRUCT, obj.mLocalStructStatus, ...
                 obj.EVENT_LOCAL_STRUCT, obj.mLocalSaveStruct, ...
-                obj.EVENT_FILENAME, obj.mLoadedFileName ...
-            );
+                obj.EVENT_FILENAME, obj.mLoadedFileName);
             obj.sendEvent(eventStruct);
         end
         
         function saveLocalStructToFile(obj, fileFullPath, differentStatusOptional)
-            % saves the local struct into an outer file
+            % Saves the local struct into an outer file
             % fileFullPath - string
             % differentStatusOptional - string.
             %                           if exists, the status will be this
@@ -190,7 +303,7 @@ classdef SaveLoad < Savable & EventSender
 
             myStruct = obj.mLocalSaveStruct;
             if ~isstruct(myStruct)
-                errorMsg = 'No local struct has been loaded\saved. Nothing to save! Consider calling obj.saveSystemToLocalStruct() or obj.loadFileToLocal()';
+                errorMsg = 'No local struct has been loaded\saved. Nothing to save! Consider calling obj.saveParamsToLocalStruct() or obj.loadFileToLocal()';
                 obj.sendError(errorMsg);
             end
             
@@ -231,9 +344,8 @@ classdef SaveLoad < Savable & EventSender
         end
         
         function autoSave(obj)
-            % saves the state to the local struct
-            % and then saves the struct to a file in the AUTOSAVE folder
-            obj.saveSystemToLocalStruct();
+            % Saves the experiment results the local struct into a file
+            % in the AUTOSAVE folder
             
             filename = obj.mLoadedFileName;
             fullPath = sprintf('%s%s', obj.PATH_DEFAULT_AUTO_SAVE, filename);
@@ -243,7 +355,7 @@ classdef SaveLoad < Savable & EventSender
         end
         
         function save(obj)
-            % saves the struct to a file (with the already predefined
+            % Saves the struct to a file (with the already predefined
             % obj.mLoadedFileName as name) in the obj.mSavingFolder
             
             filename = obj.mLoadedFileName;
@@ -270,7 +382,7 @@ classdef SaveLoad < Savable & EventSender
             % loads the local struct into the system
             % subCategoryOptional - string. the subCat to load to
             if ~isstruct(obj.mLocalSaveStruct)
-                warningMsg = 'No local struct has been loaded\saved. Nothing to save! Consider calling obj.saveSystemToLocalStruct() or obj.loadFileToLocal()';
+                warningMsg = 'No local struct has been loaded\saved. Nothing to save! Consider calling obj.saveParamsToLocalStruct() or obj.loadFileToLocal()';
                 obj.sendWarning(warningMsg);
                 success = false;
                 return
@@ -282,7 +394,7 @@ classdef SaveLoad < Savable & EventSender
                 subCat = Savable.SUB_CATEGORY_DEFAULT;
             end
             
-            Savable.loadAllObjects(obj.mLocalSaveStruct, obj.mCategory, subCat);
+            obj.loadAllObjects(obj.mLocalSaveStruct, obj.mCategory, subCat);
             obj.sendEvent(struct(obj.EVENT_LOAD_SUCCESS_LOCAL_TO_SYSTEM, true));
             success = true;
         end
@@ -312,9 +424,9 @@ classdef SaveLoad < Savable & EventSender
             structEvent.(obj.EVENT_STATUS_LOCAL_STRUCT) = obj.mLocalStructStatus;
             obj.sendEvent(structEvent);
             
-            % handle the notes
+            % Handle the notes
             if isfield(obj.mLocalSaveStruct.(obj.name), 'mNotes')
-                saveFileOnNewNotes = false; % we don't want the file to be saved when the notes change
+                saveFileOnNewNotes = false; % We don't want the file to be saved when the notes change
                 obj.setNotes(obj.mLocalSaveStruct.(obj.name).mNotes, saveFileOnNewNotes)
             end
             
@@ -431,7 +543,7 @@ classdef SaveLoad < Savable & EventSender
             disp(folder)
             allFiles = PathHelper.getAllFilesInFolder(folder, obj.SAVE_FILE_SUFFIX);
             if isempty(allFiles)
-                obj.sendWarning('empty folder, can''t load file!');
+                obj.sendWarning('Empty folder, can''t load file!');
                 return
             end
             
@@ -445,7 +557,7 @@ classdef SaveLoad < Savable & EventSender
                     return
                 end
             end
-            obj.sendWarning('this folder has not even ONE file good enough to load.\nSorry!');
+            obj.sendWarning('This folder has not even ONE file good enough to load.\nSorry!');
             
         end
         
@@ -454,7 +566,7 @@ classdef SaveLoad < Savable & EventSender
             
             illegalStates = {obj.STRUCT_STATUS_NOT_SAVED, obj.STRUCT_STATUS_NOTHING};
             if any(strcmp(obj.mLocalStructStatus, illegalStates))
-                obj.sendWarning('can''t delete file - not yet saved! ignoring');
+                obj.sendWarning('Can''t delete file - not yet saved! ignoring');
                 return
             end
             
@@ -463,7 +575,7 @@ classdef SaveLoad < Savable & EventSender
                 % obj.mLoadedFileFullPath gets fullfilled in
                 % obj.saveLocalStructToFile() and in obj.loadFileToLocal()
                 
-                obj.sendWarning('can''t delete file - no file saved! ignoring');
+                obj.sendWarning('Can''t delete file - no file saved! ignoring');
                 return
             end
             
@@ -508,7 +620,7 @@ classdef SaveLoad < Savable & EventSender
             loadedStruct = NaN;
             
             if ~PathHelper.isFileExists(fileFullPath)
-                warningMsg = sprintf('file not exists! %s', fileFullPath);
+                warningMsg = sprintf('File does not exist! %s', fileFullPath);
                 if shouldSendErrors
                     obj.sendWarning(warningMsg, struct(SaveLoad.EVENT_ERR_FNF, true, obj.EVENT_FILENAME, fileFullPath));
                 end
@@ -521,7 +633,7 @@ classdef SaveLoad < Savable & EventSender
                     folderAndFilename = PathHelper.splitFullPathToFolderAndFile(fileFullPath);
                     fileName = folderAndFilename{2};
                     warningMsg = sprintf(...
-                        'file suffix incorrct! ignoring.\n(suffix needed:"%s", file to load: "%s"', ...
+                        'Incorrect file suffix! Ignoring.\n(Suffix needed:"%s", file to load: "%s"', ...
                         obj.SAVE_FILE_SUFFIX, ...
                         fileName);
                     
@@ -533,7 +645,7 @@ classdef SaveLoad < Savable & EventSender
             structToLoad = load(fileFullPath);
             if ~isfield(structToLoad, 'myStruct')
                 if shouldSendErrors
-                    obj.sendWarning('can''t find the reserved field ''myStruct'' in the file to load. aborting', ...
+                    obj.sendWarning('Can''t find the reserved field ''myStruct'' in the file to load. Aborting', ...
                         struct(obj.EVENT_ERR_FILE_INVALID, true, obj.EVENT_FILENAME, fileFullPath))
                 end
                 return
@@ -542,7 +654,7 @@ classdef SaveLoad < Savable & EventSender
             structCategory = structToLoad.(Savable.PROPERTY_CATEGORY);
             if ~strcmp(structCategory, obj.mCategory)
                 if shouldSendErrors
-                    obj.sendWarning(sprintf(' can''t load file - mCategory mismatch! ignoring.\n(file mCategory: "%s", SaveLoad mCategory: "%s"', structCategory, obj.mCategory));
+                    obj.sendWarning(sprintf('Can''t load file - mCategory mismatch! Ignoring.\n(file mCategory: "%s", SaveLoad mCategory: "%s"', structCategory, obj.mCategory));
                 end
                 return
             end
@@ -573,7 +685,7 @@ classdef SaveLoad < Savable & EventSender
     
     %% overriden from Savable
     methods(Access = protected)
-        function outStruct = saveStateAsStruct(obj, mCategory) %#ok<*MANU>
+        function outStruct = saveStateAsStruct(obj, mCategory, ~) %#ok<*MANU>
             % saves the state as struct.
             if strcmp(mCategory, obj.mCategory)
                 outStruct = struct('mNotes', obj.mNotes);

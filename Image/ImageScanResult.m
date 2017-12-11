@@ -3,7 +3,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
     %   it is savable, so the last image can be saved and opened
     
     properties(GetAccess = public, SetAccess = private)
-        mData       % the matrix
+        mData = []; % the matrix
         mDimNumber  % dimensions number
         mFirstAxis  % vector
         mSecondAxis % vector or point
@@ -37,6 +37,10 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         
         function sendEventImageUpdated(obj)
             obj.sendEvent(struct(obj.EVENT_IMAGE_UPDATED, true));
+        end
+        
+        function bool = isDataAvailable(obj)
+            bool = ~isempty(obj.mData);
         end
         
         function fullpath = savePlottingImage(obj, folder, filename)
@@ -77,14 +81,16 @@ classdef ImageScanResult < Savable & EventSender & EventListener
     
     %% overriding from Savable
     methods(Access = protected)
-        function outStruct = saveStateAsStruct(obj, category) %#ok<*MANU>
-            % saves the state as struct. if you want to save stuff, make
-            % (outStruct = struct;) and put stuff inside. if you dont
+        function outStruct = saveStateAsStruct(obj, category, type) %#ok<*MANU>
+            % Saves the state as struct. if you want to save stuff, make
+            % (outStruct = struct;) and put stuff inside. If you dont
             % want to save, make (outStruct = NaN;)
             %
-            % category - string. some objects saves themself only with
-            % specific category (image/experimetns/etc)
-            if ~strcmp(category, Savable.CATEGORY_IMAGE)
+            % category - string. Some objects saves themself only with
+            %                    specific category (image/experimetns/etc)
+            % type - string.     Whether the objects saves at the beginning
+            %                    of the run (parameter) or at its end (result)
+            if ~strcmp(category, Savable.CATEGORY_IMAGE) || ~strcmp(type, Savable.TYPE_RESULTS)
                 outStruct = NaN;
                 return
             end
@@ -103,15 +109,15 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         end
         
         function loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<*INUSD>
-            % loads the state from a struct.
-            % to support older versoins, always check for a value in the
+            % Loads the state from a struct.
+            % To support older versoins, always check for a value in the
             % struct before using it. view example in the first line.
             % subCategory - string. could be empty string
 
             if ~strcmp(category, Savable.CATEGORY_IMAGE); return; end
             if ~any(strcmp(subCategory, {Savable.SUB_CATEGORY_DEFAULT})); return; end
             
-            hasChanged = false;
+            hasChanged = false;     % initialize
             for propNameCell = obj.getAllPropertiesThisClassDefined()
                 propName = propNameCell{:};
                 if isfield(savedStruct, propName)
@@ -134,7 +140,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
     
     %% overridden from EventListener
     methods
-        % when event happen, this function jumps.
+        % When events happen, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
             % Check if event is "loaded file to SaveLoad" and need to show the image
@@ -168,7 +174,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                     && isfield(event.extraInfo, StageScanner.EVENT_SCAN_UPDATED)
                 
                 extra = event.extraInfo.(StageScanner.EVENT_SCAN_UPDATED);
-                % "extra" now points to an object of type EventExtraScanUpdated
+                % "extra" now points to an object of class EventExtraScanUpdated
                 obj.update(extra.scan, extra.dimNumber, extra.getFirstAxis, extra.getSecondAxis, extra.botLabel, extra.leftLabel);
                 drawnow
             end

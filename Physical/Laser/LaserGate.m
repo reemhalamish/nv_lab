@@ -44,15 +44,20 @@ classdef LaserGate < Savable
     
     %% overriding from Savable
     methods(Access = protected) 
-        function outStruct = saveStateAsStruct(obj, category) %#ok<*MANU>
+        function outStruct = saveStateAsStruct(obj, category, type) %#ok<*MANU>
             % saves the state as struct. overriden from Savable
             
-            % save only if you need to save
+            % save only if you have the right category...
             if ~any(strcmp(category, {...
                     Savable.CATEGORY_IMAGE, ...
-                    Savable.CATEGORY_EXPERIMENTS ...
-                    }))
-                return; 
+                    Savable.CATEGORY_EXPERIMENTS}))
+                outStruct = NaN;
+                return;
+            end
+            % and the right type of data (i.e. experiment parameter)
+            if ~strcmp(type,Savable.TYPE_PARAMS)
+                outStruct = NaN;
+                return;
             end
             
             

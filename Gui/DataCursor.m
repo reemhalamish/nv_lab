@@ -54,18 +54,17 @@ classdef DataCursor < handle
             % Displays the location of the cursor on the plot and the kcps
             % (the color level from the colormap)
             
-            stageScanner = getObjByName(StageScanner.NAME);
-            if isempty(stageScanner.mScan)
+            isr = getObjByName(ImageScanResult.NAME);
+            if ~isr.isDataAvailable
                 txt = '';
                 EventStation.anonymousWarning('Image is empty');
                 return
             end
             
             % Get scanning parameters
-            dim = stageScanner.getScanDimensions;
-            sp = stageScanner.mStageScanParams;
-            firstAxis = sp.getFirstScanAxisLetter;
-            secondAxis = sp.getSecondScanAxisLetter;
+            dim = isr.mDimNumber;
+            firstAxis = isr.mLabelBot(1);   % first character is the axis letter
+            secondAxis = isr.mLabelLeft(1); % ^ the same, if dim == 2
             
             % Customizes text of data tips
             data = getimage(obj.vAxes);
@@ -118,8 +117,8 @@ classdef DataCursor < handle
             % Draw the rectangle on the select area on the plot and update
             % the GUI with the max and min values
             
-            stageScanner = getObjByName(StageScanner.NAME);
-            if isempty(stageScanner.mScan)      % nothing to zoom to
+            isr = getObjByName(ImageScanResult.NAME);
+            if ~isr.isDataAvailable      % nothing to zoom to
                 EventStation.anonymousWarning('Image is empty');
                 return
             end
@@ -131,6 +130,7 @@ classdef DataCursor < handle
             if rect(3) == 0; return; end  % selection has no width. No use in continuing
             
             % Get scanning parameters
+            stageScanner = getObjByName(StageScanner.NAME);
             dim = stageScanner.getScanDimensions;
             sp = stageScanner.mStageScanParams;
             

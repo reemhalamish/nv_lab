@@ -31,20 +31,19 @@ classdef ViewImageResultImage < GuiComponent & EventListener & BaseObject
             axes(); % creating floating axes() so that default calls to axes (such as image() surf() etc.) won't reach this view but the invis floating one
             
             % update the axes with a scan if exists
-            stageScanner = getObjByName(StageScanner.NAME);
-            if stageScanner.isScanReady
-                dim = stageScanner.getScanDimensions;
-                sp = stageScanner.mStageScanParams;
-                firstAxis = sp.getFirstScanAxisVector;
-                secondOptionalAxis = sp.getSecondScanAxisVector;
-                botLabel = stageScanner.getBottomScanLabel;
-                leftLabel = stageScanner.getLeftScanLabel;
-                AxesHelper.fillAxes(obj.vAxes, stageScanner.mScan, dim, firstAxis, secondOptionalAxis, botLabel, leftLabel);
+            imageScanResult = getObjByName(ImageScanResult.NAME);
+            if imageScanResult.isDataAvailable
+                obj.updateAxes(imageScanResult)
                 obj.parent.vHeader.updateAxes;  % let the other views in the header draw on the axes
             end
             
             obj.height = 600;   % minimum
             obj.width = 600;    % minimum
+        end
+        
+        function updateAxes(obj,imageScanResult)
+            isr = imageScanResult;  % for brevity
+            AxesHelper.fillAxes(obj.vAxes, isr.mData, isr.mDimNumber, isr.mFirstAxis, isr.mSecondAxis, isr.mLabelBot, isr.mLabelLeft);
         end
         
         function delete(obj)
@@ -59,12 +58,12 @@ classdef ViewImageResultImage < GuiComponent & EventListener & BaseObject
     
     %% overridden from EventListener
     methods
-        % when event happen, this function jumps.
+        % When events happen, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
             if isfield(event.extraInfo, ImageScanResult.EVENT_IMAGE_UPDATED)
-                isr = getObjByName(ImageScanResult.NAME);
-                AxesHelper.fillAxes(obj.vAxes, isr.mData, isr.mDimNumber, isr.mFirstAxis, isr.mSecondAxis, isr.mLabelBot, isr.mLabelLeft);
+                imageScanResult = getObjByName(ImageScanResult.NAME);
+                updateAxes(obj,imageScanResult);
             end
         end
     end

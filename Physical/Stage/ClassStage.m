@@ -2,7 +2,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
     % Created by Yoav Romach, The Hebrew University, September, 2016
     properties
         availableAxes           % string. for example - "xy"
-        scanParams              % object of type StageScanParams
+        scanParams              % object of class StageScanParams
         availableProperties = struct;
         stepSize                % double
     end
@@ -672,58 +672,70 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
     
     %% overriden from Savable
     methods(Access = protected) 
-        function outStruct = saveStateAsStruct(obj, category) %#ok<*MANU>
-            % saves the state as struct. if you want to save stuff, make 
-            % (outStruct = struct;) and put stuff inside. if you dont 
+        function outStruct = saveStateAsStruct(obj, category, type) %#ok<INUSL>
+            % Saves the state as struct. if you want to save stuff, make
+            % (outStruct = struct;) and put stuff inside. If you dont
             % want to save, make (outStruct = NaN;)
             %
-            % category - string. some objects saves themself only with 
-            % specific category (image/experimetns/etc)
-            if startsWith(category, Savable.CATEGORY_IMAGE)
-                % save only the scan parameters
-                outStruct = struct('scanParams', obj.scanParams.asStruct);
-            elseif startsWith(category, Savable.CATEGORY_EXPERIMENTS)
-                % save only the stage position
-                position = obj.Pos(ClassStage.SCAN_AXES);
-                outStruct = struct('position', position);
+            % category - string. Some objects saves themself only with
+            %                    specific category (image/experimetns/etc)
+            % type - string.     Whether the objects saves at the beginning
+            %                    of the run (parameter) or at its end (result)
+            if ~strcmp(type, Savable.TYPE_PARAMS)
+                outStruct = NaN;
+                return
             end
+            
+            % save only the stage position
+            position = obj.Pos(obj.availableAxes);
+            outStruct = struct('position', position);
         end
         
-        function loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<*INUSD>
-            % loads the state from a struct.
-            % to support older versoins, always check for a value in the
-            % struct before using it. view example in the first line.
+        function loadStateFromStruct(obj, savedStruct, category, subCategory) 
+            % Loads the state from a struct.
+            % To support older versoins, always check for a value in the
+            % struct before using it. View example in the first line.
             % category - string
             % subCategory - string. could be empty string
-
-            if strcmp(category, Savable.CATEGORY_IMAGE)
-                % save from "image" category - the scan parameters are
-                % saved here.
-                % saves for "image" are divided by sub-categories, only
-                % load if you have to!
-               if any(strcmp(subCategory, {Savable.SUB_CATEGORY_DEFAULT, Savable.CATEGORY_IMAGE_SUBCAT_STAGE}))
-                   % ^ only if sub-category includes the stage
-                   obj.scanParams = StageScanParams.fromStruct(savedStruct.scanParams);
-                   obj.sendEventScanParamsChanged();
-               end
-               
-            elseif strcmp(category, Savable.CATEGORY_EXPERIMENTS)
-                position = savedStruct.position;
-                obj.move(ClassStage.SCAN_AXES, position);
+            
+            switch category
+                case Savable.CATEGORY_IMAGE
+                    % save from "image" category - the scan parameters are
+                    % saved here.
+                    % saves for "image" are divided by sub-categories, only
+                    % load if you have to!
+                    if any(strcmp(subCategory, {Savable.SUB_CATEGORY_DEFAULT, Savable.CATEGORY_IMAGE_SUBCAT_STAGE}))
+                        % ^ only if sub-category includes the stage
+                        obj.scanParams = StageScanParams.fromStruct(savedStruct.scanParams);
+                        obj.sendEventScanParamsChanged();
+                    end
+                    
+                case Savable.CATEGORY_EXPERIMENTS
+                    position = savedStruct.position;
+                    obj.move(ClassStage.SCAN_AXES, position);
             end
         end
         
-        function string = returnReadableString(obj, savedStruct)
-            % return a readable string to be shown. if this object
+        function string = returnReadableString(obj, savedStruct) %#ok<INUSD>
+            % Return a readable string to be shown. if this object
             % doesn't need a readable string, make (string = NaN;) or
             % (string = '');
-            string = NaN;
+            n = length(obj.availableAxes);
+            string = sprintf('%s position:',obj.name);
+
+            for i = 1:n
+                axLetter = obj.availableAxes(i);
+                axNum = obj.getAxis(axLetter);
+                position = obj.Pos(axNum);
+                axisString = sprintf('%s axis: %.3f', axLetter, position);
+                string = sprintf('%s\n%s', string, axisString);
+            end
         end
     end
     
     %% overridden from EventListener
     methods
-        % when event happen, this function jumps.
+        % When events happen, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
             if isfield(event.extraInfo, StageControlEvents.HALT);               obj.Halt();             end
