@@ -76,7 +76,7 @@ classdef Experiment < EventSender & EventListener & Savable
     
     %% overridden from EventListener
     methods
-        % when event happen, this function jumps.
+        % When events happen, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
             if isfield(event.extraInfo, Tracker.EVENT_TRACKER_FINISHED)
@@ -88,13 +88,15 @@ classdef Experiment < EventSender & EventListener & Savable
     
     %% overriding from Savable
     methods(Access = protected)
-        function outStruct = saveStateAsStruct(obj, category) %#ok<*MANU>
-            % saves the state as struct. if you want to save stuff, make
-            % (outStruct = struct;) and put stuff inside. if you dont
+        function outStruct = saveStateAsStruct(obj, category, type) %#ok<*MANU>
+            % Saves the state as struct. if you want to save stuff, make
+            % (outStruct = struct;) and put stuff inside. If you dont
             % want to save, make (outStruct = NaN;)
             %
-            % category - string. some objects saves themself only with
-            % specific category (image/experimetns/etc)
+            % category - string. Some objects saves themself only with
+            %                    specific category (image/experimetns/etc)
+            % type - string.     Whether the objects saves at the beginning
+            %                    of the run (parameter) or at its end (result)
             
             outStruct = NaN;
         end

@@ -19,7 +19,7 @@ classdef ViewSaveLoad < GuiComponent & EventListener
     methods
         % constructor
         function obj = ViewSaveLoad(parent, controller, categoryToSave)
-            % categoryToSave - string. which category should you save
+            % categoryToSave - string. Which category you should save
             % (mostly 'image' or 'experiments')
             
             panel = ViewExpandablePanel(parent, controller, 'Save & Load Image');
@@ -52,7 +52,7 @@ classdef ViewSaveLoad < GuiComponent & EventListener
     
     
     methods
-        %% when event happen, this function jumps.
+        %% When events happen, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
             
@@ -75,7 +75,7 @@ classdef ViewSaveLoad < GuiComponent & EventListener
                 
                 if shouldDisplayNewString
                     if fileJustDeleted
-                        % if is a deleted file, remove as well
+                        % if it is a deleted file, remove as well
                         toDisplay = sprintf('File Name -');
                         
                     elseif ischar(fileName) && ischar(status)

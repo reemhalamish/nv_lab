@@ -169,7 +169,7 @@ classdef ViewSpcm < ViewVBox & EventListener
     
     %% overridden from EventListener
     methods
-        % when event happens, this function jumps.
+        % When events happens, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
             spcmCount = event.creator;

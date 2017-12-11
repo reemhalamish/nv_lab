@@ -17,7 +17,7 @@ classdef ViewLaserPart < ViewHBox & EventListener
         function obj = ViewLaserPart(parent, controller, laserPartPhysical, nameToDisplay)
             % parent - gui component
             % controller - the main GUI controller
-            % laserPartPhysical - object of type LaserPartAbstract 
+            % laserPartPhysical - object of subclass of LaserPartAbstract 
             % (LaserPartAbstract is in the folder Physical\Laser)
             
             %%%%%%%% init variables %%%%%%%%

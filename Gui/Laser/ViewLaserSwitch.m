@@ -82,7 +82,7 @@ classdef ViewBooleanSwitch < PhysicsListener & GuiComponent
     %% overriding methods!
     methods
         function out = onEvent(obj, event) %#ok<*INUSD,*INUSL>
-            % we don't need the event details. we can ask the details directly from the laser!
+            % We don't need the event details. we can ask the details directly from the laser!
             obj.refresh();
             out = true;
         end

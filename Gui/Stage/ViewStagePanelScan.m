@@ -122,7 +122,7 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
     
     %% overridden from EventListener
     methods
-        % when event happen, this function jumps.
+        % When events happen, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
             if event.isError || isfield(event.extraInfo, ClassStage.EVENT_SCAN_PARAMS_CHANGED)

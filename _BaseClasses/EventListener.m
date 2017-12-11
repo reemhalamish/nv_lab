@@ -20,7 +20,7 @@ classdef (Abstract) EventListener < handle
 
 %     %% overridden from EventListener
 %     methods
-%         % when event happen, this function jumps.
+%         % When events happen, this function jumps.
 %         % event is the event sent from the EventSender
 %         function onEvent(obj, event)
 %         end
@@ -36,9 +36,9 @@ classdef (Abstract) EventListener < handle
     
     properties(SetAccess = protected)
         listensToEveryone = false;
-        % self explanatory. can be used be someone who wants to listen to
-        % all the events, and than check in onEvent() if the event is an
-        % error event, and display it. for example - a view to show errors
+        % Self explanatory. Can be used be someone who wants to listen to
+        % all the events, and then check in onEvent() if the event is an
+        % error event, and display it. For example - a view to show errors
         % in the GUI
         
     end

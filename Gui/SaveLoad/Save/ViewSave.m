@@ -84,7 +84,7 @@ classdef ViewSave < GuiComponent & EventListener
         
     % overridden from EventListener
     methods
-        % when event happen, this function jumps.
+        % When events happen, this function jumps.
         %
         % event is the event sent from the EventSender
         function onEvent(obj, event) %#ok<INUSD>

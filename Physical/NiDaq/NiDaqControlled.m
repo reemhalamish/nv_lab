@@ -39,17 +39,17 @@ classdef (Abstract) NiDaqControlled < EventListener
     end
     
     methods(Abstract)
-        % the function onEvent() was divided into multiple functions, so
+        % The function onEvent() was divided into multiple functions, so
         % that child classes won't override onEvent. 
-        % this way, we can override onEvent() HERE in this class, and make
+        % This way, we can override onEvent() HERE in this class, and make
         % it work the way we expect it
         onNiDaqReset(obj, niDaq)
     end
   
     methods
         function onNiDaqEvent(obj, event)
-            % this function jumps like every onEvent() call, where the
-            % event.creator == NiDaq and event.extraInfo hasn't have
+            % This function jumps like every onEvent() call, where the
+            % event.creator == NiDaq and event.extraInfo doesn't have
             % the field EVENT_NIDAQ_RESET
         end
         function onEventNotNiDaq(obj, event)
@@ -65,7 +65,7 @@ classdef (Abstract) NiDaqControlled < EventListener
         %   @ onNiDaqReset - where sender is NiDaq and event is EVENT_NIDAQ_RESET
         %   @ onNiDaqEvent - where sender is NiDaq and event is anything but EVENT_NIDAQ_RESET
         %   @ onEventNotNiDaq - where sender is anything but the NiDaq
-        % when event happen, this function jumps.
+        % When events happen, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
             if strcmp(event.creator.name, NiDaq.NAME)
