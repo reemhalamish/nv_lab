@@ -28,9 +28,9 @@ classdef StageScanParams < handle
             if nargin == 0
                 obj.from = zeros(1,length(ClassStage.SCAN_AXES));
                 obj.to = zeros(1,length(ClassStage.SCAN_AXES));
-                obj.fixedPos = zeros(1,length(ClassStage.SCAN_AXES));
+                obj.fixedPos = false(1,length(ClassStage.SCAN_AXES));
                 obj.numPoints = 2 * ones(1,length(ClassStage.SCAN_AXES));
-                obj.isFixed = zeros(1,length(ClassStage.SCAN_AXES));
+                obj.isFixed = false(1,length(ClassStage.SCAN_AXES));
                 obj.pixelTime = 0.015;
                 obj.continuous = false;
                 obj.fastScan = false;
@@ -243,7 +243,7 @@ classdef StageScanParams < handle
                 if isfield(inputStruct, fieldName)
                     obj.(fieldName) = inputStruct.(fieldName)';
                 else
-                    warning('couldn''t find field "%s" in struct. using default value.', fieldName, obj.(fieldName));
+                    warning('Couldn''t find field "%s" in struct. Using default value.', fieldName, obj.(fieldName));
                 end
             end
         end

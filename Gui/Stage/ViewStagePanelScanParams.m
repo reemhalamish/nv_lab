@@ -146,7 +146,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
         end
         
         function setAroundCallback(obj, index)
-            % change the values in the GUI, and call their callbacks that
+            % Change the values in the GUI, and call their callbacks that
             % will change it in the stage
             %
             % index - int. [1 to length(obj.stageAxes)] which button was pressed
@@ -155,7 +155,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             valueLimStr = edtScan.String;
             if ~ValidationHelper.isValueNonNegative(valueLimStr)
                 edtScan.String = obj.SCAN_AROUND_DEFAULT_STRING;
-                obj.sendError(sprintf('"scan around" (axis %s) value should be non-negative! Reverting to default', obj.stageAxes(index)));
+                obj.sendError(sprintf('"Scan Around" (axis %s) value should be non-negative! Reverting to default', obj.stageAxes(index)));
             end
             valueLimHalf = floor(str2double(valueLimStr)/2);
             stage = getObjByName(obj.stageName);

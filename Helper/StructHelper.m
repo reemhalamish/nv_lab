@@ -11,7 +11,7 @@ classdef StructHelper
     
     methods(Static)
         function string = structAsString(inputStruct)
-            % returns a string repr. of the input struct, which can hold
+            % Returns a string repr. of the input struct, which can hold
             % some nested structures inside.
             %
             % inputStruct - one struct. not array.
@@ -74,7 +74,7 @@ classdef StructHelper
     
     methods(Static = true, Access = private)
         function string = recGetStructOut(inputStruct, whitespaecesAmount)
-            % recuresively get the struct out as a string
+            % Recuresively get the struct out as a string
             % 
             % inputStruct        - the struct to display
             % whitespaecesAmount - the amount od whitespaces to show before

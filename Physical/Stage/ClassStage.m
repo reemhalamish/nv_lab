@@ -270,7 +270,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         
         PrepareScanX(obj, x, y, z, nFlat, nOverRun, tPixel)
         %%%%%%%%%%%%%%%%% ONE DIMENSIONAL X SCAN %%%%%%%%%%%%%%%%%
-        % Prepares a scan for x axis, to be called before ScanY.
+        % Prepares a scan for x axis, to be called before ScanX.
         % x - A vector with the points to scan, points should have
         % equal distance between them.
         % y/z - The starting points for the other axes.
@@ -425,7 +425,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         end
         
         function moveByScanParams(obj)
-            % for all the positions marked as "fixed" in obj.scanParams,
+            % For all the positions marked as "fixed" in obj.scanParams,
             % move to this position
             params = obj.scanParams;
             obj.sanityChecksRaiseErrorIfNeeded(params);

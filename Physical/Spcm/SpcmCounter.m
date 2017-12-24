@@ -29,8 +29,8 @@ classdef SpcmCounter < EventSender
         
         NAME = 'SpcmCounter';
         INTEGRATION_TIME_DEFAULT_MILLISEC = 100;
-        DEFAULT_EMPTY_STRUCT = struct('time',0,'kcps',NaN,'std',NaN);
-        ZERO_STRUCT = struct('time',0,'kcps',0,'std',0);
+        DEFAULT_EMPTY_STRUCT = struct('time', 0, 'kcps', NaN, 'std', NaN);
+        ZERO_STRUCT = struct('time', 0, 'kcps', 0, 'std', 0);    %redundant?
     end
     
     methods
@@ -59,7 +59,7 @@ classdef SpcmCounter < EventSender
                 [kcps,std] = spcm.readFromTime;
                 %%%% replace with obj.newRecord(time,kcps,std)
                     time = obj.records(end).time + integrationTime/1000;
-                    obj.records(end + 1) = struct('time',time,'kcps',kcps,'std',std);
+                    obj.records(end + 1) = struct('time', time, 'kcps', kcps, 'std', std);
                 %%%% (upto here)
                 obj.sendEventUpdated;
                 if integrationTime ~= obj.integrationTimeMillisec
