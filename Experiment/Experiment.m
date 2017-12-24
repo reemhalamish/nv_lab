@@ -2,11 +2,9 @@ classdef Experiment < EventSender & EventListener & Savable
     %EXPERIMENT Summary of this class goes here
     %   Detailed explanation goes here
     
-    
     properties
-        mCurrentAxisXParam      % stores the ExpParameter that is in charge of axis x (which has name and value)
-        mCurrentAxisYParam		% stores the ExpParameter that is in charge of axis y (which has name and value) 
-
+        mCurrentXAxisParam      % stores the ExpParameter that is in charge of axis x (which has name and value)
+        mCurrentYAxisParam		% stores the ExpParameter that is in charge of axis y (which has name and value)
     end
     
     properties(Constant = true)
@@ -26,33 +24,35 @@ classdef Experiment < EventSender & EventListener & Savable
         function sendEventPlotAnalyzeFit(obj); obj.sendEvent(struct(obj.EVENT_PLOT_ANALYZE_FIT, true)); end
         function sendEventParamChanged(obj); obj.sendEvent(struct(obj.EVENT_PARAM_CHANGED, true)); end
         
-        
         function obj = Experiment()
             obj@EventSender(Experiment.NAME);
             obj@Savable(Experiment.NAME);
             obj@EventListener(Tracker.NAME);
-            obj.mCurrentAxisXParam = ExpParameter.createDefault(ExpParameter.TYPE_VECTOR_OF_DOUBLES, 'axis x', [], obj);
-            obj.mCurrentAxisXParam = ExpParameter.createDefault(ExpParameter.TYPE_VECTOR_OF_DOUBLES, 'axis y', [], obj);
             
-            % copy parameters from previous experiment
+            obj.mCurrentXAxisParam = ExpParameter('X axis', ExpParameter.TYPE_VECTOR_OF_DOUBLES, [], obj.NAME);
+            obj.mCurrentYAxisParam = ExpParameter('Y axis', ExpParameter.TYPE_VECTOR_OF_DOUBLES, [], obj.NAME);
+            
+            % copy parameters from previous experiment (if exists) and replace its base object
             prevExp = removeObjIfExists(Experiment.NAME);
-            if isa(prevExp, 'Experiment'); obj.robAndKillPrevExperiment(prevExp); 
-            else; EventStation.anonymousWarning('can''t find previous experiment, initiating parameters from scratch...');
+            if isa(prevExp, 'Experiment')
+                obj.robAndKillPrevExperiment(prevExp); 
+            % No need to tell the users otherwise. Perfectly normal.
+%             else
+%                 EventStation.anonymousWarning('Can''t find previous experiment! Initiating parameters from scratch...');
             end
-            
             addBaseObject(obj);
         end
         
         function cellOfStrings = getAllExpParameterProperties(obj)
-            % get all the property-names of properties from the
-            % "Experiment" obj that are from type "ExpParameter"
-            allMaybeProperties = obj.getAllNonConstProperties();
-            allExpParamProp = cellfun(@(x) isa(obj.(x), 'ExpParameter'), allMaybeProperties);
-            cellOfStrings = allMaybeProperties(allExpParamProp);
+            % Get all the property-names of properties from the
+            % Experiment object that are from type "ExpParameter"
+            allVariableProperties = obj.getAllNonConstProperties();
+            isPropExpParam = cellfun(@(x) isa(obj.(x), 'ExpParameter'), allVariableProperties);
+            cellOfStrings = allVariableProperties(isPropExpParam);
         end
         
         function robAndKillPrevExperiment(obj, prevExperiment)
-            % get all the "ExpParameter"s from the previous experiment
+            % get all the ExpParameter's from the previous experiment
             % prevExperiment = the previous experiment
             
             for paramNameCell = prevExperiment.getAllExpParameterProperties()
@@ -60,16 +60,21 @@ classdef Experiment < EventSender & EventListener & Savable
                 if isprop(obj, paramName)
                     % if the current experiment has this property also
                     obj.(paramName) = prevExperiment.(paramName);
-                    obj.(paramName).exp = obj;  % let the expParam look at its new experiment!
+                    obj.(paramName).expName = obj.name;  % expParam, I am (now) your parent!
                 end
             end
-            removeBaseObject(prevExperiment);
-            delete(prevExperiment);
             
+            delete(prevExperiment);
         end
         
         function delete(obj)
             % todo needed? 
+        end
+    end
+    
+    methods (Static)
+        function categoryName = mCategory
+            categoryName = Savable.CATEGORY_EXPERIMENTS;
         end
     end
     
@@ -78,8 +83,8 @@ classdef Experiment < EventSender & EventListener & Savable
     methods
         % When events happen, this function jumps.
         % event is the event sent from the EventSender
-        function onEvent(obj, event)
-            if isfield(event.extraInfo, Tracker.EVENT_TRACKER_FINISHED)
+        function onEvent(obj, event) %#ok<INUSL>
+            if isfield(event.extraInfo, Tracker.EVENT_TRACKER_ENDED)
                 % todo - stuff
             end
         end
@@ -99,6 +104,11 @@ classdef Experiment < EventSender & EventListener & Savable
             %                    of the run (parameter) or at its end (result)
             
             outStruct = NaN;
+            
+            % mCategory is overrided by Tracker, and we need to check it
+            if ~strcmp(category,obj.mCategory); return; end
+            
+            
         end
         
         function loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<*INUSD>

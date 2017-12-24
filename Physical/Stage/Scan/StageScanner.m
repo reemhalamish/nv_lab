@@ -152,6 +152,49 @@ classdef StageScanner < EventSender & Savable
             end
         end
         
+        function kcpsValue = scanPoint(obj, stage, spcm, scanParams)
+           % scan "0D"
+           % input arg's:
+           %    stage - an object deriving from ClassStage
+           %    spcm - an object deriving from Spcm
+           %    scanParams - the scan parameters. an object deriving from StageScanParams
+           % output:
+           %    kcpsValue - double. The value read by the spcm
+           
+           % To be used by TrackablePosition. Should NOT be used for
+           % actual scanning.
+           
+           %%%% move to location %%%%
+           pos = scanParams.fixedPos;
+           axes = stage.availableAxes;
+           stage.move(axes, pos);
+           
+           %%%% try to scan %%%%
+           scanOk = false;
+           for trial = 1:StageScanner.TRIALS_AMOUNT_ON_ERROR
+               try
+                   spcm.prepareReadByTime(stage.name, scanParams.pixelTime);
+                   kcps = spcm.readFromScan();
+                   clearTimeRead
+                   if kcps == 0
+                       obj.sendError('No Signal Detected!')
+                   end
+                   scanOk = true;
+                   break;
+               catch err
+%                    rethrow(err) % Uncomment to debug
+                   warning(err.message);
+                   fprintf('Reading from SPCM failed at trial %d, attempting to rescan.\n', trial);
+               end
+           end
+           
+           % This line will be reached when break()ing out of the for,
+           % or when all trials went without success
+           if ~scanOk; obj.sendError(sprintf('Reading from SPCM failed after %d trials', StageScanner.TRIALS_AMOUNT_ON_ERROR));end
+           
+           kcpsValue = kcps;
+        end
+        
         function kcpsScanVector = scan1D(obj, stage, spcm, scanParams)
             % scan 1D
             % stage - an object deriving from ClassStage
@@ -159,7 +202,7 @@ classdef StageScanner < EventSender & Savable
             % scanParams - the scan parameters. an object deriving from StageScanParams
             % returns - a vector of the scan
             
-            % if the area to scan is bigger than the maximum scanning-area
+            % If the area to scan is bigger than the maximum scanning-area
             % of the stage, divide it to smallers chunks to scan
  
             % ~~~~ preparing variables: ~~~~
@@ -181,7 +224,7 @@ classdef StageScanner < EventSender & Savable
             
             % ~~~~ checks on size of scan ~~~~
             if (nPixels > maxScanSize)
-                fprintf('Max number of points to scan is %d, %d were given for %s axis, scanning in parts.\n', maxScanSize, nPixels, axisToScan);
+                fprintf('Max number of points to scan is %d, %d were given for %s axis. Scanning in parts.\n', maxScanSize, nPixels, axisToScan);
             end
             
             % ~~~~ continue scanning until finishing all the scan ~~~~
@@ -237,7 +280,7 @@ classdef StageScanner < EventSender & Savable
                 end
                 
                 
-                % this line will be reached when break()ing out of the for,
+                % This line will be reached when break()ing out of the for,
                 % or when all trials went without success
                 stage.AbortScan();
                 if ~scanOk; obj.sendError(sprintf('Scan failed after %d trials', StageScanner.TRIALS_AMOUNT_ON_ERROR));end
@@ -464,7 +507,7 @@ classdef StageScanner < EventSender & Savable
             obj.mScan = nan;
             obj.mStageName = nan;
             obj.mStageScanParams = nan;
-            obj.mCurrentlyScanning = false;
+            obj.mCurrentlyScanning = false;     % probably redundant; appears in obj.stopScan
         end
         
         function dummyScan(obj)
@@ -476,6 +519,14 @@ classdef StageScanner < EventSender & Savable
             obj.sendEventScanUpdated(data);
             obj.sendEventScanFinished();
             obj.autosaveAfterScan();
+        end
+        
+        function value = dummyScanGaussian(~,~,~,scanParams,zeroForPointOneForScan)
+            pos = scanParams.fixedPos;
+            
+            [X,Y,Z] = multipleAssign(pos);
+            f = @(x,y,z) (peaks(x,y)+5).*exp(-(z-20).^2/100);   % some test function
+            value = f(X,Y,Z);
         end
         
         function boolean = isScanReady(obj)

@@ -59,6 +59,8 @@ classdef (Abstract) Savable < BaseObject
         
         CATEGORY_EXPERIMENTS = 'experiments';
         
+        CATEGORY_TRACKER = 'tracker';
+        
         SUB_CATEGORY_DEFAULT = '';  % default sub-category is empty string
         
         TIMESTAMP_FORMAT = 'yyyymmdd_HHMMSS';

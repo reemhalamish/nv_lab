@@ -1,53 +1,72 @@
 classdef ExpParameter < HiddenMethodsHandle & PropertiesDisplaySorted
     %EXPPARAMETER objects of type experiment-parameter
     %   they can have their name, supported value-types and the actual
-    %   values. also, an ExpParameter-object will alyways point to the
+    %   values. Additionally, an ExpParameter-object will alyways point to the
     %   experiment using it
     
     properties
-        type
-        value = []
-        name
-        exp = nan;
+        name        % string. Name to be presented in GUI
+        type        % string. Could be any of TYPE_LIST
+        value = [];  % value of type 'type'
+        expName = nan;  % string. Name of associated experiment
     end
     
-    properties(Constant = true)
-        TYPE_BOOLEAN = 'boolean'
+    properties (Constant = true)
+        TYPE_LOGICAL = 'logical'
+        TYPE_BOOLEAN = ExpParameter.TYPE_LOGICAL; % just in case anybody gets confused
         TYPE_DOUBLE = 'double'
         TYPE_VECTOR_OF_DOUBLES = 'vector of doubles'
-        ALL_TYPES = {ExpParameter.TYPE_BOOLEAN, ExpParameter.TYPE_DOUBLE, ExpParameter.TYPE_VECTOR_OF_DOUBLES}
+        ALL_TYPES = {ExpParameter.TYPE_LOGICAL, ExpParameter.TYPE_DOUBLE, ExpParameter.TYPE_VECTOR_OF_DOUBLES}
     end
     
     methods
-        function obj = ExpParameter
+        function obj = ExpParameter(name, type, value, expName)
+            % All parameters are optional (at least for now), but they are
+            % dependent on the existence of others:
+            %         name
+            %       /    \
+            %    type    expName
+            %     |
+            %   value
             obj@HiddenMethodsHandle;
             obj@PropertiesDisplaySorted;
+            
+            if exist('name', 'var')
+                obj.name = name;
+            elseif nargin > 0
+                EventStation.anonymousWarning('ExpParameter must have a name in order to have other properties. Default parameter was created.');
+                return
+            end
+
+            if exist('value', 'var')
+                if exist('type', 'var')
+                    obj.type = type;
+                    obj.value = value;
+                else
+                    EventStation.anonymousWarning('ExpParameter must have a defined type in order to define its value.');
+                end
+            end
+            
+            if exist('expName', 'var')
+                obj.expName = expName;
+            end
+
         end
         
         function isOk = validateValue(obj, newValue)
-            % check if a new value is ok type-wise
-            switch (obj.type)
-                case ExpParameter.TYPE_BOOLEAN
+            % Check if a new value is valid, according to obj.type
+            isOk = false;
+            if isempty(newValue)
+                isOk = true;
+                return  % Design decision: accept empty value, though not strictly "ok"
+            end
+            switch obj.type
+                case obj.TYPE_LOGICAL
                     isOk = ValidationHelper.isTrueOrFalse(newValue);
-                case ExpParameter.TYPE_DOUBLE
+                case obj.TYPE_DOUBLE
                     isOk = isnumeric(newValue) && length(newValue) == 1;
-                case ExpParameter.TYPE_VECTOR_OF_DOUBLES
+                case obj.TYPE_VECTOR_OF_DOUBLES
                     isOk = isnumeric(newValue);
-            end
-        end
-    end
-    
-    methods(Static = true)
-        function expParam = createDefault(paramType, paramName, paramValueOptional, expOptional)
-            expParam = ExpParameter();
-            expParam.type = paramType;
-            expParam.name = paramName;
-            if exist('paramValueOptional', 'var') && ~isempty(paramValueOptional)
-                expParam.value = paramValueOptional;
-            end
-            
-            if exist('expOptional', 'var') && ~isempty(expOptional)
-                expParam.exp = expOptional;
             end
         end
     end
@@ -55,24 +74,48 @@ classdef ExpParameter < HiddenMethodsHandle & PropertiesDisplaySorted
     %% setters
     methods
         function set.type(obj, newType)
-            if ~ischar(newType);                        EventStation.anonymousError('new value for obj.type can only be one of the pre-defined types!'); end
-            if ~any(strcmp(obj.ALL_TYPES, newType));    EventStation.anonymousError('new value for obj.type can only be one of the pre-defined types!'); end
-            obj.type = newType;
-        end
-        function set.value(obj, newValue)
-            if ~obj.validateValue(newValue); EventStation.anonymousError('new value for obj.value can''t pass the validation! \ntype: (%s), \nvalue: (%s)\n', obj.type, newValue);   end %#ok<MCSUP>
-            obj.value = newValue;
+            if ~ischar(newType) || ~any(strcmp(obj.ALL_TYPES, newType))
+                EventStation.anonymousError('The type of ExpParameter must be one of the pre-defined types!');
+            end
             
-            if isa(obj.exp, 'Experiment'); obj.exp.sendEventParamChanged(); end %#ok<MCSUP>
+            obj.type = newType;
+            try
+                if ~obj.validateValue(obj.value) %#ok<*MCSUP>
+                    obj.value = [];     % it is no longer valid, and should be discarded
+                end
+            catch err
+                warning(err.message)
+            end
         end
         
-        function set.exp(obj, newExperiment)
-            if ~isa(newExperiment, 'Experiment')
-                EventStation.anonymousError('can only set obj.exp with an experiment! this property is for viewing the parent-experiment of this ExpParameter!\nvalue got in:\n%s', newExperiment);
+        function set.value(obj, newValue)
+            if ~obj.validateValue(newValue)
+                
+                % formatting strings for error
+                newType = class(newValue);
+                if newType == 'double' && length(newValue)>1; newType = obj.TYPE_VECTOR_OF_DOUBLES; end
+                
+                parameterName = obj.name;
+                if ~isempty(obj.expName); parameterName = sprintf('%s.%s',obj.expName,parameterName); end
+                
+                EventStation.anonymousError('Trying to define value for %s failed! \nNew value: %s (of type %s) \nExpected type: %s', ...
+                    parameterName, newValue, newType, obj.type);
             end
-            obj.exp = newExperiment;
+            obj.value = newValue;
+            
+            if isstring(obj.expName)
+                exp = getObjByName(obj.expName);
+                exp.sendEventParamChanged();
+            end
+        end
+        
+        function set.expName(obj, newExperimentName)
+            isValidExpName = ischar(newExperimentName) || isstring(newExperimentName);   % might add more requirements in the future
+            if ~isValidExpName
+                EventStation.anonymousError('Trying to define parent experiment for %s! Experiment name is invalid', obj.name);
+            end
+            obj.expName = newExperimentName;
         end
     end
-    
 end
 
