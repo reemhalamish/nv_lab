@@ -229,7 +229,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             axis = ClassStage.getAxis(obj.stageAxes(index));
             viewFixed = obj.edtFixedPos(index);
             if ~ValidationHelper.isStringValueANumber(viewFixed.String)
-                viewFixed.String = scanParams.fixedPos(axis);
+                viewFixed.String = StringHelper.formatNumber(scanParams.fixedPos(axis));
                 obj.sendError('Only numbers can be accepted! reverting.');
             end
             fixedPos = str2double(viewFixed.String);

@@ -24,8 +24,13 @@ classdef GuiControllerTryViews < GuiController
             % this function should get the main View of this GUI.
             % can call any view constructor with the params:
             % parent=figureWindowParent, controller=obj
+
+            % For trackables we need to first create a working experiment
+            stageName = 'stage fine';
+            laserName = '';
+            TrackablePosition(stageName,laserName);
             
-            view = ViewSpcm_old(figureWindowParent, obj);
+            view = ViewTrackablePosition(figureWindowParent, obj);
         end
         
         function onAboutToStart(obj)

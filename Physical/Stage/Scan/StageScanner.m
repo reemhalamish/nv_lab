@@ -9,7 +9,7 @@ classdef StageScanner < EventSender & Savable
         mCurrentlyScanning = false
     end
     
-    properties(Constant = true)
+    properties (Constant)
         NAME = 'stageScanner'
         
         EVENT_SCAN_UPDATED = 'scanUpdated'
@@ -153,46 +153,46 @@ classdef StageScanner < EventSender & Savable
         end
         
         function kcpsValue = scanPoint(obj, stage, spcm, scanParams)
-           % scan "0D"
-           % input arg's:
-           %    stage - an object deriving from ClassStage
-           %    spcm - an object deriving from Spcm
-           %    scanParams - the scan parameters. an object deriving from StageScanParams
-           % output:
-           %    kcpsValue - double. The value read by the spcm
-           
-           % To be used by TrackablePosition. Should NOT be used for
-           % actual scanning.
-           
-           %%%% move to location %%%%
-           pos = scanParams.fixedPos;
-           axes = stage.availableAxes;
-           stage.move(axes, pos);
-           
-           %%%% try to scan %%%%
-           scanOk = false;
-           for trial = 1:StageScanner.TRIALS_AMOUNT_ON_ERROR
-               try
-                   spcm.prepareReadByTime(stage.name, scanParams.pixelTime);
-                   kcps = spcm.readFromScan();
-                   clearTimeRead
-                   if kcps == 0
-                       obj.sendError('No Signal Detected!')
-                   end
-                   scanOk = true;
-                   break;
-               catch err
-%                    rethrow(err) % Uncomment to debug
-                   warning(err.message);
-                   fprintf('Reading from SPCM failed at trial %d, attempting to rescan.\n', trial);
-               end
-           end
-           
-           % This line will be reached when break()ing out of the for,
-           % or when all trials went without success
-           if ~scanOk; obj.sendError(sprintf('Reading from SPCM failed after %d trials', StageScanner.TRIALS_AMOUNT_ON_ERROR));end
-           
-           kcpsValue = kcps;
+            % scan "0D"
+            % input arg's:
+            %    stage - an object deriving from ClassStage
+            %    spcm - an object deriving from Spcm
+            %    scanParams - the scan parameters. an object deriving from StageScanParams
+            % output:
+            %    kcpsValue - double. The value read by the spcm
+            
+            % To be used by TrackablePosition. Should NOT be used for
+            % actual scanning.
+            
+            %%%% move to location %%%%
+            pos = scanParams.fixedPos;
+            axes = stage.availableAxes;
+            stage.move(axes, pos);
+            
+            %%%% try to scan %%%%
+            scanOk = false;
+            for trial = 1:StageScanner.TRIALS_AMOUNT_ON_ERROR
+                try
+                    spcm.prepareReadByTime(scanParams.pixelTime);
+                    kcps = spcm.readFromTime();
+                    spcm.clearTimeRead;
+                    if kcps == 0
+                        obj.sendError('No Signal Detected!')
+                    end
+                    scanOk = true;
+                    break;
+                catch err
+                    %                    rethrow(err) % Uncomment to debug
+                    warning(err.message);
+                    fprintf('Reading from SPCM failed at trial %d, attempting to rescan.\n', trial);
+                end
+            end
+            
+            % This line will be reached when break()ing out of the for,
+            % or when all trials went without success
+            if ~scanOk; obj.sendError(sprintf('Reading from SPCM failed after %d trials', StageScanner.TRIALS_AMOUNT_ON_ERROR));end
+            
+            kcpsValue = kcps;
         end
         
         function kcpsScanVector = scan1D(obj, stage, spcm, scanParams)
@@ -521,11 +521,16 @@ classdef StageScanner < EventSender & Savable
             obj.autosaveAfterScan();
         end
         
-        function value = dummyScanGaussian(~,~,~,scanParams,zeroForPointOneForScan)
+        function value = dummyScanGaussian(obj,scanParams)
             pos = scanParams.fixedPos;
+            stage = getObjByName(obj.mStageName);
+            axes = stage.availableAxes;
+            stage.move(axes, pos);
             
-            [X,Y,Z] = multipleAssign(pos);
-            f = @(x,y,z) (peaks(x,y)+5).*exp(-(z-20).^2/100);   % some test function
+            X = scanParams.getScanAxisVector(1);
+            Y = scanParams.getScanAxisVector(2);
+            Z = scanParams.getScanAxisVector(3);
+            f = @(x,y,z) 100*exp(-((z+5).^2+x.^2+(y-7).^2)/100);   % some test function
             value = f(X,Y,Z);
         end
         
@@ -534,13 +539,12 @@ classdef StageScanner < EventSender & Savable
         end
         
         function string = getBottomScanLabel(obj)
-            axisString = '%s (\x03bcm)';    % the '\x03bc' string is converted to upright greek mu
             axisLetters = obj.mStageScanParams.getScanAxes;
             switch obj.getScanDimensions
                 case 1
-                    string = sprintf(axisString, axisLetters);
+                    string = sprintf('%s %s', axisLetters, StringHelper.MICRON); % for example, 'x (?m)'
                 case 2
-                    string = sprintf(axisString, axisLetters(1));
+                    string = sprintf('%s %s', axisLetters(1), StringHelper.MICRON); % (as above)
                 otherwise
                     string = 'bottom label :)';
             end
@@ -551,9 +555,8 @@ classdef StageScanner < EventSender & Savable
                 case 1
                     string = 'kcps';
                 case 2
-                    axisString = '%s (\x03bcm)';
                     axisLetters = obj.mStageScanParams.getScanAxes;
-                    string = sprintf(axisString, axisLetters(2));
+                    string = sprintf('%s %s', axisLetters(2), StringHelper.MICRON); % for example, 'y (?m)'
                 otherwise
                     string = 'left label :)';
             end

@@ -2,12 +2,15 @@ classdef Experiment < EventSender & EventListener & Savable
     %EXPERIMENT Summary of this class goes here
     %   Detailed explanation goes here
     
-    properties
+    properties (SetAccess = protected)
+        expName                 % For retrieving using getExpByName
+        mCategory               % For loading (might change in subclasses)
+        
         mCurrentXAxisParam      % stores the ExpParameter that is in charge of axis x (which has name and value)
         mCurrentYAxisParam		% stores the ExpParameter that is in charge of axis y (which has name and value)
     end
     
-    properties(Constant = true)
+    properties(Constant)
         NAME = 'Experiment'
         
         EVENT_PLOT_UPDATED = 'plotUpdated' % when something changed regarding the plot (new data, change in x\y axis, change in x\y labels)
@@ -15,6 +18,10 @@ classdef Experiment < EventSender & EventListener & Savable
         EVENT_EXP_PAUSED = 'experimentPaused' % when the experiment stops from running
         EVENT_PLOT_ANALYZE_FIT = 'plot_analyzie_fit' % when the experiment wants the plot to draw the fitting-function-analysis
         EVENT_PARAM_CHANGED = 'experimentParameterChanged' % when one of the sequence params \ general params is changed
+        
+        % Exception handling
+        EXCEPTION_ID_NO_EXPERIMENT = 'getExp:noExp';
+        EXCEPTION_ID_NOT_CURRENT = 'getExp:notCurrExp';
     end
     
     methods
@@ -24,13 +31,17 @@ classdef Experiment < EventSender & EventListener & Savable
         function sendEventPlotAnalyzeFit(obj); obj.sendEvent(struct(obj.EVENT_PLOT_ANALYZE_FIT, true)); end
         function sendEventParamChanged(obj); obj.sendEvent(struct(obj.EVENT_PARAM_CHANGED, true)); end
         
-        function obj = Experiment()
+        function obj = Experiment(expName)
             obj@EventSender(Experiment.NAME);
             obj@Savable(Experiment.NAME);
             obj@EventListener(Tracker.NAME);
+            obj.expName = expName;
             
             obj.mCurrentXAxisParam = ExpParameter('X axis', ExpParameter.TYPE_VECTOR_OF_DOUBLES, [], obj.NAME);
             obj.mCurrentYAxisParam = ExpParameter('Y axis', ExpParameter.TYPE_VECTOR_OF_DOUBLES, [], obj.NAME);
+            
+            % To be overridden by Trackable
+            obj.mCategory = Savable.CATEGORY_EXPERIMENTS; 
             
             % copy parameters from previous experiment (if exists) and replace its base object
             prevExp = removeObjIfExists(Experiment.NAME);
@@ -60,7 +71,7 @@ classdef Experiment < EventSender & EventListener & Savable
                 if isprop(obj, paramName)
                     % if the current experiment has this property also
                     obj.(paramName) = prevExperiment.(paramName);
-                    obj.(paramName).expName = obj.name;  % expParam, I am (now) your parent!
+                    obj.(paramName).expName = obj.expName;  % expParam, I am (now) your parent!
                 end
             end
             
@@ -69,12 +80,6 @@ classdef Experiment < EventSender & EventListener & Savable
         
         function delete(obj)
             % todo needed? 
-        end
-    end
-    
-    methods (Static)
-        function categoryName = mCategory
-            categoryName = Savable.CATEGORY_EXPERIMENTS;
         end
     end
     

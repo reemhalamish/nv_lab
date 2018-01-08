@@ -193,7 +193,7 @@ classdef ClassPIMicos < ClassStage
                             confirm = questdlg(questionString, 'Unexpected error', retryString, abortString, abortString);
                             switch confirm
                                 case retryString
-                                    warning(error.identifier, error.message);
+                                    warning(error.identifier, '%s', error.message);
                                 case abortString
                                     rethrow(error);
                                 otherwise
@@ -266,7 +266,7 @@ classdef ClassPIMicos < ClassStage
                     [errorMessageRetrieved, errorMessage] = SendPICommandWithoutReturnCode(obj, 'PI_TranslateError', errorNumber, blanks(buffer), buffer);
                 end
                 
-                device = BooleanHelper.ifTrueElseif(errorNumber > 0,'Controller','Interface');
+                device = BooleanHelper.ifTrueElse(errorNumber > 0,'Controller','Interface');
                 errorIdent = sprintf('PIMicos:%s%d', device, abs(errorNumber));
                 error(errorIdent,'The following error was received while attempting to communicate with controller %d:\n%s Error %d - %s\n',...
                     axisID, device, errorNumber, errorMessage);
@@ -294,7 +294,7 @@ classdef ClassPIMicos < ClassStage
                 if obj.SendPICommandWithoutReturnCode('PI_IsConnected', i)
                     model = SendPICommand(obj, 'PI_qIDN', i, blanks(128), 128);
                     fprintf('Found controller with ID %d: %s', i, model);
-                    if ~isempty(strfind(model, controllerModel))
+                    if contains(model, controllerModel)
                         DisconnectController(obj, i)
                         if obj.SendPICommandWithoutReturnCode('PI_IsConnected', i)
                             warning('Could not disconnect from controller')
@@ -653,7 +653,7 @@ classdef ClassPIMicos < ClassStage
             % occurs.
             % Assumes the stage has all three xyz axes.
             axis = GetAxis(obj, axis);
-            if isempty(strfind(obj.axesName(axis), 'z')) % Only do something if there is no z axis
+            if ~contains(obj.axesName(axis), 'z') % Only do something if there is no z axis
                 QueryPos(obj);
                 pos = [pos, obj.curPos(3)]; % Adds the z position command, start by writing the current position (as the base)
                 for i=1:length(axis)
@@ -1116,7 +1116,7 @@ classdef ClassPIMicos < ClassStage
         function success = EnableTiltCorrection(obj, enable)
             % Enables the tilt correction according to the angles.
             if ~strcmp(obj.validAxes, obj.axesName)
-                string = BooleanHelper.ifTrueElseif(length(obj.validAxes) == 1, 'axis', 'axes');
+                string = BooleanHelper.ifTrueElse(length(obj.validAxes) == 1, 'axis', 'axes');
                 warning('Controller %s has only %s %s, cannot do tilt correction.', obj.controllerModel, obj.validAxes, string);
                 success = 0;
                 return;

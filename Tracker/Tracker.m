@@ -33,9 +33,16 @@ classdef Tracker < EventSender & EventListener & Savable
                 case obj.TRACKABLE_POSITION_NAME
                     TrackablePosition;
                 otherwise
-                    % This should not happen
+                    disp('This should not happen')
             end
             % todo: open Tracker GUI, if it is not already open
+        end
+    end
+    
+    methods (Static)
+        function init(obj)
+            newTracker = Tracker;
+            addBaseObject(newTracker);
         end
     end
     

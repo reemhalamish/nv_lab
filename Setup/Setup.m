@@ -34,7 +34,7 @@ classdef Setup < handle
             %%%% check missing fields %%%%
             missingField = FactoryHelper.usualChecks(jsonStruct, Setup.NEEDED_FIELDS);
             if ~isnan(missingField)
-                error('Can''t find the preserved word "%s" in the main section at the file "setupInfo.json"', missingField);
+                error('Can''t find the reserved word "%s" in the main section at the file "setupInfo.json"', missingField);
             end
                         
             %%%% init important objects %%%%
@@ -47,6 +47,7 @@ classdef Setup < handle
             SaveLoad.init;
             LaserGate.getLasers;  % the first call on getLasers() also inits them
 			ClassStage.getStages;  % the first call on getStages() also inits them
+            Tracker.init;
             
 			
         end

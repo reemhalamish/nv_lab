@@ -28,8 +28,8 @@ classdef StageScanParams < handle
             if nargin == 0
                 obj.from = zeros(1,length(ClassStage.SCAN_AXES));
                 obj.to = zeros(1,length(ClassStage.SCAN_AXES));
-                obj.fixedPos = false(1,length(ClassStage.SCAN_AXES));
-                obj.numPoints = 2 * ones(1,length(ClassStage.SCAN_AXES));
+                obj.fixedPos = zeros(1,length(ClassStage.SCAN_AXES));
+                obj.numPoints = 50 * ones(1,length(ClassStage.SCAN_AXES));
                 obj.isFixed = false(1,length(ClassStage.SCAN_AXES));
                 obj.pixelTime = 0.015;
                 obj.continuous = false;
