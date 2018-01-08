@@ -142,7 +142,7 @@ classdef EventStation < handle
             for i = 1 : length(obj.listenersForAllEvents)
                 listenerForAll = obj.listenersForAllEvents{i};
                 if ~any(cellfun(@(x)  x == listenerForAll, listenersForSender))
-                    % only call if this listener has not been invoked earlier
+                    % Call only if this listener has not been invoked earlier
                     listenerForAll.onEvent(event);
                 end
             end

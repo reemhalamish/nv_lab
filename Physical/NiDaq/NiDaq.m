@@ -65,7 +65,7 @@ classdef NiDaq < EventSender
             %
             missingField = FactoryHelper.usualChecks(niDaqStruct, {'deviceName'});
             if ~isnan(missingField)
-                error('Can''t find the preserved word "%s" in the niDaq struct', missingField);
+                error('Can''t find the reserved word "%s" in the niDaq struct', missingField);
             end
             if isfield(niDaqStruct, 'dummy')
                 dummy = niDaqStruct.dummy;

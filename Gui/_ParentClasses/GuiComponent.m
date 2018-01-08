@@ -42,7 +42,7 @@ classdef GuiComponent < handle
             end
             
             if nargin < 2
-                error('cant construct object without parent and the main controller arguments!')
+                error('Can''t construct object without parent and the main controller arguments!')
             end
             obj.parent = parent;
             controller.addView(obj);
@@ -60,7 +60,7 @@ classdef GuiComponent < handle
         end
         
         function recolor(obj,vectorEdt,isBeingGrayed)
-            % supports coloring of vector of editboxes
+            % Supports coloring of vector of editboxes
            if isBeingGrayed
                set(vectorEdt, 'BackgroundColor', obj.COLOR_ENABLE_OFF_BG, ...
                    'ForegroundColor', obj.COLOR_ENABLE_OFF_FG);

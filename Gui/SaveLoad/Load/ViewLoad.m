@@ -124,8 +124,8 @@ classdef ViewLoad < ViewVBox & EventListener
         function handleButtonDelete(obj)
             saveLoad = SaveLoad.getInstance(obj.category);
             filename = saveLoad.mLoadedFileName;
-            title = 'delete file...';
-            msg = sprintf('Sure to delete file %s?', filename);
+            title = 'Delete file...';
+            msg = sprintf('Are you sure you want to delete %s?', filename);
             if QuestionUserOkCancel(title, msg)
                 saveLoad.deleteCurrentFile();
             end

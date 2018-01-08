@@ -16,7 +16,7 @@ classdef LaserAomPhysicalFactory
             missingField = FactoryHelper.usualChecks(struct, LaserLaserPhysicalFactory.NEEDED_FIELDS);
             if ~isnan(missingField)
                 error(...
-                    'trying to create an AOM part into laser "%s", encountered missing field - "%s". aborting',...
+                    'Trying to create an AOM part for laser "%s", encountered missing field - "%s". Aborting',...
                     name, missingField);
             end
             
@@ -30,7 +30,7 @@ classdef LaserAomPhysicalFactory
                     aomPhysicalPart = AomNiDaq.create(partName, struct);
                     return
                 otherwise
-                    error('can''t create an AOM part into laser "%s" with classname = "%s" - unknow classname! aborting.');
+                    error('Can''t create a %s-class AOM part for laser "%s" - unknown classname! Aborting.', struct.classname, name);
             end
         end
                     

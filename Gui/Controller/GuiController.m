@@ -245,8 +245,8 @@ classdef GuiController < handle
     %% to be overriden
     methods(Abstract)
         view = getMainView(obj, figureWindowParent)
-        % this function should get the main View of this GUI.
-        % can call any view constructor with the params:
+        % This function should get the main View of this GUI.
+        % It can call any view constructor with the params:
         % parent=figureWindowParent, controller=obj
     end
     

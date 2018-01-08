@@ -150,7 +150,7 @@ classdef LaserGate < Savable
 
                 missingField = FactoryHelper.usualChecks(laserStruct, LaserGate.NEEDED_FIELDS);
                 if ~isnan(missingField)
-                    warning('Missing field in struct! Aborting.');
+                    warning('Missing field in struct! Aborting.'); % todo: print missingField. See for example Spcm
                     error(laserStruct);
                 end
                 

@@ -53,7 +53,7 @@ classdef(Abstract) Spcm < EventSender
             
             missingField = FactoryHelper.usualChecks(spcmTypeStruct, Spcm.NEEDED_FIELDS);
             if ~isnan(missingField)
-                error('can''t init SPCM - field "%s" not found in initation struct!', missingField);
+                error('Can''t initialize SPCM - needed field "%s" was not found in initialization struct!', missingField);
             end
             
             switch (lower(spcmTypeStruct.classname))
@@ -62,10 +62,9 @@ classdef(Abstract) Spcm < EventSender
                 case 'dummy'
                     spcmObject = SpcmDummy();
                 otherwise
-                    error('%s\n%s "%s"', ...
-                        'can''t understand the requested SPCM classname. please fix the json file and try again.', ...
-                        'classname got:', ...
-                        spcmTypeStruct.classname);
+                    error('%s\n%s', ...
+                        sprintf('The requested SPCM classname ("%s") was not recognized.\n',spcmTypeStruct.classname), ...
+                        'Please fix the .json file and try again.');
             end
             
             addBaseObject(spcmObject);

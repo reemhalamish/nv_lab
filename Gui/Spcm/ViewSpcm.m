@@ -1,6 +1,9 @@
 classdef ViewSpcm < ViewVBox & EventListener
     %VIEWSPCM view for the SPCM counter
-    %   
+    % This view receives data from the SPCM counter, and displays it
+    % according to the requirement of the user (especially, determinines
+    % value for wrap (maximum number of data points presented). It can also
+    % turn the the SPCMC on and off.
     
     properties
         vAxes           % axes view, to use for the plotting

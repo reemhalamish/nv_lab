@@ -16,7 +16,7 @@ classdef LaserLaserPhysicalFactory
             missingField = FactoryHelper.usualChecks(struct, LaserLaserPhysicalFactory.NEEDED_FIELDS);
             if ~isnan(missingField)
                 error(...
-                    'trying to create a laser part into laser "%s", encountered missing field - "%s". aborting',...
+                    'Trying to create a laser part for laser "%s", encountered missing field - "%s". Aborting',...
                     name, missingField);
             end
             
@@ -27,7 +27,7 @@ classdef LaserLaserPhysicalFactory
                     laserPhysicalPart = LaserDummy(partName);
                     return
                 otherwise
-                    error('can''t create a laser part into laser "%s" with classname = "%s" - unknown classname! aborting.');
+                    error('Can''t create a %s-class laser part for laser "%s" - unknown classname! Aborting.', struct.classname, name);
             end
         end
                     
@@ -35,4 +35,3 @@ classdef LaserLaserPhysicalFactory
     end
     
 end
-

@@ -126,6 +126,6 @@ classdef SpcmCounter < EventSender
             
             newCounter = SpcmCounter;
             addBaseObject(newCounter);
-        end     % Calls destructor when operated twice
+        end     % Bug: Calls destructor when called twice
     end
 end

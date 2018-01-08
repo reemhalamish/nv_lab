@@ -59,7 +59,7 @@ classdef EventSender < BaseObject
         end
         
         function sendErrorRealWorld(obj)
-            obj.sendError('something in the real world just crashed. sorry');
+            obj.sendError('Something in the real world just crashed. Sorry');
         end
     end
 end

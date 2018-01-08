@@ -55,7 +55,7 @@ classdef PbControlledSwitch < EventSender & EventListener
         function pbControlled = createFromStruct(laserName, struct)
             missingField = FactoryHelper.usualChecks(struct, PbControlledSwitch.STRUCT_NEEDED_FIELDS);
             if ~isnan(missingField)
-                errorMsg = 'error while creating a PbControlled object (name: "%s"), missing field! (field missing: "%s")';
+                errorMsg = 'Error while creating a PbControlled object (name: "%s"), missing field! (field missing: "%s")';
                 error(errorMsg, laserName, missingField);
             end
             

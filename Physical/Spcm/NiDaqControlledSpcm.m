@@ -65,7 +65,7 @@ classdef NiDaqControlledSpcm < Spcm & NiDaqControlled
         function clearTimeRead(obj)
             % Clears the task for reading SPCM by time.
             if obj.nTimeCounts <= 0
-                obj.sendError('can''t clear without calling ''prepare()''! ');
+                obj.sendError('Can''t clear SPCM task without calling ''prepare()''! ');
             end
             obj.nTimeCounts = 0;
             daq = getObjByName(NiDaq.NAME);
@@ -105,7 +105,7 @@ classdef NiDaqControlledSpcm < Spcm & NiDaqControlled
         function vectorOfKcps = readFromScan(obj)
             % Read by scan. Reads a single line.
             if obj.nScanCounts <= 0
-                obj.sendError('can''t read without calling ''prepare()''! ');
+                obj.sendError('Can''t read from SPCM without calling ''prepare()''! ');
             end
             daq = getObjByName(NiDaq.NAME);
             countsSPCM = daq.ReadDAQCounter(obj.counterScanSPCMTask, obj.nScanCounts, obj.scanTimeoutTime);
@@ -158,7 +158,7 @@ classdef NiDaqControlledSpcm < Spcm & NiDaqControlled
         function spcmObj = create(spcmName, spcmStruct)
             missingField = FactoryHelper.usualChecks(spcmStruct, NiDaqControlledSpcm.NEEDED_FIELDS_SPCM_DAQ);
             if ~isnan(missingField)
-                error('can''t init NiDaq-controlled SPCM - field "%s" not found in initation struct!', missingField);
+                error('Can''t initialize NiDaq-controlled SPCM - required field "%s" was not found in initialization struct!', missingField);
             end
             counts = spcmStruct.nidaq_channel_counts;
             gate = spcmStruct.nidaq_channel_gate;

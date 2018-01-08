@@ -23,22 +23,22 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
             hboxMain = uix.HBox('Parent', panelScan, 'Spacing', 5, 'Padding', 0);
             vboxFirst = uix.VBox('Parent', hboxMain, 'Spacing', 5, 'Padding', 0);
             
-            %%%% scan, stop scan, pixel time %%%%
+            %%%% First column - Scan, Stop Scan, Pixel time %%%%
             obj.btnScan = uicontrol(obj.PROP_BUTTON_BIG_GREEN{:}, 'Parent', vboxFirst, 'String', 'Scan');
             obj.btnStopScan = uicontrol(obj.PROP_BUTTON_BIG_RED{:},'Parent', vboxFirst,'String', 'Stop Scan');
             hboxPixelTime = uix.HBox('Parent', vboxFirst, 'Spacing', 3, 'Padding', 0);
-            uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxPixelTime, 'String', 'Pixel Time', 'FontSize', 8);
+            uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxPixelTime, 'String', 'Pixel time', 'FontSize', 8);
             obj.edtPixelTime = uicontrol(obj.PROP_EDIT{:}, 'Parent', hboxPixelTime);
             hboxPixelTime.Widths = [-3 -2];
             vboxFirst.Heights = [-1 -1 -1];
             
-            %%%% Continous FastScan AutoSave %%%%
+            %%%% Second column - Continous, Fast Scan, AutoSave %%%%
             % Get scan speed parameters from stage
             stage = getObjByName(obj.stageName);
             fastScannable = stage.hasFastScan;
             slowScannable = stage.hasSlowScan;
             enable = BooleanHelper.boolToOnOff(fastScannable && slowScannable);
-            value = fastScannable;      % If fast Scan is implemented, it is the default
+            value = fastScannable;      % If fast scan is implemented, it is the default
             
             % Create gui objects
             vboxSecond = uix.VBox('Parent', hboxMain, 'Spacing', 5, 'Padding', 0);

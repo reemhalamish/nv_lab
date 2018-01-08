@@ -49,7 +49,7 @@ classdef ViewExpandablePanel < GuiComponent
             component = obj.component;
             parent = obj.component.Parent;
             while isa(parent, 'uix.VBox')
-                % find the index of component inside parent
+                % Find the index of component inside parent
                 componentIndex = length(parent.Children) + 1 - find(parent.Children == component);
                 
                 heights = parent.Heights;

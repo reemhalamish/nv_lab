@@ -51,7 +51,7 @@ classdef (Abstract) EventListener < handle
     % setters
     methods
         function set.listensToEveryone(obj, newBoolValue)
-            if ~ValidationHelper.isTrueOrFalse(newBoolValue);EventStation.anonymousError('can only set to logical!');end            
+            if ~ValidationHelper.isTrueOrFalse(newBoolValue);EventStation.anonymousError('Can only be set to logical value!');end            
             
             if newBoolValue
                 EventStation.getInstance.registerListenerForAll(obj);
