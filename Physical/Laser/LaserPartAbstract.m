@@ -1,26 +1,27 @@
 classdef (Abstract) LaserPartAbstract < EventSender
     %LASERABSTRACT Abstract layer above the physics. 
-    %   saves all the matlab info (such as current value, is active) and
+    %   Saves all the matlab info (such as current value, is active) and
     %   calls events.
     %
-    %   child classes duty:
+    %   Child classes must:
     %   @ implement method canSetEnabled()
     %   @ implement method canSetValue()
     %   @ implement method setEnabledRealWorld()
     %   @ implement method setValueRealWorld()
     %   @ call method initLaserPart() after calling all the inheritance constructors
     
-    
-    %% those properties are private, because child classes don't need to 
-    %  know such properties even exist.
     properties(SetAccess = private, GetAccess = public)
+        % These properties are private, because child classes don't need to
+        %  know such properties even exist.
         currentValue
         isEnabled
     end
 
-    properties(Constant = true)
+    properties(Constant)
         MIN_VALUE = 0;
         MAX_VALUE = 100;
+        
+        GREEN_LASER_NAME = 'Green Laser';
     end
     
     methods
@@ -42,9 +43,9 @@ classdef (Abstract) LaserPartAbstract < EventSender
                 obj.currentValue = 0;
             end
         end
-        
-        %% set a new value to the laser
+        %%
         function bool = setNewValue(obj, newValue)
+            % Set a new value to the laser
             if ValidationHelper.isInBorders(newValue, LaserPartAbstract.MIN_VALUE, LaserPartAbstract.MAX_VALUE)
                 bool = obj.setValueRealWorld(newValue);
                 if (bool)
@@ -54,7 +55,7 @@ classdef (Abstract) LaserPartAbstract < EventSender
                     obj.sendErrorRealWorld();
                 end
             else
-                error_msg = 'request to set power to %d: off limits! ignoring. (limits: [%d, %d])';
+                error_msg = 'Laser power can''t be set to %d: out of limits! Ignoring. (limits: [%d, %d])';
                 limit_min = LaserPartAbstract.MIN_VALUE;
                 limit_max = LaserPartAbstract.MAX_VALUE;
                 obj.sendWarning(sprintf(error_msg, newValue, limit_min, limit_max));
@@ -62,38 +63,38 @@ classdef (Abstract) LaserPartAbstract < EventSender
             end
         end
         
-        %% setting the "enabled" state of the laser
         function bool = setEnabled(obj, newValueBool)
+            % Setting the "enabled" state of the laser
             if (obj.setEnabledRealWorld(newValueBool))
                 obj.isEnabled = newValueBool;
                 obj.sendEvent(struct('isEnabled', newValueBool));
                 bool = true;
             else
-                obj.sendErrorRealWorld()
                 bool = false;
+                obj.sendErrorRealWorld()
             end
         end
         
     end
     
     
-    methods(Abstract = true)
+    methods(Abstract)
         %% calling the real world to set the voltage value
-        canSetValue(obj) % returns boolean - can you set values
-        canSetEnabled(obj) % returns boolean - can you set the "enabled" boolean state
+        tf = canSetValue(obj)       % logical. Can user set value (of laser power)
+        tf = canSetEnabled(obj)     % logical. Can laser be enabled and disabled
     end
     
-    methods(Abstract = true, Access = protected)
+    methods(Abstract, Access = protected)
         %% calling the real world to set the voltage value
-        setValueRealWorld(obj, newValue) % returns boolean success
-            % this function does actual calling to the real world!
-            % child class will need to override THIS method
+        didSucceed = setValueRealWorld(obj, newValue) % returns logical
+            % This function does actual calling to the real world!
+            % Child classes need to override THIS method
             
         %% calling the real world to set the "enbled" value
         %% return boolean - to indicate if the action went well
         setEnabledRealWorld(obj, newValueBoolean)
-            % this function does actual calling to the real world!
-            % child class will need to override THIS method
+            % This function does actual calling to the real world!
+            % Child classes need to override THIS method
     end
     
 end

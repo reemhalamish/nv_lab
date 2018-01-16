@@ -70,12 +70,12 @@ classdef ViewSaveLoad < GuiComponent & EventListener
                     fileName = NaN;
                 end
                 
-                fileJustDeleted = isfield(event.extraInfo, SaveLoad.EVENT_DELETE_FILE_SUCCESS);
-                shouldDisplayNewString = ischar(fileName) || ischar(status) || fileJustDeleted;
+                noNewFile = isfield(event.extraInfo, SaveLoad.EVENT_DELETE_FILE_SUCCESS);
+                shouldDisplayNewString = ischar(fileName) || ischar(status) || noNewFile;
                 
                 if shouldDisplayNewString
-                    if fileJustDeleted
-                        % if it is a deleted file, remove as well
+                    if noNewFile
+                        % true only if no new file could be loaded
                         toDisplay = sprintf('File Name -');
                         
                     elseif ischar(fileName) && ischar(status)

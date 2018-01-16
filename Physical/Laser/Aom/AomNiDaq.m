@@ -1,5 +1,5 @@
 classdef AomNiDaq < LaserPartAbstract & NiDaqControlled
-    %LASERDUMMY dummy laser in which everything works
+    %AOMNIDAQ Laser controlled by NiDaq
     
     properties
         niDaqChannel;
@@ -41,8 +41,8 @@ classdef AomNiDaq < LaserPartAbstract & NiDaqControlled
     
     methods
         function onNiDaqReset(obj, niDaq)
-            % this function jumps when the NiDaq resets
-            % each component can decide what to do
+            % This function jumps when the NiDaq resets
+            % Each component can decide what to do
             obj.setValue(obj.currentValue);
         end
     end
@@ -51,8 +51,8 @@ classdef AomNiDaq < LaserPartAbstract & NiDaqControlled
         function obj = create(name, jsonStruct)
             missingField = FactoryHelper.usualChecks(jsonStruct, AomNiDaq.NEEDED_FIELDS);
             if ~isnan(missingField)
-                error(...
-                    'trying to create an AOM part into laser "%s", encountered missing field - "%s". aborting',...
+                error(['While trying to create an AOM part for laser "%s",', ...
+                    'could not find "%s" field. Aborting'], ...
                     name, missingField);
             end
             

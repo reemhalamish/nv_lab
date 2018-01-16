@@ -1,6 +1,7 @@
 classdef ViewMessage < ViewHBox
     %VIEWMESSAGE Gui Component to show messages for a brief period of time
     % Similar to ViewError
+    % Warning: This view was not put into use, and was not tested!
     
     properties (Constant)
         DELAY_SHOW_MESSAGE_SEC = 12;

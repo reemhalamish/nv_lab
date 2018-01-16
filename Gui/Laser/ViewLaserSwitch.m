@@ -3,6 +3,8 @@ classdef ViewBooleanSwitch < PhysicsListener & GuiComponent
     % GUI part (in addition to another component, ViewLaserLaser which handles
     % the laser GUI part)
     
+    % probably unneeded
+    
     properties
         %%%% Ui related %%%
         cbxEnabled             % the check box

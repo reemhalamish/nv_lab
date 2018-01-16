@@ -46,6 +46,8 @@ classdef StringHelper
             formatSpec = sprintf('%%.%df',decimalDigits);
             stringWithZeros = sprintf(formatSpec,num);
             string = regexprep(stringWithZeros,'\.*0+$','');     % remove 0's @end (+decimal point, if unneeded)
+            
+            if strcmp(string, '-0'); string='0'; end
         end
     end
 end

@@ -73,7 +73,7 @@ classdef StageScanner < EventSender & Savable
             isFastScan = obj.mStageScanParams.fastScan;
             stage.FastScan(isFastScan);
             
-            % from now on, changes in the GUI (from\to\fixed\numPoints)
+            % From now on, changes in the GUI (from\to\fixed\numPoints)
             % won't affect the StageScanParmas object stored here.
             
             obj.mCurrentlyScanning = true;
@@ -146,9 +146,9 @@ classdef StageScanner < EventSender & Savable
                         kcpsScanMatrix = obj.scan2D(stage, spcm, scanParams);
                     end
                 case 3
-                    EventStation.anonymousWarning('3D scan not implemented!');
+                    EventStation.anonymousWarning('3D scan is not implemented!');
                 otherwise
-                    EventStation.anonymousWarning('%d-dimensional scan requested. String thoery not yet implemented!\n', nDimensions);
+                    EventStation.anonymousWarning('%d-dimensional scan requested. String thoery is not yet implemented!\n', nDimensions);
             end
         end
         
@@ -285,14 +285,15 @@ classdef StageScanner < EventSender & Savable
                 stage.AbortScan();
                 if ~scanOk; obj.sendError(sprintf('Scan failed after %d trials', StageScanner.TRIALS_AMOUNT_ON_ERROR));end
                 
+                % Update the scan results in the returned vector
                 kcpsScanVector(vectorStartIndex: vectorEndIndex) = kcps;
-                % update the scan results in the returned vector
                 
+                % Go tell everybody
                 obj.sendEventScanUpdated(kcpsScanVector);
-                % update the world
                 
+                % Prepare the next scan chunk
                 vectorStartIndex = vectorEndIndex + 1;
-                % prepare the next scan chunk
+                
             end
         end
         

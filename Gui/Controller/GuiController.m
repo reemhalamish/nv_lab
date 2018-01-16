@@ -33,18 +33,18 @@ classdef GuiController < handle
     %     %% various callbacks to be overriden if needed
     %     methods
     %         function onAboutToStart(obj)
-    %             % callback. things to run right before the window will be drawn
-    %             % to the screen.
+    %             % callback. Things to run right before the window is
+    %             % drawn on the screen.
     %             % child classes can override this method
     %         end
     %
     %         function onStarted(obj)
-    %             % callback. thigs to run after the window is already started
-    %             % and running.
+    %             % callback. Things to run after the window is already
+    %             % started and running.
     %             % child classes can override this method
     %         end
     %         function onSizeChanged(obj, newX0, newY0, newWidth, newHeight)
-    %             % callback. thigs to run when the window size is changed
+    %             % callback. Things to run when the window size is changed
     %             % child classes can override this method
     %         end
     %
@@ -54,7 +54,7 @@ classdef GuiController < handle
     %             bool = true;
     %         end
     %         function onClose(obj)
-    %             % callback. things to run when need to close the GUI.
+    %             % callback. Things to run when need to close the GUI.
     %             % child classes can override this method
     %         end
     %     end
@@ -106,37 +106,37 @@ classdef GuiController < handle
     %% various callbacks to be overriden if needed
     methods
         function onAboutToStart(obj)
-            % callback. things to run right before the window will be drawn
+            % Callback. Things to run right before the window will be drawn
             % to the screen.
             % child classes can override this method
         end
         
         function onStarted(obj)
-            % callback. thigs to run after the window is already started
+            % Callback. Things to run after the window is already started
             % and running.
             % child classes can override this method
         end
         
         function onSizeChanged(obj, newX0, newY0, newWidth, newHeight)
-            % callback. things to run when the window size is changed
+            % Callback. Things to run when the window size is changed
             % child classes can override this method
         end
         
-        function bool = onAboutToclose(obj)
-           % callbcak. Things to run before closing. Returns true to close,
-           % or false to abort closing
-           bool = true;
+        function tf = onAboutToclose(obj)
+            % Callbcak. Things to run before closing. Returns true to close,
+            % or false to abort closing
+            tf = true;
         end
         
         function onClose(obj)
-            % callback. things to run when need to close the GUI.
+            % Callback. Things to run when need to close the GUI.
             % child classes can override this method
         end
     end
     
     methods
 	
-		% the actual callback used when user is trying to close the GUI window
+        % Actual callback used when user is trying to close the GUI window
         function callbackCloseRequest(obj, hObject)
             if ~obj.onAboutToclose; return; end
             
@@ -168,10 +168,10 @@ classdef GuiController < handle
             end
         end
         
-		% the callback that runs when the user is changing the window size
-		% due to a matlab bug, this callback doesn't jump when the user drags the window, only on resizing
+		% Callback that runs when the user is changing the window size
+		% Due to a MATLAB bug, this callback doesn't jump when the user drags the window, only on resizing
         function callbackSizeChanged(obj)
-            % make sure the view isn't too small!
+            % Make sure the view isn't too small!
             currentSize = obj.figureWindow.Position(3 : 4);
             [newX0, newY0, newWidth, newHeight] = multipleAssign(obj.figureWindow.Position);
             obj.onSizeChanged(newX0, newY0, newWidth, newHeight);
@@ -183,28 +183,28 @@ classdef GuiController < handle
         end
     end
     
-    %% helper methods
+    %% Helper methods
     methods
         function toFullscreen(obj)
-            % change the object size to be fullscreen
+            % Change the object size to be fullscreen
             obj.figureWindow.Position = [0,0, obj.screenWidth, obj.screenHeight];
         end
         
         function toAlmostFullscreen(obj)
-            % change the figure size to be almost fullscreen - leaving only
+            % Change the figure size to be almost fullscreen - leaving only
             % the "start" windows-bottom-line visible
             obj.figureWindow.Position = [2,40, obj.screenWidth - 3, obj.screenHeight - 65];
         end
         
         function maximize(obj)
-            % maximize the window.
-            % this function can only run AFTER the window has been rendered. calling it on invisible window won't work
+            % Maximize the window.
+            % This function can only run AFTER the window has been rendered. calling it on invisible window won't work
             warning('off', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
             jFrame = get(handle(obj.figureWindow),'JavaFrame');
             set(jFrame,'Maximized',true);
         end
         
-		% move the window to the middle of the screen
+		% Move the window to the middle of the screen
         function moveToMiddleOfScreen(obj)
             oldPos = obj.figureWindow.Position;
             fWidth = max(oldPos(obj.POSITION_INDEX_WIDTH), obj.windowMinWidth);
@@ -216,10 +216,10 @@ classdef GuiController < handle
             obj.figureWindow.Position = [newX0 newY0 fWidth fHeight];
         end
         
-		% create a new figure (window) to place the GUI inside
+		% cCeate a new figure (window) to place the GUI inside
         function figureWindow = createNewFigureInvis(obj)
-            % the figure is being created invisible so that it will take
-            % less time to load it (changing strings inside etc).
+            % The figure is invisible when created, so that it will take
+            % less time to load it (changing strings inside, etc.).
             % only when it's ready, someone will need to call -
             % figureWindow.Visible = 'on'
             if isnan(obj.startPosition)
@@ -234,7 +234,7 @@ classdef GuiController < handle
                 'NumberTitle', 'off',...
                 'Visible', 'off', ...
                 ...
-                ... % closing - if need to close anything else, make it in this callback
+                ... % Closing - if anything else needs to be close d make it in this callback
                 'CloseRequestFcn', @(hObject, eventdata, handles) obj.callbackCloseRequest(hObject), ...
                 ...
                 ... % Make sure resize doesn't make it too small
@@ -242,7 +242,7 @@ classdef GuiController < handle
         end
     end
     
-    %% to be overriden
+    %% To be overriden
     methods(Abstract)
         view = getMainView(obj, figureWindowParent)
         % This function should get the main View of this GUI.
@@ -252,7 +252,7 @@ classdef GuiController < handle
     
     methods(Static = true)
         function openWindow = findOpenOrNan(windowName)
-            % looks for a window with this name. if found, return it. else
+            % Looks for a window with this name. if found, return it. else
             % - returns NaN
             openWindow = NaN;
             list = get(0, 'Children');

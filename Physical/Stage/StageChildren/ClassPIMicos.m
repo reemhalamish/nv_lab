@@ -13,6 +13,8 @@ classdef ClassPIMicos < ClassStage
         commDelay = 0.005; % 5ms delay needed between consecutive commands sent to the controllers.
         dllFolder = 'C:\Users\Public\PI\PI_Programming_Files_PI_GCS2_DLL\';
         libAlias = 'PI';
+        
+        WARNING_PREVIOUS_SCAN_CANCELLED = '2D Scan is in progress! Previous scan was cancelled';
     end
     
     properties (Abstract, Constant, Access = protected)
@@ -369,7 +371,7 @@ classdef ClassPIMicos < ClassStage
                 else
                     string = 'axes are';
                 end
-                error('%s %s invalid for the %s controller.', obj.axesName(axis), string, obj.controllerModel);
+                error('%s %s invalid for the %s controller.', upper(obj.axesName(axis)), string, obj.controllerModel);
             end
         end
         
@@ -784,7 +786,7 @@ classdef ClassPIMicos < ClassStage
             % Checks that a scan is not currently running and whether
             % HaltStage was triggered.
             if obj.scanRunning
-                warning('2D Scan is in progress, previous scan canceled');
+                warning(obj.WARNING_PREVIOUS_SCAN_CANCELLED);
                 AbortScan(obj);
             end
             
@@ -813,7 +815,7 @@ classdef ClassPIMicos < ClassStage
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
             if obj.scanRunning
-                warning('2D Scan is in progress, previous scan canceled');
+                warning(obj.WARNING_PREVIOUS_SCAN_CANCELLED);
                 AbortScan(obj);
             end
             CheckAxis(obj, axis)
@@ -1117,7 +1119,7 @@ classdef ClassPIMicos < ClassStage
             % Enables the tilt correction according to the angles.
             if ~strcmp(obj.validAxes, obj.axesName)
                 string = BooleanHelper.ifTrueElse(length(obj.validAxes) == 1, 'axis', 'axes');
-                warning('Controller %s has only %s %s, cannot do tilt correction.', obj.controllerModel, obj.validAxes, string);
+                warning('Controller %s has only %s %s, and can''t do tilt correction.', obj.controllerModel, obj.validAxes, string);
                 success = 0;
                 return;
             end

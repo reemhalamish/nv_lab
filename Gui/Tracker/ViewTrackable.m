@@ -4,25 +4,24 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
     % also a listener to events from the tracker
     
     properties
-        vAxes1  % First graphic axes. Usually, displays the same as the axes of Experiment
-        vAxes2  % Second graphic axes. Usually, history of the tracked parameter
-        legend1 % Legend for plot in vAxes1
+        vAxes1  % graphical axes. Usually, displays the same as the axes of Experiment
+        vAxes2  % graphical axes. Usually, history of the tracked parameter
+        legend1 % legend. for plot in vAxes1
         
         % manual control panel
-        cbxContinuous
-        btnStartStop
-        btnReset
-%         btnEnd ???
-        btnSave
-        tvMessage
+        cbxContinuous   % checkbox
+        btnStartStop    % button
+        btnReset        % button
+        btnSave         % button
+        tvMessage       % text-view
         
         % To be filled by each specific trackable
-        panelInput
-        panelTracked
+        panelInput      % panel
+        panelTracked    % panel
     end
     
     properties (Abstract, SetAccess = protected)
-        trackableName   % The name of the trackable controlled by this GUI
+        trackableName   % string. The name of the trackable controlled by this GUI
     end
     
     methods
@@ -95,7 +94,7 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
             btnSaveHeight = 50;
             vboxRight.Heights = [-1 btnSaveHeight];
             
-            hboxMain.Widths = [250 -1];
+            hboxMain.Widths = [280 -1];
             
             %%%% Message textview %%%%
             obj.tvMessage = uicontrol(obj.PROP_TEXT_NO_BG{:}, 'Parent', obj.component, 'HorizontalAlignment', 'center');

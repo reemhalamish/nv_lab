@@ -6,7 +6,7 @@ classdef ViewStagePanelGeneral < GuiComponent
         btnResetStage   % button
         cbxClosedLoop   % checkbox
         
-        stageName           % string
+        stageName       % string
     end
     
     methods

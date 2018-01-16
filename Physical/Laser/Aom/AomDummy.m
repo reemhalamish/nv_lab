@@ -18,7 +18,7 @@ classdef AomDummy < LaserPartAbstract
     end
     
     methods(Access = protected)
-        function out = setEnabledRealWorld(obj, ignored) %#ok<*INUSD,*MANU>
+        function out = setEnabledRealWorld(obj, ~) %#ok<*INUSD,*MANU>
             out = true;
         end
         

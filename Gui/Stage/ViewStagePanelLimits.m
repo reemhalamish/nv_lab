@@ -122,7 +122,7 @@ classdef ViewStagePanelLimits < GuiComponent & EventListener
             
             %%%% init internal values (to be used from the outside %%%%
             obj.height = max(vboxSetToHeight, gridAllHeight);
-            obj.width = sum(hboxMain.Widths) + 5 * length(hboxMain.Widths) + 10;
+            obj.width = sum(hboxMain.Widths) + 8 * length(hboxMain.Widths);
             
             %%%% show the info %%%%
             obj.refresh();

@@ -21,7 +21,7 @@ classdef TimedDisplay < handle
             obj@handle;
             
             if ~isgraphics(gObj)
-                error('Cannot hide and show non-graphic objects');
+                error('Can''t hide and show non-graphic objects');
             end
             obj.grahpicObj = gObj;
             

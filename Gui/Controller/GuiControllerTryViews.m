@@ -26,11 +26,9 @@ classdef GuiControllerTryViews < GuiController
             % parent=figureWindowParent, controller=obj
 
             % For trackables we need to first create a working experiment
-            stageName = 'stage fine';
-            laserName = '';
-            TrackablePosition(stageName,laserName);
-            
-            view = ViewTrackablePosition(figureWindowParent, obj);
+            stageName = 'stage coarse';
+            stage = getObjByName(stageName);
+            view = ViewStage(figureWindowParent, obj, stage);
         end
         
         function onAboutToStart(obj)

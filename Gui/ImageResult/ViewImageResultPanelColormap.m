@@ -74,7 +74,7 @@ classdef ViewImageResultPanelColormap < GuiComponent
             if isempty(img)
                 return;     % Can't fetch limits if there is no data
             end
-            maxValue = max(max(img));
+            maxValue = max(max(img(~isinf(img))));
             if maxValue > 0
                 minValue = min(min(img(img ~= 0)));
                 if (minValue ~= maxValue)

@@ -31,14 +31,14 @@ classdef LaserGate < Savable
             obj.aomSwitch = aomSwitch;
         end
         
-        function bool = isLaserAvail(obj)
-            % check if this laser gate can manipulate a smart laser
-            bool = isobject(obj.laser);
+        function tf = isLaserAvail(obj)
+            % Check if this laser gate can manipulate a smart laser
+            tf = isobject(obj.laser);
         end
         
-        function bool = isAomAvail(obj)
-            % check if this laser gate can manipulate the aom
-            bool = isobject(obj.aom);
+        function tf = isAomAvail(obj)
+            % Check if this laser gate can manipulate the aom
+            tf = isobject(obj.aom);
         end
     end
     

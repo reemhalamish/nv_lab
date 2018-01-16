@@ -39,8 +39,8 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             obj.sendEvent(struct(obj.EVENT_IMAGE_UPDATED, true));
         end
         
-        function bool = isDataAvailable(obj)
-            bool = ~isempty(obj.mData);
+        function tf = isDataAvailable(obj)
+            tf = ~isempty(obj.mData);
         end
         
         function fullpath = savePlottingImage(obj, folder, filename)

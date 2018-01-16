@@ -1,9 +1,9 @@
 classdef ViewLaser < GuiComponent
     %VIEWLASER view for one laser.
-    %   consists of:
-    %   	a checkbox (if the laser supports it), 
-    %   	aom controller part (if the laser supports it) 
-    %   	and the actual-laser controller part (if the laser supports it)
+    %   Consists of:
+    %   	* a checkbox (if the laser supports it), 
+    %   	* aom controller part (if the laser supports it) 
+    %   	* the actual-laser controller part (if the laser supports it)
     
     properties
     end

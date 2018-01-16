@@ -15,6 +15,7 @@ classdef GuiComponent < handle
         %% properties for design
         PROP_TEXT_NO_BG =           {'Style', 'text',       'FontSize', 8,                          'ForegroundColor', 'black',                             'HorizontalAlignment', 'left'};
         PROP_TEXT_NORMAL =          {'Style', 'text',       'FontSize', 8,                          'ForegroundColor', 'black', 'BackgroundColor', 'white', 'HorizontalAlignment', 'left'};
+        PROP_TEXT_BIG =             {'Style', 'edit',       'FontSize', 10, 'FontWeight', 'bold',   'ForegroundColor', 'black', 'BackgroundColor', 'white', 'HorizontalAlignment', 'center', 'Enable', 'off'};
         PROP_LABEL =                {'Style', 'edit',       'FontSize', 10, 'FontWeight', 'bold',   'ForegroundColor', 'white', 'BackgroundColor', 'black', 'HorizontalAlignment', 'center', 'Enable', 'inactive'};
         PROP_EDIT =                 {'Style', 'edit',       'FontSize', 10, 'FontWeight', 'bold',   'ForegroundColor', 'black', 'BackgroundColor', 'white', 'HorizontalAlignment', 'center'};
         PROP_EDIT_SMALL =           {'Style', 'edit',       'FontSize', 8,  'FontWeight', 'normal', 'ForegroundColor', 'Black', 'BackgroundColor', 'white', 'HorizontalAlignment', 'left'};
@@ -22,6 +23,7 @@ classdef GuiComponent < handle
         PROP_BUTTON_SMALL =         {'Style', 'pushbutton', 'FontSize', 8,  'FontWeight', 'bold'};
         PROP_BUTTON_BIG_GREEN =     {'Style', 'pushbutton', 'FontSize', 14, 'FontWeight', 'bold',   'ForegroundColor', 'white', 'BackgroundColor', 'green'};
         PROP_BUTTON_BIG_RED =       {'Style', 'pushbutton', 'FontSize', 14, 'FontWeight', 'bold',   'ForegroundColor', 'white', 'BackgroundColor', 'red'};
+        PROP_BUTTON_BIG_BLUE =      {'Style', 'pushbutton', 'FontSize', 14, 'FontWeight', 'bold',   'ForegroundColor', 'white', 'BackgroundColor', 'blue'};
         PROP_CHECKBOX =             {'Style', 'checkbox',   'FontSize', 10};
         PROP_POPUP =                {'Style', 'popup',      'FontSize', 10,                                                     'BackgroundColor', 'white'};
         PROP_RADIO =                {'Style', 'radiobutton','FontSize', 10};

@@ -67,9 +67,9 @@ classdef BaseObject < HiddenMethodsHandle & PropertiesDisplaySorted
             % instead, as it's a wrapper function for "BaseObject.getByName(name)"
             allBaseObjects = BaseObject.allObjects.wrapped;
 
-                % try, catch?
-                
-            if ~allBaseObjects.isKey(objName)
+            if ~ischar(objName) && ~isstring(objName)
+                error('Requested object name, %s, is invalid!', objName)
+            elseif ~allBaseObjects.isKey(objName)
                 error('No object named "%s" exists!', objName)
             end
             baseObject = allBaseObjects(objName);

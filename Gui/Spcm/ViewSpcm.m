@@ -108,8 +108,8 @@ classdef ViewSpcm < ViewVBox & EventListener
 
         
         
-        function bool = isUsingWrap(obj)
-            bool = obj.cbxUsingWrap.Value;
+        function tf = isUsingWrap(obj)
+            tf = obj.cbxUsingWrap.Value;
         end
         
         function refresh(obj)

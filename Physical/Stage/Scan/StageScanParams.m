@@ -34,7 +34,7 @@ classdef StageScanParams < handle
                 obj.pixelTime = 0.015;
                 obj.continuous = false;
                 obj.fastScan = false;
-                obj.autoSave = false;
+                obj.autoSave = true;
                 return
             end
             
