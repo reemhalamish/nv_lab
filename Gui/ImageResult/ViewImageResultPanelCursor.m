@@ -44,6 +44,37 @@ classdef ViewImageResultPanelCursor < GuiComponent
             obj.updatePrivate;
         end
         
+        %%%% Callbacks %%%%
+        function callbackRadioSelection(obj, ~, event)
+            if isempty(obj.dataCursor)
+                return
+            end
+            selection = event.NewValue;
+            obj.dataCursor.ClearCursorData;
+            obj.updatePrivate(selection);
+        end
+        
+        function radioMarkerCallback(obj)
+            % display cursor with specific data tip
+            datacursormode on;
+            obj.dataCursor.setUpdateFcn;
+        end
+        function radioZoomCallback(obj)
+            % Creates a rectangle on the selected area, and updates the
+            % GUI's min and max values accordingly
+            obj.dataCursor.UpdataDataByZoom;
+            obj.backToMarker;
+        end
+        function radioLocationCallback(obj)
+            % Draws horizontal and vertical line on the selected
+            % location, and moves the stage to this location.
+            datacursormode off;
+            img = imhandles(obj.dataCursor.vAxes);
+            set(img, 'ButtonDownFcn', @obj.setLocationAndFinish);
+        end
+    end
+    
+    methods (Access = private)
         function updatePrivate(obj,selectedRadioButton)
             % Internal function for update
             % Specificly, it does not change the SelectedObject property
@@ -79,34 +110,16 @@ classdef ViewImageResultPanelCursor < GuiComponent
             end
         end
         
-        %%%% Callbacks %%%%
-        function callbackRadioSelection(obj, ~, event)
-            if isempty(obj.dataCursor)
-                return
-            end
-            selection = event.NewValue;
-            obj.dataCursor.ClearCursorData;
-            obj.updatePrivate(selection);
+        function setLocationAndFinish(obj, ~, ~)
+            obj.dataCursor.setLocationFromCursor;
+%             obj.backToMarker;
         end
         
-        function radioMarkerCallback(obj)
-            % display cursor with specific data tip
-            datacursormode on;
-            obj.dataCursor.setUpdateFcn;
-        end
-        function radioZoomCallback(obj)
-            % Creates a rectangle on the selected area, and updates the
-            % GUI's min and max values accordingly
-            obj.dataCursor.UpdataDataByZoom;
-            obj.radioMarker.Value = 1;
-            obj.radioMarkerCallback;
-        end
-        function radioLocationCallback(obj)
-            % Draws horizontal and vertical line on the selected
-            % location, and moves the stage to this location.
-            datacursormode off;
-            img = imhandles(obj.dataCursor.vAxes);
-            set(img, 'ButtonDownFcn', @(h,e)obj.dataCursor.setLocationFromCursor(h,e));
+        function backToMarker(obj)
+            % when other operations finish, we want to return the cursor to
+            % "marker" mose, both visually and functionally
+            obj.radioMarker.Value = 1;  % visually (#1 is the marker option)
+            obj.radioMarkerCallback;    % functionally
         end
     end
 end

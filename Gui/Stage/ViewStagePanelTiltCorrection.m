@@ -25,36 +25,35 @@ classdef ViewStagePanelTiltCorrection < GuiComponent & EventListener
                 obj.height = 1;
                 return
             end
-                
             
             
             %%%% panel init %%%%
             panelMain = uix.Panel('Parent', parent.component,'Title','Tilt Correction', 'Padding', 5);
             %%%% tilt correction %%%%
+            
             gridTilt = uix.Grid('Parent', panelMain, 'Spacing', 5);
             obj.cbxEnable = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', gridTilt, 'String', 'Enable'); % Tilt Correction
-            
-            obj.btnTiltCalculator = uicontrol(obj.PROP_BUTTON{:}, 'Parent', gridTilt, 'String', 'Calculator');
             
             hboxThetaX = uix.HBox('Parent', gridTilt, 'Spacing', 0, 'Padding', 0);
             labelStr = '<html><body style="background-color:black;"><font color="white" size=4>&nbsp;&theta<sub>XZ</sub>&nbsp;</body></html>';
             jLabel = javaObjectEDT('javax.swing.JLabel',labelStr);
-            javacomponent(jLabel,[100,100,40,20],hboxThetaX);
+            javacomponent(jLabel,[100,100,20,20],hboxThetaX);
             % uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxThetaX, 'String', 'ThetaX');  % label
             obj.edtThetaX = uicontrol(obj.PROP_EDIT{:}, 'Parent', hboxThetaX);
             hboxThetaX.Widths = [32 -1];
+            
+            obj.btnTiltCalculator = uicontrol(obj.PROP_BUTTON{:}, 'Parent', gridTilt, 'String', 'Calculator');
             
             hboxThetaY = uix.HBox('Parent', gridTilt, 'Spacing', 0, 'Padding', 0);
             % uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxThetaY, 'String', 'ThetaY');  % label
             labelStr = '<html><body style="background-color:black;"><font color="white" size=4>&nbsp;&theta<sub>YZ</sub>&nbsp;</body></html>';
             jLabel = javaObjectEDT('javax.swing.JLabel',labelStr);
-            javacomponent(jLabel,[100,100,40,20],hboxThetaY);
+            javacomponent(jLabel,[100,100,20,20],hboxThetaY);
             obj.edtThetaY = uicontrol(obj.PROP_EDIT{:}, 'Parent', hboxThetaY);
             hboxThetaY.Widths = [32 -1];
             
-            gridTiltHeights = [-1 -1 -1 -1];
-            tiltWidth = 80;
-            set(gridTilt, 'Widths',-1 , 'Heights', gridTiltHeights);
+            tiltWidth = 100;
+            set(gridTilt, 'Widths', [-1 -1] , 'Heights', [-1 -1]);
             
             %%%% callbacks %%%%
             obj.cbxEnable.Callback = @(e,h) obj.cbxEnabledCallback;
@@ -63,7 +62,7 @@ classdef ViewStagePanelTiltCorrection < GuiComponent & EventListener
             obj.edtThetaY.Callback = @(e,h) obj.edtThetaCallback;
             
             %%%% internal values %%%%
-            obj.height = 110;
+            obj.height = 90;
             obj.width = tiltWidth + 15;
             
             %%%% init all data %%%%

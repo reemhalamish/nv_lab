@@ -3,9 +3,9 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
     %   Detailed explanation goes here
     
     properties
-        btnScan             % the holy main button!
+        btnScan             % the Holy Main Button!
         btnStopScan         % button
-        cbxContinous        % checkbox
+        cbxContinuous       % checkbox
         cbxFastScan         % checkbox
         cbxAutoSave         % checkbox
         edtPixelTime        % edit text
@@ -19,20 +19,16 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
             obj.stageName = stageName;
             
             %%%% Scan panel init %%%%
-            panelScan = uix.Panel('Parent', parent.component,'Title','Scan', 'Padding', 5);
-            hboxMain = uix.HBox('Parent', panelScan, 'Spacing', 5, 'Padding', 0);
-            vboxFirst = uix.VBox('Parent', hboxMain, 'Spacing', 5, 'Padding', 0);
+            panelScan = uix.Panel('Parent', parent.component,'Title', 'Scan', 'Padding', 5);
+            vboxMain = uix.VBox('Parent', panelScan, 'Spacing', 5, 'Padding', 0);
             
-            %%%% First column - Scan, Stop Scan, Pixel time %%%%
-            obj.btnScan = uicontrol(obj.PROP_BUTTON_BIG_GREEN{:}, 'Parent', vboxFirst, 'String', 'Scan');
-            obj.btnStopScan = uicontrol(obj.PROP_BUTTON_BIG_RED{:},'Parent', vboxFirst,'String', 'Stop Scan');
-            hboxPixelTime = uix.HBox('Parent', vboxFirst, 'Spacing', 3, 'Padding', 0);
+            obj.btnScan = uicontrol(obj.PROP_BUTTON_BIG_GREEN{:}, 'Parent', vboxMain, 'String', 'Scan');
+            obj.btnStopScan = uicontrol(obj.PROP_BUTTON_BIG_RED{:},'Parent', vboxMain,'String', 'Stop Scan');
+            hboxPixelTime = uix.HBox('Parent', vboxMain, 'Spacing', 3, 'Padding', 0);
             uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxPixelTime, 'String', 'Pixel time', 'FontSize', 8);
             obj.edtPixelTime = uicontrol(obj.PROP_EDIT{:}, 'Parent', hboxPixelTime);
             hboxPixelTime.Widths = [-3 -2];
-            vboxFirst.Heights = [-1 -1 -1];
             
-            %%%% Second column - Continous, Fast Scan, AutoSave %%%%
             % Get scan speed parameters from stage
             stage = getObjByName(obj.stageName);
             fastScannable = stage.hasFastScan;
@@ -40,27 +36,24 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
             enable = BooleanHelper.boolToOnOff(fastScannable && slowScannable);
             value = fastScannable;      % If fast scan is implemented, it is the default
             
-            % Create gui objects
-            vboxSecond = uix.VBox('Parent', hboxMain, 'Spacing', 5, 'Padding', 0);
-            obj.cbxContinous = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', vboxSecond, 'String', 'Continuous');
-            obj.cbxFastScan = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', vboxSecond, 'String', 'Fast Scan', 'Enable', enable, 'Value', value);
-            obj.cbxAutoSave = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', vboxSecond, 'String', 'Auto-Save');
+            % Create checkboxes
+            obj.cbxContinuous = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', vboxMain, 'String', 'Continuous');
+            obj.cbxFastScan = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', vboxMain, 'String', 'Fast Scan', 'Enable', enable, 'Value', value);
+            obj.cbxAutoSave = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', vboxMain, 'String', 'Auto-Save');
             
-            
-            vboxSecond.Heights = [-1 -1 -1];
-            hboxMain.Widths = [110 84];
+            vboxMain.Heights = [-3 -3 -3 -2 -2 -2];
             
             %%%% callbacks %%%%
             obj.cbxAutoSave.Callback = @(h,e) obj.cbxAutoSaveCallback;
-            obj.cbxContinous.Callback = @(h,e) obj.cbxContCallback;
+            obj.cbxContinuous.Callback = @(h,e) obj.cbxContCallback;
             obj.cbxFastScan.Callback = @(h,e) obj.cbxFastScanCallback;
             obj.edtPixelTime.Callback = @(h,e) obj.edtPixelTimeCallback;
             obj.btnScan.Callback = @(h,e) obj.btnScanCallback;
             obj.btnStopScan.Callback = @(h,e) obj.btnStopScanCallback;
             
             %%%% internal values %%%%
-            obj.height = 130;
-            obj.width = 215;
+            obj.height = 215;
+            obj.width = 120;
             obj.refresh();  % init values
         end
         
@@ -69,7 +62,7 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
             obj.cbxAutoSave.Value = scanParams.autoSave;
-            obj.cbxContinous.Value = scanParams.continuous;
+            obj.cbxContinuous.Value = scanParams.continuous;
             obj.cbxFastScan.Value = scanParams.fastScan;
             obj.edtPixelTime.String = StringHelper.formatNumber(scanParams.pixelTime);
         end
@@ -84,7 +77,7 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
         function cbxContCallback(obj)
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
-            scanParams.continuous = obj.cbxContinous.Value;
+            scanParams.continuous = obj.cbxContinuous.Value;
             stage.sendEventScanParamsChanged();
         end
         

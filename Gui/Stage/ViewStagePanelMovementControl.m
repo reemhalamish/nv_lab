@@ -63,8 +63,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             for i = 1: axesLen
                 obj.btnMoveLeft(i) = uicontrol(obj.PROP_BUTTON{:}, ...
                     'Parent', gridLeftSide, ...
-                    'String', '¬', ...
-                    'FontName', 'Symbol', ...
+                    'String', StringHelper.LEFT_ARROW, ...
                     'FontSize', 20);
             end
             
@@ -73,12 +72,13 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             obj.edtCurPos = gobjects(1, axesLen);
             obj.hboxCurPos = gobjects(1, axesLen);
             obj.edtCurPosValue = inf * ones(1, axesLen);
-            enableEdt = ~stage.isScanable;
-            % ^ only enable if stage is not scanable
+            canScan = stage.isScanable;
+            % ^ We want a local copy of this value 
             for i = 1: axesLen
                 obj.hboxCurPos(i) = uix.HBox('Parent', gridLeftSide, 'Padding', 0, 'Spacing', 0);
-                obj.tvCurPos(i) = uicontrol(obj.PROP_EDIT{:},'Parent', obj.hboxCurPos(i), 'Enable', BooleanHelper.boolToOnOff(enableEdt));
-                obj.edtCurPos(i) = uicontrol(obj.PROP_EDIT{:},'Parent', obj.hboxCurPos(i), 'ForegroundColor', 'blue');
+                obj.tvCurPos(i) = uicontrol(obj.PROP_EDIT{:}, 'Parent', obj.hboxCurPos(i));
+                obj.edtCurPos(i) = uicontrol(obj.PROP_EDIT{:}, 'Parent', obj.hboxCurPos(i), ...
+                    'ForegroundColor', 'blue', 'BackgroundColor', [0.8 0.9 1]);     % Blue over light blue
                 obj.showEdtCurPos(i, false);   % hide the edit-input until it's needed - when user inputs data
             end
             
@@ -87,17 +87,11 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             for i = 1: axesLen
                 obj.btnMoveRight(i) = uicontrol(obj.PROP_BUTTON{:}, ...
                     'Parent', gridLeftSide, ...
-                    'String', '®', ...
-                    'FontName', 'Symbol', ...
+                    'String', StringHelper.RIGHT_ARROW, ...
                     'FontSize', 20);
             end
-            
-            if enableEdt
-                gridWidths = [20 35 70 35];
-            else
-                gridWidths = [20 35 50 35];
-            end
-            gridWithdsRel = -gridWidths;
+            gridWidths = [20 35 70 35];
+            gridWithdsRel = -1*gridWidths;
             heightGridTotalNoSpacing = 90;
             lineHeight = heightGridTotalNoSpacing / axesLen;
             gridHeights = lineHeight * ones(1, axesLen);
@@ -112,24 +106,19 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             
             %%%% buttons (fix, query, halt) & joystick %%%%
             vboxRight = uix.VBox('Parent',hboxMain, 'Spacing', 6);
-            if enableEdt        % Stage is not scannable
-                obj.btnMoveToBlue = uicontrol(obj.PROP_BUTTON{:}, ...
-                    'Parent', vboxRight, ...
-                    'String', 'Move To Blue', ...
-                    'Enable', 'off');   % the starting state - off
-                heights = [-2 -2];
-                joystickHeight = -1;    % if it is available
-            else
-                obj.btnMoveStageToFixedPos = uicontrol(obj.PROP_BUTTON{:}, ...
-                    'Parent', vboxRight, ...
-                    'String', sprintf('Fixed %s Current', StringHelper.RIGHT_ARROW), ...
-                    'TooltipString', 'Move stage to the fixed position');
+            obj.btnMoveToBlue = uicontrol(obj.PROP_BUTTON{:}, ...
+                'Parent', vboxRight, ...
+                'String', 'Move To Blue', ...
+                'Enable', 'off', ...       % the starting state - off
+                'TooltipString', 'Move stage to the position appearing in blue');
+            if canScan        % Stage is scannable
                 obj.btnSendToFixed = uicontrol(obj.PROP_BUTTON{:}, ...
                     'Parent', vboxRight, ...
                     'String', sprintf('Current %s Fixed', StringHelper.RIGHT_ARROW), ...
                     'TooltipString', 'Set fixed position to actual stage position');
                 heights = [-5 -5 -5];
-                joystickHeight = -1;    % if it is available
+            else
+                heights = [-2 -2];
             end
             obj.btnHaltStage = uicontrol(obj.PROP_BUTTON_BIG_RED{:}, ...
                 'Parent', vboxRight, ...
@@ -138,6 +127,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
                 obj.cbxJoystick = uicontrol(obj.PROP_CHECKBOX{:}, ...
                     'Parent', vboxRight, ...
                     'String', 'Joystick');
+                joystickHeight = -1;
                 heights = [heights joystickHeight];
             end
             vboxRight.Heights = heights;
@@ -153,20 +143,18 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             obj.btnMoveStageToFixedPos.Callback = @(h,e) obj.btnMoveStageToFixedPosCallback();
             obj.btnHaltStage.Callback = @(h,e) StageControlEvents.sendHalt;
             
-            if enableEdt
-                obj.btnMoveToBlue.Callback = @(h,e) obj.btnMoveToBlueCallback();
-                for i = 1 : axesLen
-                    obj.tvCurPos(i).Callback = @(h,e) obj.tvCurPosCallback(i);
-                    obj.edtCurPos(i).Callback = @(h,e) obj.checkEdtCurPosValue(i);
-                end
-            else
+            obj.btnMoveToBlue.Callback = @(h,e) obj.btnMoveToBlueCallback();
+            if canScan
                 obj.btnSendToFixed.Callback = @(h,e) obj.btnSendToFixedNonScanableCallback();
             end
             
             for i = 1:axesLen
+                obj.tvCurPos(i).Callback = @(h,e) obj.tvCurPosCallback(i);
+                obj.edtCurPos(i).Callback = @(h,e) obj.checkEdtCurPosValue(i);
+                
                 isLeft = true;
-                obj.btnMoveLeft(i).Callback = @(h,e) obj.btnMoveCallback(i,isLeft);
-                obj.btnMoveRight(i).Callback = @(h,e) obj.btnMoveCallback(i,~isLeft);
+                obj.btnMoveLeft(i).Callback = @(h,e) obj.btnMoveCallback(i, isLeft);
+                obj.btnMoveRight(i).Callback = @(h,e) obj.btnMoveCallback(i, ~isLeft);
             end
             
             
@@ -258,7 +246,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
                 obj.showEdtCurPos(index, true);
                 obj.checkEdtCurPosValue(index);
             else
-                EventStation.anonymousWarning('Position must be a number between %d and %d, reverting!', limNeg, limPos)
+                EventStation.anonymousWarning('Position must be a number between %d and %d! Reverting!', limNeg, limPos)
             end
             
             stage = getObjByName(obj.stageName);
@@ -270,7 +258,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
         end
         
         function showEdtCurPos(obj, index, shouldShow)
-            % this function sets the view of the obj.edtCurPos edit-input
+            % Sets the view of the obj.edtCurPos edit-input
             % shouldShow - boolean (logical) - the new state
             % index - the index axis
             if shouldShow
@@ -282,8 +270,8 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
         end
         
         function checkEdtCurPosValue(obj, index)
-            % checks that the obj.edtCurPos string is a valid value.
-            % reverts the value if not valid based on obj.edtCurPosValue
+            % Checks that string in obj.edtCurPos has a valid value.
+            % Reverts the value if not valid based on obj.edtCurPosValue
             % or updates obj.edtCurPosValue based on the edt
             axis = ClassStage.getAxis(obj.stageAxes(index));
             stage = getObjByName(obj.stageName);
@@ -295,11 +283,11 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
                 obj.clearEdtCurPos(index);
                 % make sure to update the button as well:
                 if all(obj.edtCurPosValue == inf)
-                    obj.btnSendToFixed.Enable = 'off';
+                    obj.btnMoveToBlue.Enable = 'off';
                 end
                 return
             else
-                EventStation.anonymousWarning('must be a number between %d and %d, reverting!', limNeg, limPos)
+                EventStation.anonymousWarning('Value must be a number between %d and %d, reverting!', limNeg, limPos)
             end
             obj.edtCurPos(index).String = StringHelper.formatNumber(obj.edtCurPosValue(index));
         end

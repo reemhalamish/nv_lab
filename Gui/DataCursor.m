@@ -1,17 +1,23 @@
-classdef DataCursor < handle
+classdef DataCursor < EventListener
     %DATACURSOR class for wrapping data cursor with options specified for
     %it
     
     properties
-        vAxes
-        cursor
+        vAxes           % axes handle. Of the image on which the datacursor draws.
+        cursor          % datacursor handle. Stores the information about recent mouse actions
         
-        drawn = [];
-        crosshairs = struct;
+        gLimits = [];           % graphic handle; stores limits drawn onto image (for zoom)
+        crosshairs = struct;    % struct of graphic handles, which make crosshairs for current position
+        
+        mStageName      % string. Name of stage in control of scanning. Assuming it does not change without restart of GUI.
     end
     
     methods
         function obj = DataCursor(imageView)
+            stageScanner = getObjByName(StageScanner.NAME);
+            obj@EventListener(stageScanner.mStageName);
+            obj.mStageName = stageScanner.mStageName;
+            
             obj.vAxes = imageView.vAxes;
             fig = ancestor(obj.vAxes,'figure');
             obj.cursor = datacursormode(fig);
@@ -34,8 +40,8 @@ classdef DataCursor < handle
             datacursormode(fig, 'off'); % Disable cursor mode
             
             % Remove drawn limits, if exists
-            if ~isempty(obj.drawn)
-                delete(obj.drawn);
+            if ~isempty(obj.gLimits)
+                delete(obj.gLimits);
             end
             
             % Disable button press
@@ -83,10 +89,10 @@ classdef DataCursor < handle
         
         function drawRectangle(obj, pos)
             % Draw rectangle
-            if HandleHelper.isType(obj.drawn,'rectangle')
-                obj.drawn.Position = pos;
+            if HandleHelper.isType(obj.gLimits, 'rectangle')
+                obj.gLimits.Position = pos;
             else
-                obj.drawn = rectangle(obj.vAxes, ...
+                obj.gLimits = rectangle(obj.vAxes, ...
                     'Position', pos, ...
                     'EdgeColor', 'g', ...
                     'LineWidth', 1, ...
@@ -97,15 +103,15 @@ classdef DataCursor < handle
         
         function drawLimitBar(obj,pos)
             % Draw limit bar
-            if ~isempty(obj.drawn)
-                delete(obj.drawn);
+            if ~isempty(obj.gLimits)
+                delete(obj.gLimits);
             end
             dx = pos(3)/2;
             xPos = pos(1) + dx;         % the center of the bar
             yPos = pos(2) + pos(4)/2;	% position of bar in the middle of selected rectangle
             
             hold(obj.vAxes,'on');
-            obj.drawn = errorbar(obj.vAxes, ...
+            obj.gLimits = errorbar(obj.vAxes, ...
                 xPos,yPos, ...
                 dx, 'horizontal', ...
                 'Color', 'r', ...
@@ -145,7 +151,7 @@ classdef DataCursor < handle
                     obj.drawRectangle(rect);
                     scanAxes = [sp.getFirstScanAxisIndex sp.getSecondScanAxisIndex];
                 otherwise
-                    EventStation.anonymousError('Cannot fetch limits in higher dimensions');
+                    EventStation.anonymousError('Can''t fetch limits in higher dimensions');
             end
             
             stage = getObjByName(stageScanner.mStageName);
@@ -283,8 +289,22 @@ classdef DataCursor < handle
             pos = obj.vAxes.CurrentPoint(1, 1:dim);
             
             % Now move to the corresponding location
-            stage.move(axesString, pos);
-            obj.drawCrosshairs(axis(obj.vAxes),pos);
+            stage.move(axesString, pos);    % This should update the datacursor, by relevant event
+        end
+    end
+    
+    %% overridden from EventListener
+    methods
+        % When events happen, this function jumps.
+        % event is the event sent from the EventSender
+        function onEvent(obj, event)
+            if isfield(event.extraInfo, ClassStage.EVENT_POSITION_CHANGED) ...
+                    && strcmp(event.creator.name, obj.mStageName)
+                stage = getObjByName(obj.mStageName);
+                physAxes = stage.scanParams.getScanAxes;
+                pos = stage.Pos(physAxes);
+                obj.drawCrosshairs(axis(obj.vAxes),pos);
+            end
         end
     end
 end

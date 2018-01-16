@@ -131,8 +131,17 @@ classdef (Sealed) ClassDummyStage  < ClassStage
             % Relative change in position (pos) of axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
+            
+            % Check limits
             axis = obj.GetAxis(axis);
-            obj.curPos(axis) = obj.curPos(axis) + change;
+            [limNeg, limPos] = obj.ReturnLimits(axis);
+            newPos = obj.curPos(axis) + change;
+            % Either move, or produce error
+            if trinary(newPos, [limNeg limPos]) == 1    % i.e., value is within limits
+                obj.curPos(axis) = obj.curPos(axis) + change;
+            else
+                EventStation.anonymousWarning('Position must be between %d and %d! Stage will not move!', limNeg, limPos)
+            end
         end
         
         function ScanX(obj, x, y, z, nFlat, nOverRun, tPixel) %#ok<*INUSD>

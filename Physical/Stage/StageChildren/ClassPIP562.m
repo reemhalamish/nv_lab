@@ -327,7 +327,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if obj.scanRunning
-                warning('2D Scan is in progress, previous scan canceled');
+                warning(obj.WARNING_PREVIOUS_SCAN_CANCELLED);
                 AbortScan(obj);
             end
             Move(obj, 'yz', [y z]);
@@ -347,7 +347,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if obj.scanRunning
-                warning('2D Scan is in progress, previous scan canceled');
+                warning(obj.WARNING_PREVIOUS_SCAN_CANCELLED);
                 obj.scanRunning = 0;
             end
             Move(obj, 'xz', [x z]);
@@ -367,7 +367,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if obj.scanRunning
-                warning('2D Scan is in progress, previous scan canceled');
+                warning(obj.WARNING_PREVIOUS_SCAN_CANCELLED);
                 obj.scanRunning = 0;
             end
             Move(obj, 'xy', [x y]);
@@ -420,8 +420,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
         function maxScanSize = ReturnMaxScanSize(obj, nDimensions) %#ok<INUSD>
             % Returns the maximum number of points allowed for an
             % 'nDimensions' scan.
-            todo = 'check size';
-            maxScanSize = 1000;
+            maxScanSize = 842;
         end
         
         function FastScan(obj, enable) %#ok<INUSD>

@@ -414,14 +414,21 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         end
         
         function sendPosToScanParams(obj)
-            % for all the positions marked as "fixed" in obj.scanParams,
-            % update them by the current position
+            % New behavior: update "Fixed Position" to be current position,
+            % in all available axes.
             params = obj.scanParams;
-            currentPos = obj.Pos(obj.SCAN_AXES);
-            params.fixedPos(find(params.isFixed)) = currentPos(find(params.isFixed)); %#ok<FNDSB>
-            if any(params.isFixed)
-                obj.sendEventScanParamsChanged();
-            end
+            axesIndex = obj.getAxis(obj.availableAxes);
+            params.fixedPos(axesIndex) = obj.Pos(axesIndex);
+            obj.sendEventScanParamsChanged;
+            
+            % % Old behavior: For all the positions marked as "fixed" in
+            % % obj.scanParams, update them by the current position
+            % params = obj.scanParams;
+            % currentPos = obj.Pos(obj.SCAN_AXES);
+            % params.fixedPos(find(params.isFixed)) = currentPos(find(params.isFixed)); %#ok<FNDSB>
+            % if any(params.isFixed)
+            %     obj.sendEventScanParamsChanged();
+            % end
         end
         
         function moveByScanParams(obj)
@@ -439,7 +446,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         end
         
         function move(obj, axis, pos)
-            % calls Move, sends an event. listens to errors to send errorEvent
+            % Calls Move, sends an event. Listens to errors to send errorEvent
             try
                 obj.Move(axis, pos);
                 obj.sendEvent(struct(ClassStage.EVENT_POSITION_CHANGED, true));
@@ -449,7 +456,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         end
         
         function relativeMove(obj, axis, change)
-            % calls RelativeMove, sends an event. listens to errors to send errorEvent
+            % Calls RelativeMove, sends an event. Listens to errors to send errorEvent.
             % Vectorial axis is possible
             try
                 obj.RelativeMove(axis, change);
@@ -460,7 +467,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         end
         
         function setTiltAngle(obj, thetaXZ, thetaYZ)
-            % calls obj.SetTiltAngle to set the tilt angles between Z axis and
+            % Calls obj.SetTiltAngle to set the tilt angles between Z axis and
             % XY axes, and than sends an event.
             %
             % Angles should be in degrees, valid angles are between -5 and 5

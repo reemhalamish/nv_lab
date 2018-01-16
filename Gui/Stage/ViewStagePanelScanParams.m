@@ -111,7 +111,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
                 set(obj.edtNumPoints(i), 'Callback',@(h,e)obj.edtNumPointsChangedCallback(i));
                 set(obj.cbxFixed(i), 'Callback',@(h,e)obj.cbxFixedChangedCallback(i));
                 set(obj.edtFixedPos(i), 'Callback', @(h,e)obj.edtFixedChangedCallback(i));
-                set(obj.edtScanAround(i), 'Callback', @(h,e)obj.setAroundCallback(i));
+                set(obj.edtScanAround(i), 'Callback', @(h,e)obj.scanAroundCallback(i));
                 set(obj.btnScanAroundSet(i), 'Callback', @(h,e)obj.setAroundCallback(i));
             end
             
@@ -142,7 +142,18 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             cbx = obj.cbxFixed(index);
             scanParams.isFixed(axis) = cbx.Value;
             obj.colorifyFixed(index);
-            
+        end
+        
+        function scanAroundCallback(obj, index)
+            edtScan = obj.edtScanAround(index);
+            valueLimStr = edtScan.String;
+            if ~ValidationHelper.isValueNonNegative(valueLimStr)
+                edtScan.String = obj.SCAN_AROUND_DEFAULT_STRING;
+                obj.sendError(sprintf('"Scan Around" (axis %s) value should be non-negative! Reverting to default', obj.stageAxes(index)));
+            end
+            val = str2double(valueLimStr);
+            signifDigits = 1;
+            edtScan.String = StringHelper.formatNumber(val, signifDigits);
         end
         
         function setAroundCallback(obj, index)
@@ -153,11 +164,9 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             
             edtScan = obj.edtScanAround(index);
             valueLimStr = edtScan.String;
-            if ~ValidationHelper.isValueNonNegative(valueLimStr)
-                edtScan.String = obj.SCAN_AROUND_DEFAULT_STRING;
-                obj.sendError(sprintf('"Scan Around" (axis %s) value should be non-negative! Reverting to default', obj.stageAxes(index)));
-            end
-            valueLimHalf = floor(str2double(valueLimStr)/2);
+            
+            signifDigits = 1;
+            valueLimHalf = round(str2double(valueLimStr)/2, signifDigits);
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
             axis = ClassStage.getAxis(obj.stageAxes(index));

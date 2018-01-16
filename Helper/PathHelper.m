@@ -11,7 +11,14 @@ classdef PathHelper
             nvLabFolderName = 'NV Lab';
             nvLabFolderPath = PathHelper.recuresiveFindFolder(googleDriveFolder, nvLabFolderName);
             
-            if ~ischar(nvLabFolderPath); error('can''t find NV Lab folder!!'); end
+            if ~ischar(nvLabFolderPath); error('Can''t find NV Lab folder!!'); end
+        end
+        
+        function devOrProdString = SetupMode
+            % Determines whether to use dev(elopment) or prod(uction)
+            % folder for saving and loading, according to json
+            jsonStruct = JsonInfoReader.getJson();
+            devOrProdString = BooleanHelper.ifTrueElse(jsonStruct.debugMode, 'dev', 'prod');
         end
         
         function folderString = recuresiveFindFolder(startingPositionPath, folderNameToSearchString)
@@ -22,19 +29,19 @@ classdef PathHelper
             relevant = listing([listing.isdir]);  % looking only for folders
             relevant = relevant(~strcmp({relevant.name}, '.'));
             relevant = relevant(~strcmp({relevant.name}, '..'));
-            % the first 2 options are "." and "..", ignore them
+            % ^ The first 2 items are "." and "..", ignore them
             
-            % base case 1: no more folders deeper down
+            % Base case 1: no more folders deeper down
             if isempty(relevant); return; end  
             
             isHere = find(strcmp({relevant.name}, folderNameToSearchString));
-            % "isHere" now is a number (index) or empty, so we can use "if"
+            % "isHere" is now either a number (index) or empty, so we can use "if"
             if isHere  
-                % base case 2: fond the folder
+                % Base case 2: found the folder
                 folderString = PathHelper.joinToFullPath(startingPositionPath, relevant(isHere).name);
                 folderString = PathHelper.appendBackslashIfNeeded(folderString);
                 return
-            else  % start the recurstion
+            else  % start the recursion
                 for folderIndex = 1 : length(relevant)
                     newBaseFolder = [startingPositionPath relevant(folderIndex).name];
                     folderString = PathHelper.recuresiveFindFolder(newBaseFolder, folderNameToSearchString);
@@ -52,9 +59,9 @@ classdef PathHelper
         end
         
         function folderAndFile = splitFullPathToFolderAndFile(fullPath)
-            % fullPath      - string. exapmle: 'C:\reem\file.txt'
-            % folderAndFile - cell with two strings. 'folder' and 'file'. 
-            %                 example: {'C:\reem\','file.txt'}
+            % fullPath      - string. For exapmle: 'C:\reem\file.txt'
+            % folderAndFile - cell with two strings: 'folder' and 'file'. 
+            %                 For example: {'C:\reem\','file.txt'}
             pathSplitted = strsplit(fullPath, '\\');
             fileName = pathSplitted(end);
             folderName = fullPath(1 : find(fullPath=='\', 1, 'last'));
@@ -73,7 +80,7 @@ classdef PathHelper
         end
         
         function string = appendBackslashIfNeeded(inputFolder)
-            %%% checks the input and appends a backslash if needed
+            %%% Checks the input and appends a backslash if needed
             %
             % inputFolder - string
             %

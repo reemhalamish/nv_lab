@@ -3,15 +3,15 @@ classdef SaveLoad < Savable & EventSender
     %   Detailed explanation goes here
     
     properties
-        mNotes = ''                      % string. the mNotes to be saved and loaded
-        mCategory                        % string. the mCategory that this SaveLoad object works with
-        mLocalSaveStruct = NaN;          % struct. the last saved\loaded struct
-        mLocalStructStatus = '';         % string. the status of the local struct ('loaded' \ 'saved' \ 'autosaved' \ 'not saved!')
-        mLoadedFileName = NaN;           % string. last file that was saved\loaded\to-be-saved. only file name - not full path!
-        mLoadedFileFullPath = NaN;       % string. last file that was saved\loaded\to-be-saved. full path.
-        mSavingFolder                    % string. will be used with saves 
-        mLoadingFolder                   % string. is used by obj.previous(), obj.next() and obj.last()
-                                         %         can point to PATH_DEFAULT_AUTO_SAVE, or to the mSavingFolder
+        mNotes = ''                      % string. Notes to be saved and loaded
+        mCategory                        % string. Category that this SaveLoad object works with
+        mLocalSaveStruct = NaN;          % struct. Last saved\loaded struct
+        mLocalStructStatus = '';         % string. Status of the local struct ('loaded' \ 'saved' \ 'autosaved' \ 'not saved!')
+        mLoadedFileName = NaN;           % string. Last file that was saved\loaded\to-be-saved. only file name - not full path!
+        mLoadedFileFullPath = NaN;       % string. Last file that was saved\loaded\to-be-saved. full path.
+        mSavingFolder                    % string. Used for saving
+        mLoadingFolder                   % string. Used by obj.previous(), obj.next() and obj.last()
+                                         %         Usually (always?) points to PATH_DEFAULT_AUTO_SAVE, or to mSavingFolder
     end
     
     properties(Dependent = true)
@@ -35,8 +35,10 @@ classdef SaveLoad < Savable & EventSender
         EVENT_STATUS_LOCAL_STRUCT = 'localStruct_status';
         EVENT_LOCAL_STRUCT = 'localStruct';
         
-        PATH_DEFAULT_SAVE = sprintf('%sControl code\\__try\\_ManualSaves\\Setup %s\\', PathHelper.getPathToNvLab(), JsonInfoReader.getJson.setupNumber);
-        PATH_DEFAULT_AUTO_SAVE = sprintf('%sControl code\\__try\\_AutoSave\\Setup %s\\', PathHelper.getPathToNvLab(), JsonInfoReader.getJson.setupNumber);
+        PATH_DEFAULT_SAVE = sprintf('%sControl code\\%s\\_ManualSaves\\Setup %s\\', ...
+            PathHelper.getPathToNvLab(), PathHelper.SetupMode, JsonInfoReader.getJson.setupNumber);
+        PATH_DEFAULT_AUTO_SAVE = sprintf('%sControl code\\%s\\_AutoSave\\Setup %s\\', ...
+            PathHelper.getPathToNvLab(), PathHelper.SetupMode, JsonInfoReader.getJson.setupNumber);
         SAVE_FILE_SUFFIX = '.mat';
         
         STRUCT_STATUS_NOT_SAVED = 'not yet saved!';
@@ -61,7 +63,7 @@ classdef SaveLoad < Savable & EventSender
             saveLoadName = SaveLoad.getInstanceName(category);
             try
                 obj = getObjByName(saveLoadName);
-            catch matlabExp %#ok<NASGU>   ---> if hasn't been created yet
+            catch                   % if hasn't been created yet
                 obj = SaveLoad(category);
             end
         end
@@ -105,7 +107,7 @@ classdef SaveLoad < Savable & EventSender
                 if ~strcmp(newNotes, obj.mNotes)
                     obj.mNotes = newNotes;
                     if isstruct(obj.mLocalSaveStruct)
-                        % update the struct (and the file if needed)
+                        % Update the struct (and the file if needed)
                         obj.mLocalSaveStruct.(obj.name) = obj.saveStateAsStruct(obj.mCategory,obj.TYPE_RESULTS);
                         if shouldSaveToFile
                             obj.saveLocalStructToFile(obj.mLoadedFileFullPath);
@@ -236,13 +238,13 @@ classdef SaveLoad < Savable & EventSender
         end
         
         function loadAllObjects(~, structToLoadFrom, category, subCategory)
-            % loads all the savable objects from a struct.
+            % Loads all the savable objects from a struct.
             %
             % category - string
             % subCategory - string. could be empty string
             % 
             % structToLoadFrom - this struct should look like that:
-            % (savable object name) ---> (inner struct. info this object saved before)
+            % (savable object name) ---> (inner struct: info this object saved before)
             % whitespaces are not premitted in struct properties, so they
             % are replaced with underscores
             % for example, a simple struct could look like that:
@@ -364,7 +366,7 @@ classdef SaveLoad < Savable & EventSender
         end
         
         function saveAs(obj, fileFullPath)
-            % changes the saving folder and the filename, and than saves the file
+            % Changes the saving folder and the filename, and than saves the file
             folderAndFile = PathHelper.splitFullPathToFolderAndFile(fileFullPath);
             
             folder = folderAndFile{1};
@@ -379,7 +381,7 @@ classdef SaveLoad < Savable & EventSender
             
         
         function success = loadLocalToSystem(obj, subCategoryOptional)
-            % loads the local struct into the system
+            % Loads the local struct into the system
             % subCategoryOptional - string. the subCat to load to
             if ~isstruct(obj.mLocalSaveStruct)
                 warningMsg = 'No local struct has been loaded\saved. Nothing to save! Consider calling obj.saveParamsToLocalStruct() or obj.loadFileToLocal()';
@@ -400,7 +402,7 @@ classdef SaveLoad < Savable & EventSender
         end
         
         function success = loadFileToLocal(obj, fileFullPath, shouldSendErrorsOptional)
-            % loads a file to the local struct
+            % Loads a file to the local struct
             % fileFullPath - string. the file path
             % shouldSendErrorsOptional - optional boolean. if true, errors
             %                            will be sent via obj.sendWarning() 
@@ -433,17 +435,33 @@ classdef SaveLoad < Savable & EventSender
             success = true;
         end
         
+        function clearLocal(obj)
+            % Used after deleting last file in current folder
+            
+            % Empty local struct
+            obj.mLoadedFileFullPath = NaN;
+            obj.mLoadedFileName = NaN;
+            obj.mLocalSaveStruct = NaN;
+            obj.mLocalStructStatus = obj.STRUCT_STATUS_NOTHING;
+            
+            % Tell the world
+            structEvent = struct();
+            structEvent.file_full_path = fullPath;
+            structEvent.(SaveLoad.EVENT_DELETE_FILE_SUCCESS) = true;
+            structEvent.(obj.EVENT_STATUS_LOCAL_STRUCT) = obj.mLocalStructStatus;
+            obj.sendEvent(structEvent);
+        end
+        
         function loadPreviousFile(obj)
-            % load the previous file to the one currently in use.
-            % go through the files in the folder, until finding some file
+            % Load the previous file to the one currently in use.
+            % Go through the files in the folder, until finding some file
             % that matches the terms:
             %        @ finishes with '.mat'
             %        @ has same mCategory as obj.mCategory
             irrelevant = {obj.STRUCT_STATUS_NOT_SAVED, obj.STRUCT_STATUS_NOTHING};
             
             if any(strcmp(obj.mLocalStructStatus, irrelevant))
-                obj.sendWarning('Can''t load previous - no file has been loaded, so there''s no previous file!');
-                return
+                obj.sendError('Can''t load previous - no file has been loaded, so there''s no previous file!');
             end
             currentFileFullPath = obj.mLoadedFileFullPath;
             
@@ -451,8 +469,7 @@ classdef SaveLoad < Savable & EventSender
             folder = obj.mLoadingFolder;
             allFiles = PathHelper.getAllFilesInFolder(folder, obj.SAVE_FILE_SUFFIX);
             if isempty(allFiles)
-                obj.sendWarning('Empty folder - can''t load file!');
-                return
+                obj.sendError('Empty folder - can''t load file!');
             end
             
             ispresent = cellfun(@(string) strcmp(currentFileFullPath, string), allFiles);
@@ -465,8 +482,7 @@ classdef SaveLoad < Savable & EventSender
             end
             
             if fileIndex == 1
-                obj.sendWarning('First file is loaded - no previous file exists!');
-                return;
+                obj.sendError('First file is loaded - no previous file exists!');
                 % todo dependent property 'can load next' and 'can load previous'
                 % ONE_DAY
             end
@@ -481,7 +497,7 @@ classdef SaveLoad < Savable & EventSender
                     return
                 end
             end
-            obj.sendWarning('Can''t load previous - none of the previous files is loadable.');
+            obj.sendError('Can''t load previous - none of the previous files is loadable.');
         end
         
         function loadNextFile(obj)
@@ -493,7 +509,7 @@ classdef SaveLoad < Savable & EventSender
             irrelevant = {obj.STRUCT_STATUS_NOT_SAVED, obj.STRUCT_STATUS_NOTHING};
             
             if any(strcmp(obj.mLocalStructStatus, irrelevant))
-                obj.sendWarning('Can''t load next - no file has been loaded, so there''s no next file!');
+                obj.sendError('Can''t load next - no file has been loaded, so there''s no next file!');
                 return
             end
             currentFileFullPath = obj.mLoadedFileFullPath;
@@ -502,8 +518,7 @@ classdef SaveLoad < Savable & EventSender
             folder = obj.mLoadingFolder;
             allFiles = PathHelper.getAllFilesInFolder(folder, obj.SAVE_FILE_SUFFIX);
             if isempty(allFiles)
-                obj.sendWarning('Empty folder - can''t load file!');
-                return
+                obj.sendError('Empty folder - can''t load file!');
             end
             
             ispresent = cellfun(@(string) strcmp(currentFileFullPath, string), allFiles);
@@ -516,8 +531,7 @@ classdef SaveLoad < Savable & EventSender
             end
             
             if fileIndex == length(allFiles)
-                obj.sendWarning('Last file is loaded - next file has not been created (yet)!');
-                return;
+                obj.sendError('Last file is loaded - next file has not been created (yet)!');
                 % todo dependent property 'can load next' and 'can load previous'
                 % ONE_DAY
             end
@@ -529,12 +543,12 @@ classdef SaveLoad < Savable & EventSender
                     return
                 end
             end
-            obj.sendWarning('Can''t load next - none of the following files is loadable.');
+            obj.sendError('Can''t load next - none of the following files is loadable.');
             
         end
         
         function loadLastFile(obj)
-            % load the last file in the folder of this loaded file
+            % Load the last file in the folder of this loaded file
             % go through the files in the folder, until finding some file
             % that matches the terms:
             %        @ finishes with '.mat'
@@ -543,8 +557,7 @@ classdef SaveLoad < Savable & EventSender
             disp(folder)
             allFiles = PathHelper.getAllFilesInFolder(folder, obj.SAVE_FILE_SUFFIX);
             if isempty(allFiles)
-                obj.sendWarning('Empty folder, can''t load file!');
-                return
+                obj.sendError('Empty folder, can''t load file!');
             end
             
             start = length(allFiles);
@@ -557,45 +570,58 @@ classdef SaveLoad < Savable & EventSender
                     return
                 end
             end
-            obj.sendWarning('This folder has not even ONE file good enough to load.\nSorry!');
+            obj.sendError('This folder has not even ONE file good enough to load.\nSorry!');
             
         end
         
         function deleteCurrentFile(obj)
-            % deletes the current file and cleans the struct
+            % Deletes the current file and cleans the struct
             
             illegalStates = {obj.STRUCT_STATUS_NOT_SAVED, obj.STRUCT_STATUS_NOTHING};
             if any(strcmp(obj.mLocalStructStatus, illegalStates))
-                obj.sendWarning('Can''t delete file - not yet saved! ignoring');
-                return
+                obj.sendError('Can''t delete file - not yet saved! Ignoring');
             end
             
             if ~ischar(obj.mLoadedFileFullPath)
                 % check that obj.mLoadedFileFullPath is even present
-                % obj.mLoadedFileFullPath gets fullfilled in
+                % obj.mLoadedFileFullPath obtains value in
                 % obj.saveLocalStructToFile() and in obj.loadFileToLocal()
                 
-                obj.sendWarning('Can''t delete file - no file saved! ignoring');
-                return
+                obj.sendError('Can''t delete file - no file saved! Ignoring');
             end
             
             if ~PathHelper.isFileExists(obj.mLoadedFileFullPath)
-               obj.sendWarning(sprintf('Can''t delete file - file does not exist! Ignoring\n(file name: %s)', obj.mLoadedFileFullPath));
-                return
-            end 
+                obj.sendError(sprintf('Can''t delete file - file does not exist! Ignoring\n(file name: %s)', obj.mLoadedFileFullPath));
+            end
+            
+            % When a file is deleted, try loading an available file from
+            % the current folder: first try previous, then try next. 
+            % If all else fails, clear struct
             
             fullPath = obj.mLoadedFileFullPath;
             delete(fullPath);
-            obj.mLoadedFileFullPath = NaN;
-            obj.mLoadedFileName = NaN;
-            obj.mLocalSaveStruct = NaN;
-            obj.mLocalStructStatus = obj.STRUCT_STATUS_NOTHING;
             
-            structEvent = struct();
-            structEvent.file_full_path = fullPath;
-            structEvent.(SaveLoad.EVENT_DELETE_FILE_SUCCESS) = true;
-            structEvent.(obj.EVENT_STATUS_LOCAL_STRUCT) = obj.mLocalStructStatus;
-            obj.sendEvent(structEvent);
+            % We need to decide what should be the next local struct
+            try
+                obj.loadPreviousFile;
+            catch   % Could not find any previous file
+                try
+                    obj.loadNextFile;
+                catch % Could not find any next file, either
+                    
+                    % Tell user what's going on
+                    folder = obj.mLoadingFolder;
+                    allFiles = PathHelper.getAllFilesInFolder(folder, obj.SAVE_FILE_SUFFIX);
+                    if isempty(allFiles)
+                        obj.sendWarning('Congratulations! The folder is now empty.');
+                    else
+                        obj.sendWarning('Congartulations! You have removed all loadable filed from the folder.');
+                    end
+                    
+                    % "Load" an empty struct
+                    obj.clearLocal;
+                end
+            end
         end
     end
     
@@ -610,10 +636,10 @@ classdef SaveLoad < Savable & EventSender
         end
         
         function loadedStruct = tryLoadingStruct(obj, fileFullPath, shouldSendErrors)
-            % try to load a struct from a file
+            % Try to load a struct from a file
             %
             % fileFullPath - string. the full path
-            % shouldSendErrors - boolean. if true, errors will be sent via
+            % shouldSendErrors - boolean. If true, errors will be sent via
             %                    obj.sendWarning()
             %
             % returns - the loaded struct if succeeded, NaN if failed
