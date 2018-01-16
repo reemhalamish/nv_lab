@@ -4,19 +4,21 @@ classdef ViewTrackablePosition < ViewTrackable
     
     properties (SetAccess = protected)
         trackableName = Tracker.TRACKABLE_POSITION_NAME;
-        stageAxes       % The axes of the stage this trackable uses
         
-        tvCurPos        % Shows the current position of the stage
+        stageAxes       % string. The axes of the stage this trackable uses
+        tvStageName     % text-view. Shows the name of the current stage
+        tvCurPos        % text-view. Shows the current position of the stage
     end
     
     properties
-        edtStepSize
-        edtNumStep
+        edtStepSize     % edit-input. Controls minimum step size
+        edtNumStep      % edit-input. Maximum number of steps before giving up
+        edtLaserPower   % edit-input. Power of green laser
     end
     
     properties (Constant)
         BOTTOM_LABEL1 = 'time [sec]';
-        LEFT_LABEL1 = sprintf('%s(position) %s',StringHelper.DELTA,StringHelper.MICRON);
+        LEFT_LABEL1 = sprintf('%s(position) %s', StringHelper.DELTA, StringHelper.MICRON);
         BOTTOM_LABEL2 = 'time [sec]';
         LEFT_LABEL2 = 'kpcs'
     end
@@ -38,32 +40,49 @@ classdef ViewTrackablePosition < ViewTrackable
             oneForEachAxis = ones(1, axesLen); % might change, depending on the stage
             
             %%%% Fill input parameter panel %%%%
-            longLabelWidth = 130;
+            longLabelWidth = 120;
             shortLabelWidth = 80;
             lineHeight = 30;
+            heights = [lineHeight*ones(1,4) -1];
             
-            vboxInput = uix.VBox('Parent', obj.panelInput, 'Spacing', 5, 'Padding', 5);
-            % Number of steps
-            hboxNumStep = uix.HBox('Parent', vboxInput, 'Spacing', 0, 'Padding', 0);
-            uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxNumStep, 'String', 'Max # of steps');
-            obj.edtNumStep = uicontrol(obj.PROP_EDIT{:}, ...
-                'Parent', hboxNumStep, ...
-                'Callback', @obj.edtNumStepCallback);
-            hboxNumStep.Widths = [longLabelWidth -1];
-            % Step size
-            hboxStepSize = uix.HBox('Parent', vboxInput, 'Spacing', 0, 'Padding', 0);
-            uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxStepSize, ...
+            hboxInput = uix.HBox('Parent', obj.panelInput, 'Spacing', 5, 'Padding', 5);
+            
+            vboxLabels = uix.VBox('Parent', hboxInput, 'Spacing', 5, 'Padding', 0);
+            uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels, 'String', 'Tracked Stage');
+            uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels, 'String', 'Max # of steps');
+            uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels, ...
                 'String', 'Initial Step Size');
-            obj.edtStepSize = gobjects(1, axesLen);
-            for i = 1:axesLen
-                obj.edtStepSize(i) = uicontrol(obj.PROP_EDIT{:}, ...
-                    'Parent', hboxStepSize, ...
-                    'Callback', @obj.edtStepSizeCallback);
-            end
-            hboxStepSize.Widths = [longLabelWidth -oneForEachAxis];
+            uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels, ...
+                'String', 'Laser Power')
+            uix.Empty('Parent', vboxLabels);
+            vboxLabels.Heights = heights;
+            
+            vboxValues = uix.VBox('Parent', hboxInput, 'Spacing', 5, 'Padding', 0);
+            obj.tvStageName = uicontrol(obj.PROP_TEXT_BIG{:}, ...
+                'Parent', vboxValues);   % todo: when there is more than one scannable stage, this should be a dropdown box
+            obj.edtNumStep = uicontrol(obj.PROP_EDIT{:}, ...
+                'Parent', vboxValues, ...
+                'Callback', @obj.edtNumStepCallback);
+            hboxStepSize = uix.HBox('Parent', vboxValues, 'Spacing', 5, 'Padding', 0);
+                obj.edtStepSize = gobjects(1, axesLen);
+                for i = 1:axesLen
+                    obj.edtStepSize(i) = uicontrol(obj.PROP_EDIT{:}, ...
+                        'Parent', hboxStepSize, ...
+                        'Callback', @obj.edtStepSizeCallback);
+                end
+                hboxStepSize.Widths = -oneForEachAxis;
+            hboxLaserPower = uix.HBox('Parent', vboxValues, 'Spacing', 5, 'Padding', 0);
+                obj.edtLaserPower = uicontrol(obj.PROP_EDIT{:}, ...
+                    'Parent', hboxLaserPower, ...
+                    'Callback', @obj.edtLaserPowerCallback);
+                uicontrol(obj.PROP_TEXT_NO_BG{:}, 'Parent', hboxLaserPower, ...
+                    'String', '%');
+                hboxLaserPower.Widths = [-1 10];
+            uix.Empty('Parent', vboxValues);
 
-            uix.Empty('Parent', vboxInput);
-            vboxInput.Heights = [lineHeight lineHeight -1];
+            vboxValues.Heights = heights;
+
+            hboxInput.Widths = [longLabelWidth -1];
             
             %%%% Fill tracked parameter panel %%%%
             gridTracked = uix.Grid('Parent', obj.panelTracked, 'Spacing', 5, 'Padding', 5);
@@ -77,26 +96,40 @@ classdef ViewTrackablePosition < ViewTrackable
             end
             set(gridTracked, 'Widths', [shortLabelWidth -1], 'Heights', -oneForEachAxis );
             
-            obj.refresh;
+            obj.refreshUponStageChange;     % technically, not "refresh", but is needed @init.
         end
 
         function refresh(obj)
             trackablePos = getExpByName(obj.trackableName);
             stage = getObjByName(trackablePos.mStageName);
-            obj.stageAxes = stage.availableAxes;
-            currentPos = stage.Pos(obj.stageAxes);
+            laserGate = getObjByName(trackablePos.mLaserName);
             
             % If tracking is being performed, Start/Stop should be "Stop"
             % and reset should be disabled
             obj.btnStartStopChangeMode(obj.btnStartStop, trackablePos.isCurrentlyTracking)
             obj.btnReset.Enable = BooleanHelper.boolToOnOff(~trackablePos.isCurrentlyTracking);
             
+            obj.cbxContinuous.Value = trackablePos.isRunningContinuously;
             obj.edtNumStep.String = trackablePos.NUM_MAX_ITERATIONS; %change this in the future
+            obj.edtLaserPower.String = laserGate.laser.currentValue;
+            
+            currentPos = stage.Pos(obj.stageAxes);
             axesLen = length(obj.stageAxes);
             for i = 1:axesLen
+                obj.tvCurPos(i).String = StringHelper.formatNumber(currentPos(i));
                 obj.edtStepSize(i).String = trackablePos.INITIAL_STEP_VECTOR(i); %change this in the future
-                obj.tvCurPos(i).String = currentPos(i);
             end
+        end
+        
+        function refreshUponStageChange(obj)
+            % "Under the hood"
+            trackablePos = getExpByName(obj.trackableName);
+            stage = getObjByName(trackablePos.mStageName);
+            obj.stageAxes = stage.availableAxes;
+            
+            % On display
+            obj.tvStageName.String = trackablePos.mStageName;
+            obj.refresh;
         end
         
         function draw(obj, history)
@@ -119,8 +152,11 @@ classdef ViewTrackablePosition < ViewTrackable
                 obj.tvCurPos(i).String = num2str(currentPos(i));
             end
         end
-        
-        % Callbacks
+    end
+    
+    %% Callbacks
+    methods
+        % From parent class
         function btnStartCallback(obj, ~, ~)
             trackablePos = getExpByName(obj.trackableName);
             try
@@ -155,9 +191,11 @@ classdef ViewTrackablePosition < ViewTrackable
             obj.btnStartStopChangeMode(obj.btnStartStop, trackablePos.isCurrentlyTracking);
             obj.btnReset.Enable = BooleanHelper.boolToOnOff(~trackablePos.isCurrentlyTracking);
         end
-        function btnSaveCallback(obj, ~, ~) %#ok<INUSD>
-            
+        function btnSaveCallback(obj, ~, ~)
+            obj.showMessage('Unfortunately, saving is not yet implemented. Sorry...');
         end
+        
+        % Unique to class
         function edtStepSizeCallback(obj, ~, ~)
             obj.showMessage('Requested action is not available yet. Reverting.');
             obj.refresh;
@@ -165,6 +203,11 @@ classdef ViewTrackablePosition < ViewTrackable
         function edtNumStepCallback(obj, ~, ~)
             obj.showMessage('Requested action is not available yet. Reverting.');
             obj.refresh;
+        end
+        function edtLaserPowerCallback(obj, ~, ~)
+            trackablePos = getExpByName(obj.trackableName);
+            laserGate = getObjByName(trackablePos.mLaserName);
+            laserGate.laser.setNewValue(obj.edtLaserPower.String);
         end
     end
     
@@ -174,21 +217,25 @@ classdef ViewTrackablePosition < ViewTrackable
         % event is the event sent from the EventSender
         function onEvent(obj, event)
             creator = event.creator;
-            if isprop(creator, 'expName') && strcmp(creator.expName, obj.trackableName)
-                trackablePos = creator;
+            if ~isprop(creator, 'expName') || ~strcmp(creator.expName, obj.trackableName)
+                return
+            end
+            
+            trackablePos = creator;
+            if isfield(event.extraInfo, trackablePos.EVENT_TRACKABLE_EXP_UPDATED)
+                history = trackablePos.convertHistoryToStructToSave;
+                obj.draw(history);
+                obj.refresh;
+            elseif isfield(event.extraInfo, trackablePos.EVENT_TRACKABLE_EXP_ENDED)
+                obj.refresh;
+                obj.showMessage(event.extraInfo.text);
+            elseif isfield(event.extraInfo, trackablePos.EVENT_CONTINUOUS_TRACKING_CHANGED)
+                obj.refresh;
+            elseif isfield(event.extraInfo, trackablePos.obj.EVENT_STAGE_CHANGED)
                 
-                if isfield(event.extraInfo, creator.EVENT_TRACKABLE_EXP_UPDATED)
-                    history = trackablePos.convertHistoryToStructToSave;
-                    obj.draw(history);
-                    obj.refresh;
-                elseif isfield(event.extraInfo, creator.EVENT_TRACKABLE_EXP_ENDED)
-                    obj.refresh;
-                    obj.showMessage(event.extraInfo.text);
-                elseif event.isError
-                    errorMsg = event.extraInfo.(Event.ERROR_MSG);
-                    obj.showMessage(errorMsg);
-                end
-
+            elseif event.isError
+                errorMsg = event.extraInfo.(Event.ERROR_MSG);
+                obj.showMessage(errorMsg);
             end
         end
     end

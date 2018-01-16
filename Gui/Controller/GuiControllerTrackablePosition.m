@@ -2,9 +2,6 @@ classdef GuiControllerTrackablePosition < GuiController
     %GUICONTROLLERTRACKABLEPOSITION Gui Controller for position tracking.
     %To be united into controller for the tracker as a whole
     
-    properties
-    end
-       
     methods
         function obj = GuiControllerTrackablePosition()
             Setup.init;
@@ -19,25 +16,25 @@ classdef GuiControllerTrackablePosition < GuiController
             % This function should get the main View of this GUI.
             % It can call any view constructor with the params:
             % parent=figureWindowParent, controller=obj
-
-            % For trackables we need to first create a working experiment,
-            % if needed
-            try
-                getExpByName(Tracker.TRACKABLE_POSITION_NAME)
-            catch
-                stageName = 'stage fine';
-                laserName = '';
-                TrackablePosition(stageName,laserName);
-            end
             
+            % By this stage we assume the position trackable has already
+            % been initiated, and need no further checking
             view = ViewTrackablePosition(figureWindowParent, obj);
         end
         
         function onAboutToStart(obj)
-            % callback. things to run right before the window will be drawn
+            % callback. Things to run right before the window will be drawn
             % to the screen.
             % child classes can override this method
             obj.moveToMiddleOfScreen();
+        end
+        
+        function onStarted(obj)
+            % callback. Things to run after the window is already started
+            % and running.
+            % child classes can override this method
+            view = obj.views{:};
+            view.refresh;
         end
         
         function onSizeChanged(obj, newX0, newY0, newWidth, newHeight) %#ok<INUSD>

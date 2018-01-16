@@ -4,7 +4,7 @@ classdef TrackablePosition < Trackable
     % The class uses a simple algorithm to counter mechanical drift
     % of the stage
     
-    % Maybe inherit from StageScanner???
+    % Maybe inherit from StageScanner??? or vice versa?
     properties (SetAccess = private)
         stepNum = 0;	% int. Steps since beginning of tracking
         currAxis = 1;   % int. Numerical value of currently scanned axis (1 for X, etc.)
@@ -12,15 +12,19 @@ classdef TrackablePosition < Trackable
         mSignal
         mScanParams     % Object of class StageScanParams, to store current running scan
         stepSize        % 3x1 double. Holds the current size of position step
-        
+    end
+    
+    properties % have setters
         mStageName
         mLaserName
     end
     
     properties (Constant)
+        EVENT_STAGE_CHANGED = 'stageChanged'
+        
         THRESHOLD_FRACTION = 0.02;  % Change is significant if dx/x > threshold fraction
-        NUM_MAX_ITERATIONS = 100;   % After that many steps, convergence is improbable
-        DETECTION_DURATION = 0.1 ;  % in seconds
+        NUM_MAX_ITERATIONS = 120;   % After that many steps, convergence is improbable
+        PIXEL_TIME = 0.1 ;  % in seconds
         
         % vector constants, for [X Y Z]
         INITIAL_STEP_VECTOR = [0.1 0.1 0.2];    %[0.1 0.1 0.05];
@@ -34,23 +38,24 @@ classdef TrackablePosition < Trackable
     end
     
     methods
-        function obj = TrackablePosition(stageName,laserName)
+        function obj = TrackablePosition(stageName)
             expName = Tracker.TRACKABLE_POSITION_NAME;
             obj@Trackable(expName);
             obj.mStageName = stageName;
-            obj.mLaserName = laserName;
+            obj.mLaserName = LaserPartAbstract.GREEN_LASER_NAME;
             
             obj.mScanParams = StageScanParams;
         end
 
         function start(obj)
-            %%%% initialize %%%%
+            %%%% Initialize %%%%
             obj.resetAlgorithm;
             obj.isCurrentlyTracking = true;
             stage = getObjByName(obj.mStageName);
             spcm = getObjByName(Spcm.NAME);
             spcm.setSPCMEnable(true);
-            % todo: if laser is off, turn it on
+            laser = getObjByName(obj.mLaserName);
+            try laser.setEnabled('true'); catch; end    % If it fails, it means that laser is already on
             
             %%%% Get initial position and signal value, for history %%%%
             % Set parameters for scan
@@ -61,7 +66,6 @@ classdef TrackablePosition < Trackable
             scanner = StageScanner.init;
             if ~ischar(scanner.mStageName) || ~strcmp(scanner.mStageName,obj.mStageName)
                 scanner.switchTo(obj.mStageName)
-                EventStation.anonymousWarning('Changing scanning stage!')
             end
             
 %             obj.mSignal = scanner.scanPoint(stage, spcm, sp);
@@ -110,17 +114,31 @@ classdef TrackablePosition < Trackable
             end
         end
     end
-        
-    methods (Access = private)
-        function intialize(obj)
-            obj.reset;
-%             stage = getObjByName(obj.stageName);    
+    
+    %% setters
+    methods
+        function set.mStageName(obj,newStageName)
+            if ~strcmp(obj.mStageName,newStageName)     % MATLAB doc says this check is done internally, but we don't count on it
+                if obj.isCurrentlyTracking
+                    obj.sendWarning('Can''t switch stage while tracking. Try again later.')
+                else
+                    obj.mStageName = newStageName;
+                    obj.sendEvent(struct(obj.EVENT_STAGE_CHANGED,true));
+                end
+            end
         end
         
-        function bool = isDivergent(obj)
+    end
+        
+    methods (Access = private)
+        function initialize(obj)
+            obj.reset;   
+        end
+        
+        function tf = isDivergent(obj)
             % If we arrive at the maximum number of iterations, we assume
             % the tracking sequence will not converge, and we stop it
-            bool = (obj.stepNum >= obj.NUM_MAX_ITERATIONS);
+            tf = (obj.stepNum >= obj.NUM_MAX_ITERATIONS);
         end
         
         function recordCurrentState(obj)
@@ -146,8 +164,8 @@ classdef TrackablePosition < Trackable
     end
     
     methods (Static)
-        function bool = isDifferenceAboveThreshhold(x0, x1)
-            bool = (x0-x1) > TrackablePosition.THRESHOLD_FRACTION;
+        function tf = isDifferenceAboveThreshhold(x0, x1)
+            tf = (x0-x1) > TrackablePosition.THRESHOLD_FRACTION;
         end
     end
 
@@ -212,7 +230,8 @@ classdef TrackablePosition < Trackable
                         end
                     end
                     
-                    while shouldContinue && ~obj.isDivergent && ~obj.stopFlag
+                    while shouldContinue
+                        if obj.isDivergent || obj.stopFlag; return; end
                         % we are still iterating; save current position before moving on
                         obj.mSignal = newSignal;    % Save value @ best position yet
                         obj.recordCurrentState;
@@ -231,7 +250,7 @@ classdef TrackablePosition < Trackable
                     end
                     obj.stepSize(obj.currAxis) = step/2;
                 end
-                sp.isFixed(obj.currAxis) = true;    % We are done with this axis, for now
+                sp.isFixed(obj.currAxis) = true;        % We are done with this axis, for now
                 obj.currAxis = mod(obj.currAxis,3) + 1; % Cycle through [1 2 3]
             end
         end

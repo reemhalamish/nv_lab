@@ -18,6 +18,7 @@ classdef (Abstract) Trackable < Experiment
     properties (Constant)
         EVENT_TRACKABLE_EXP_ENDED = 'TrackableExperimentFinished'
         EVENT_TRACKABLE_EXP_UPDATED = 'TrackableExperimentUpdated'
+        EVENT_CONTINUOUS_TRACKING_CHANGED = 'continuousTrackingChanged'
     end
     
     properties (Constant, Abstract)
@@ -59,12 +60,21 @@ classdef (Abstract) Trackable < Experiment
         end
         
         function t = myToc(obj)
+            % By using this function we get time 0 for the beginning of
+            % tracking (maybe usable by other experiments as well)
             try
                 t = toc(obj.timer);
             catch
                 t = 0;
                 obj.timer = tic;
             end
+        end
+    end
+    
+    methods %setters
+        function set.isRunningContinuously(obj,newValue)
+            obj.isRunningContinuously = newValue;
+            obj.sendEvent(struct(obj.EVENT_CONTINUOUS_TRACKING_CHANGED,true));
         end
     end
     
@@ -91,13 +101,13 @@ classdef (Abstract) Trackable < Experiment
        % value of each of obj.HISTORY_FIELDS), and add it to obj.mHistory
     end
     
-    %% overridden from EventListener
-    methods
-        % When events happen, this function jumps.
-        % event is the event sent from the EventSender
-        function onEvent(obj, event) %#ok<INUSD>
-        end
-    end
+%     %% overridden from EventListener
+%     methods
+%         % When events happen, this function jumps.
+%         % event is the event sent from the EventSender
+%         function onEvent(obj, event) %#ok<INUSD>
+%         end
+%     end
     
 end
 

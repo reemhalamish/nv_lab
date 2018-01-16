@@ -28,14 +28,25 @@ classdef Tracker < EventSender & EventListener & Savable
             obj@EventListener(Tracker.TRACKABLE_EXPERIMENTS_NAME);
         end
         
-        function startTrackable(obj,name)
-            switch name
-                case obj.TRACKABLE_POSITION_NAME
-                    TrackablePosition;
-                otherwise
-                    disp('This should not happen')
+        function startTrackable(obj, name, varargin)
+            % todo: GuiControllerTracker(name)
+                % Tracker should be a multi-tab window. We want it to open and
+                % switch to the relevant tab
+            try
+                exp = getExpByName(name);
+            catch
+                switch name
+                    case obj.TRACKABLE_POSITION_NAME
+                        % If this is the case, calling the function should
+                        % have included stage- and laser-name
+                        stageName = varargin{1};
+                        laserName = varargin{2};
+                        exp = TrackablePosition(stageName);
+                    otherwise
+                        disp('This should not have happenned')
+                end
             end
-            % todo: open Tracker GUI, if it is not already open
+            exp.start;
         end
     end
     
