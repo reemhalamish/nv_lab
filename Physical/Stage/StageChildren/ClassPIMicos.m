@@ -534,7 +534,7 @@ classdef ClassPIMicos < ClassStage
             end
             timer = tic;
             timeout = 30; % 30 second timeout
-            wait = 1;
+            wait = true;
             while wait
                 drawnow % Needed in order to get input from GUI
                 if obj.forceStop % Checks if the user pressed the Halt Button

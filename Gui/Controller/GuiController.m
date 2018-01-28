@@ -7,8 +7,8 @@ classdef GuiController < handle
         windowMinHeight = 0     % will be set when starting to the mainView.height
         windowMinWidth = 0      % will be set when starting to the mainView.width
         figureWindow            % the window
-        confirmOnClose          % boolean. if should ask the user before closing
-        openOnlyOne             % boolean. if strict to open just 1 instance of this window
+        confirmOnClose          % boolean. Should we ask the user before closing?
+        openOnlyOne             % boolean. Should we restrict opening multiple instances of this window?
         startPosition = nan     % point on screen (1x2 double) or nan if not important
         windowName              % string
         screenWidth             % integer. in pixels
@@ -24,38 +24,38 @@ classdef GuiController < handle
 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             %                                                %
-            %   Copy & Paste  any one of the lines below!    %
+            %   Copy & Paste any one of the lines below!     %
             %       (Some nice callbacks lie here,           %
             %         waiting to be overridden...)           %
             %                                                %
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    %     %% various callbacks to be overriden if needed
+    %     %% Various callbacks to be overriden if needed
     %     methods
     %         function onAboutToStart(obj)
-    %             % callback. Things to run right before the window is
+    %             % Callback. Things to run right before the window is
     %             % drawn on the screen.
-    %             % child classes can override this method
+    %             % Child classes can override this method
     %         end
     %
     %         function onStarted(obj)
-    %             % callback. Things to run after the window is already
+    %             % Callback. Things to run after the window is already
     %             % started and running.
-    %             % child classes can override this method
+    %             % Child classes can override this method
     %         end
     %         function onSizeChanged(obj, newX0, newY0, newWidth, newHeight)
-    %             % callback. Things to run when the window size is changed
-    %             % child classes can override this method
+    %             % Callback. Things to run when the window size is changed
+    %             % Child classes can override this method
     %         end
     %
     %         function bool = onAboutToclose(obj)
-    %             % callbcak. Things to run before closing. Returns true to close,
+    %             % Callbcak. Things to run before closing. Returns true to close,
     %             % or false to abort closing
     %             bool = true;
     %         end
     %         function onClose(obj)
-    %             % callback. Things to run when need to close the GUI.
-    %             % child classes can override this method
+    %             % Callback. Things to run when need to close the GUI.
+    %             % Child classes can override this method
     %         end
     %     end
     
@@ -68,7 +68,7 @@ classdef GuiController < handle
             obj.openOnlyOne = openOnlyOne;
         end
 		
-		% start running the GUI window
+		% Start running the GUI window
         function start(obj)
             openAlready = GuiController.findOpenOrNan(obj.windowName);
             if obj.openOnlyOne && isobject(openAlready)
@@ -103,23 +103,23 @@ classdef GuiController < handle
         
     end
     
-    %% various callbacks to be overriden if needed
+    %% Various callbacks to be overriden if needed
     methods
         function onAboutToStart(obj)
             % Callback. Things to run right before the window will be drawn
             % to the screen.
-            % child classes can override this method
+            % Child classes can override this method
         end
         
         function onStarted(obj)
             % Callback. Things to run after the window is already started
             % and running.
-            % child classes can override this method
+            % Child classes can override this method
         end
         
         function onSizeChanged(obj, newX0, newY0, newWidth, newHeight)
             % Callback. Things to run when the window size is changed
-            % child classes can override this method
+            % Child classes can override this method
         end
         
         function tf = onAboutToclose(obj)
@@ -130,7 +130,7 @@ classdef GuiController < handle
         
         function onClose(obj)
             % Callback. Things to run when need to close the GUI.
-            % child classes can override this method
+            % Child classes can override this method
         end
     end
     
@@ -216,11 +216,11 @@ classdef GuiController < handle
             obj.figureWindow.Position = [newX0 newY0 fWidth fHeight];
         end
         
-		% cCeate a new figure (window) to place the GUI inside
+		% Create a new figure (window) to place the GUI inside
         function figureWindow = createNewFigureInvis(obj)
             % The figure is invisible when created, so that it will take
             % less time to load it (changing strings inside, etc.).
-            % only when it's ready, someone will need to call -
+            % Only when it's ready, someone will need to call -
             % figureWindow.Visible = 'on'
             if isnan(obj.startPosition)
                 startPos = [50 50];

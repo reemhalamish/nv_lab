@@ -1,9 +1,9 @@
-classdef LaserDummy < LaserPartAbstract
-    %LASERDUMMY dummy laser in which everything works
+classdef LaserSourceDummy < LaserPartAbstract
+    %LASERSOURCEDUMMY dummy laser in which everything works
     
     methods
         % constructor
-        function obj = LaserDummy(name)
+        function obj = LaserSourceDummy(name)
             obj@LaserPartAbstract(name);
             obj.initLaserPart();
         end

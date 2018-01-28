@@ -1,5 +1,5 @@
-classdef LaserLaserPhysicalFactory
-    %LASERLASERPHYSICSFACTORY creates the laser part for a laser
+classdef LaserSourcePhysicalFactory
+    %LASERSOURCEPHYSICSFACTORY creates the source part for a laser
     %   has only one method: createFromStruct()
     
     properties(Constant)
@@ -13,7 +13,7 @@ classdef LaserLaserPhysicalFactory
                 return
             end
             
-            missingField = FactoryHelper.usualChecks(struct, LaserLaserPhysicalFactory.NEEDED_FIELDS);
+            missingField = FactoryHelper.usualChecks(struct, LaserSourcePhysicalFactory.NEEDED_FIELDS);
             if ~isnan(missingField)
                 error(...
                     'Trying to create a laser part for laser "%s", encountered missing field - "%s". Aborting',...
@@ -24,7 +24,7 @@ classdef LaserLaserPhysicalFactory
             
             switch(lower(struct.classname))
                 case 'dummy'
-                    laserPhysicalPart = LaserDummy(partName);
+                    laserPhysicalPart = LaserSourceDummy(partName);
                     return
                 otherwise
                     error('Can''t create a %s-class laser part for laser "%s" - unknown classname! Aborting.', struct.classname, name);

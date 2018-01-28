@@ -72,7 +72,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             obj.edtCurPos = gobjects(1, axesLen);
             obj.hboxCurPos = gobjects(1, axesLen);
             obj.edtCurPosValue = inf * ones(1, axesLen);
-            canScan = stage.isScanable;
+            canScan = stage.isScannable;
             % ^ We want a local copy of this value 
             for i = 1: axesLen
                 obj.hboxCurPos(i) = uix.HBox('Parent', gridLeftSide, 'Padding', 0, 'Spacing', 0);

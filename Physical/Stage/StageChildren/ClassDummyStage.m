@@ -38,18 +38,18 @@ classdef (Sealed) ClassDummyStage  < ClassStage
             if isempty(localObj) || ~isvalid(localObj)
                 name = 'stage dummy';
                 availableAxes = ClassStage.SCAN_AXES;
-                isScanable = true;
+                isScnanable = true;
                 tiltAvailable = true;
-                localObj = ClassDummyStage(name, availableAxes, isScanable, tiltAvailable);
+                localObj = ClassDummyStage(name, availableAxes, isScnanable, tiltAvailable);
             end
             obj = localObj;
         end
     end
     
     methods
-       function obj = ClassDummyStage(name, availableAxes, isScanable, tiltAvailable)
+       function obj = ClassDummyStage(name, availableAxes, isScannable, tiltAvailable)
             obj@ClassStage(name, availableAxes);
-            if isScanable
+            if isScannable
                 obj.availableProperties.(obj.HAS_FAST_SCAN) = true;
                 obj.availableProperties.(obj.HAS_SLOW_SCAN) = true;
             end

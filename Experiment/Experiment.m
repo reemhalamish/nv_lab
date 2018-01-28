@@ -78,8 +78,8 @@ classdef Experiment < EventSender & EventListener & Savable
             delete(prevExperiment);
         end
         
-        function delete(obj)
-            % todo needed? 
+        function delete(obj) %#ok<INUSD>
+            % todo: needed? 
         end
     end
     
@@ -87,7 +87,7 @@ classdef Experiment < EventSender & EventListener & Savable
     %% overridden from EventListener
     methods
         % When events happen, this function jumps.
-        % event is the event sent from the EventSender
+        % Event is the event sent from the EventSender
         function onEvent(obj, event) %#ok<INUSL>
             if isfield(event.extraInfo, Tracker.EVENT_TRACKER_ENDED)
                 % todo - stuff
@@ -98,7 +98,7 @@ classdef Experiment < EventSender & EventListener & Savable
     
     %% overriding from Savable
     methods(Access = protected)
-        function outStruct = saveStateAsStruct(obj, category, type) %#ok<*MANU>
+        function outStruct = saveStateAsStruct(obj, category, type) %#ok<INUSD>
             % Saves the state as struct. if you want to save stuff, make
             % (outStruct = struct;) and put stuff inside. If you dont
             % want to save, make (outStruct = NaN;)
@@ -116,7 +116,7 @@ classdef Experiment < EventSender & EventListener & Savable
             
         end
         
-        function loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<*INUSD>
+        function loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<INUSD>
             % loads the state from a struct.
             % to support older versoins, always check for a value in the
             % struct before using it. view example in the first line.
@@ -132,7 +132,7 @@ classdef Experiment < EventSender & EventListener & Savable
             end
         end
         
-        function string = returnReadableString(obj, savedStruct)
+        function string = returnReadableString(obj, savedStruct) %#ok<INUSD>
             % return a readable string to be shown. if this object
             % doesn't need a readable string, make (string = NaN;) or
             % (string = '');

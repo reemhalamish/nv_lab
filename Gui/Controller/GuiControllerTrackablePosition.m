@@ -18,19 +18,19 @@ classdef GuiControllerTrackablePosition < GuiController
             % parent=figureWindowParent, controller=obj
             
             % By this stage we assume the position trackable has already
-            % been initiated, and need no further checking
+            % been initiated, and needs no further checking
             view = ViewTrackablePosition(figureWindowParent, obj);
         end
         
         function onAboutToStart(obj)
-            % callback. Things to run right before the window will be drawn
+            % Callback. Things to run right before the window will be drawn
             % to the screen.
             % child classes can override this method
             obj.moveToMiddleOfScreen();
         end
         
         function onStarted(obj)
-            % callback. Things to run after the window is already started
+            % Callback. Things to run after the window is already started
             % and running.
             % child classes can override this method
             view = obj.views{:};
@@ -42,6 +42,12 @@ classdef GuiControllerTrackablePosition < GuiController
             % child classes can override this method
             view = obj.views{:};
             view.legend1.Location = 'northwest';
+        end
+        
+        function onClose(obj)
+            % Callback. Things to run when need to close the GUI.
+            % Child classes can override this method
+            
         end
 
     end

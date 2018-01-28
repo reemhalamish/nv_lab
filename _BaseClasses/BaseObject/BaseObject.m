@@ -48,7 +48,7 @@ classdef BaseObject < HiddenMethodsHandle & PropertiesDisplaySorted
         
     end
     
-    methods(Static = true, Access = public, Hidden = true) % Change this in working copy!!!!!!
+    methods(Static = true, Access = public, Hidden = true) % Change "public" in working copy!!!!!!
         function objectMap = allObjects
             persistent allObjectsMap
             if isempty(allObjectsMap)

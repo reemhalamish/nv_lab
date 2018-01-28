@@ -10,6 +10,9 @@ classdef EventSender < BaseObject
     %                                                       %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
+    properties (Constant)
+        ERROR_MESSAGE_PHYSICAL = 'Something in the real world just crashed. Sorry'
+    end
     
     methods(Access = protected)
         function obj = EventSender(name)
@@ -59,7 +62,7 @@ classdef EventSender < BaseObject
         end
         
         function sendErrorRealWorld(obj)
-            obj.sendError('Something in the real world just crashed. Sorry');
+            obj.sendError(obj.ERROR_MESSAGE_PHYSICAL);
         end
     end
 end

@@ -28,7 +28,7 @@ classdef ViewStagePanelTiltCorrection < GuiComponent & EventListener
             
             
             %%%% panel init %%%%
-            panelMain = uix.Panel('Parent', parent.component,'Title','Tilt Correction', 'Padding', 5);
+            panelMain = uix.Panel('Parent', parent.component, 'Title', 'Tilt Correction', 'Padding', 5);
             %%%% tilt correction %%%%
             
             gridTilt = uix.Grid('Parent', panelMain, 'Spacing', 5);

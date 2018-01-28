@@ -58,7 +58,7 @@ classdef(Abstract) Spcm < EventSender
             
             switch (lower(spcmTypeStruct.classname))
                 case 'nidaq'
-                    spcmObject = NiDaqControlledSpcm.create(Spcm.NAME, spcmTypeStruct);
+                    spcmObject = SpcmNiDaqControlled.create(Spcm.NAME, spcmTypeStruct);
                 case 'dummy'
                     spcmObject = SpcmDummy();
                 otherwise

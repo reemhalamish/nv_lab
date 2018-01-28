@@ -11,13 +11,13 @@ classdef ViewStage < ViewVBox
         function obj = ViewStage(parent, controller, stage)
             vMainPanel = ViewExpandablePanel(parent, controller, stage.name);
             obj@ViewVBox(vMainPanel, controller);
-            % This needs to be redone. Was done in a hurry.
+            % This might need to be redone. Was done in a hurry.
             
             %%%% ui component init %%%%
             obj.component.Spacing = 5;
             obj.component.Padding = 5;
                         
-            if stage.isScanable
+            if stage.isScannable
                 hboxTop = ViewHBox(obj, controller, 0, 16);
                 
                 vboxTopLeft = ViewVBox(hboxTop, controller, 0, 0);

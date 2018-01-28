@@ -1,5 +1,5 @@
 classdef AomDummy < LaserPartAbstract
-    %LASERDUMMY dummy laser in which everything works
+    %AOMDUMMY dummy aom in which everything works
     
     methods
         % constructor
