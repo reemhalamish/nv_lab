@@ -1,4 +1,4 @@
-classdef StageScanner < EventSender & Savable
+classdef StageScanner < EventSender & EventListener & Savable
     %STAGESCANNER Summary of this class goes here
     %   Detailed explanation goes here
     
@@ -29,6 +29,7 @@ classdef StageScanner < EventSender & Savable
         function obj = StageScanner
             obj@EventSender(StageScanner.NAME);
             obj@Savable(StageScanner.NAME);
+            obj@EventListener(SaveLoadCatImage.NAME);
             addBaseObject(obj);
             obj.clear();
         end
@@ -51,13 +52,14 @@ classdef StageScanner < EventSender & Savable
             obj.sendEvent(struct(obj.EVENT_SCAN_STARTED, true));
         end
         function sendEventScanUpdated(obj, scanResults)
-            dimNumber = obj.getScanDimensions;
-            axis1 = obj.mStageScanParams.getFirstScanAxisVector();
-            axis2 = obj.mStageScanParams.getSecondScanAxisVector();
+            axis1 = obj.mStageScanParams.getFirstScanAxisVector;
+            axis2 = obj.mStageScanParams.getSecondScanAxisVector;
             axes = {axis1, axis2};
+            scanAxes = obj.mStageScanParams.getScanAxes;
+            stageName = obj.mStageName;
             botLabel = obj.getBottomScanLabel;
             leftLabel = obj.getLeftScanLabel;
-            extra = EventExtraScanUpdated(scanResults, dimNumber, axes, botLabel, leftLabel);
+            extra = EventExtraScanUpdated(scanResults, axes, scanAxes, stageName, botLabel, leftLabel);
             obj.sendEvent(struct(obj.EVENT_SCAN_UPDATED, extra));
         end
         
@@ -370,24 +372,24 @@ classdef StageScanner < EventSender & Savable
         end
         
         function kcpsMatrix = scan2dChunk(...
-                obj, ...  the StageScanner object
-                kcpsMatrix, ... the (helf filled maybe) scan matrix
-                spcm, ... the spcm object
-                stage, ... ths stage object to scan
-                tPixel, ... timeout per pixel
-                axisAPixelsPerLine, ... vector
-                axisBLinesPerScan, ... vector
-                axisADirectionIndex, ... index in {1, 2, 3} for "xyz"
-                axisBDirectionIndex, ... index in {1, 2, 3} for "xyz"
+                obj, ...  StageScanner object
+                kcpsMatrix, ... scan matrix (maybe partly filled)
+                spcm, ... Spcm object
+                stage, ... Stage object. to scan
+                tPixel, ... double. Timeout per pixel (in sec)
+                axisAPixelsPerLine, ... vector of double
+                axisBLinesPerScan, ... vector of double
+                axisADirectionIndex, ... integer. Index in {1, 2, 3} for "xyz"
+                axisBDirectionIndex, ... integer. Index in {1, 2, 3} for "xyz"
                 axisCPoint0, ... scalar. the zero point in the 3rd axis
                 isFastScan, ... logical
-                isFlipped, ... logical - is the matrix flipped or not
-                matrixIndexLineStart, ... the index in which to start insert lines to the matrix
-                matrixIndexLineEnd, ... the index in which to stop insert lines to the matrix
-                matrixIndexPixelInLineStart, ... the index in which to start inserting pixels to the line in the matrix
-                matrixIndexPixelInLineEnd ... the index in which to stop inserting pixels to the line in the matrix
+                isFlipped, ... logical. Is the matrix flipped or not
+                matrixIndexLineStart, ... integer. Index at which to start inserting lines to the matrix
+                matrixIndexLineEnd, ... integer. Index at which to stop inserting lines to the matrix
+                matrixIndexPixelInLineStart, ... integer. Index at which to start inserting pixels to the line in the matrix
+                matrixIndexPixelInLineEnd ... integer. Index in which to stop inserting pixels to the line in the matrix
                 )
-            % this function scans a chunk from the scan-matrix
+            % This function scans a chunk from the scan-matrix
             if length(axisAPixelsPerLine) ~= matrixIndexPixelInLineEnd - matrixIndexPixelInLineStart + 1
                 obj.sendError('Can''t scan - mismatch size of vector!')
             end
@@ -395,7 +397,7 @@ classdef StageScanner < EventSender & Savable
                 obj.sendError('Can''t scan - mismatch size of vector!')
             end
             
-            if ~obj.mCurrentlyScanning; return; end %Yoav: Will create error because no output
+            if ~obj.mCurrentlyScanning; return; end %Yoav: Will create error because no output. Nadav: or will it?
             
             % for each in {x, y, z}, it could be one of:
             % the axisA vector, the axisB vector, or the axisC point
@@ -414,10 +416,6 @@ classdef StageScanner < EventSender & Savable
                 if ~obj.mCurrentlyScanning; break; end
                 for trial = 1 : StageScanner.TRIALS_AMOUNT_ON_ERROR
                     try
-%                         isStartedLine = false;
-%                         spcm.startScanRead()
-%                         
-%                         isStartedLine = true;
                         wasScannedForward = stage.ScanNextLine();
                         % forwards - if true, the line was scanned normally,
                         %            if false - should flip the results
@@ -442,15 +440,13 @@ classdef StageScanner < EventSender & Savable
                         
                         fprintf('Line %d failed at trial %d, attempting to rescan line.\n', i, trial); %#ok<IJCL>
                         
-                        if ~isStartedLine
-                            try
-                                stage.PrepareRescanLine(); % Prepare to rescan the line
-                            catch err2
-                                stage.AbortScan();
-                                spcm.clearScanRead();
-                                rethrow(err2)
-                            end
-                        end           
+                        try
+                            stage.PrepareRescanLine(); % Prepare to rescan the line
+                        catch err2
+                            stage.AbortScan();
+                            spcm.clearScanRead();
+                            rethrow(err2)
+                        end
                     end % try catch
                 end % for trial = 1 : StageScanner.TRIALS_AMOUNT_ON_ERROR
             end % lineIndex = 1 : length(axisBLinesPerScan)
@@ -611,6 +607,26 @@ classdef StageScanner < EventSender & Savable
             else
                 axisAIndex = secondAxisIndex;
                 axisBIndex = firstAxisIndex;
+            end
+        end
+    end
+    
+    %% overridden from EventListener
+    methods
+        % When events happen, this function jumps.
+        % event is the event sent from the EventSender
+        function onEvent(obj, event)
+            % Check if event is "loaded file to SaveLoad" and need to show the image
+            if strcmp(event.creator.name, SaveLoadCatImage.NAME) ...
+                    && isfield(event.extraInfo, SaveLoad.EVENT_LOAD_SUCCESS_FILE_TO_LOCAL)
+                % Need to load the image!
+                category = Savable.CATEGORY_IMAGE;
+                subcat = Savable.SUB_CATEGORY_DEFAULT;
+                saveLoad = event.creator;
+                struct = saveLoad.getStructToSavable(obj);
+                if ~isempty(struct)
+                    obj.loadStateFromStruct(struct, category, subcat);
+                end
             end
         end
     end

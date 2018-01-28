@@ -11,6 +11,7 @@ classdef SaveLoadCatImage < SaveLoad & EventListener
             obj@SaveLoad(Savable.CATEGORY_IMAGE);
             obj@EventListener(StageScanner.NAME);
         end
+
     end
     
      %% overridden from EventListener

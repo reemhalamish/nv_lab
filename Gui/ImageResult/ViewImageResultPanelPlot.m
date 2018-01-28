@@ -5,10 +5,6 @@ classdef ViewImageResultPanelPlot < GuiComponent
         popupStyle
     end
     
-    properties (Constant = true)
-        PLOT_STYLE_OPTIONS = {'Normal', 'Equal', 'Square'};
-    end
-    
     methods
         function obj = ViewImageResultPanelPlot(parent, controller)
             obj@GuiComponent(parent, controller);
@@ -22,11 +18,11 @@ classdef ViewImageResultPanelPlot < GuiComponent
             hboxSecondLine = uix.HBox('Parent', vboxMain, ...
                 'Spacing', 5);
             uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxSecondLine, ...
-                'String', 'Plot Style:');  % label
+                'String', 'Plot Style:');
             obj.popupStyle = uicontrol(obj.PROP_POPUP{:}, ...
                 'Parent', hboxSecondLine, ...
-                'String', obj.PLOT_STYLE_OPTIONS, ...
-                'Callback', @(h,e)obj.update);
+                'String', ImageScanResult.PLOT_STYLE_OPTIONS, ...
+                'Callback', @obj.popupStyleCallback);
             uicontrol(obj.PROP_BUTTON{:}, ...
                 'Parent', vboxMain, ...
                 'String', 'Open in Figure', ...
@@ -35,22 +31,38 @@ classdef ViewImageResultPanelPlot < GuiComponent
             vboxMain.Heights = [25 -1];
             obj.height = 120;
             obj.width = 160;
+            
+            obj.update;
         end
 
         function update(obj)
-            resultImage = getObjByName(ViewImageResultImage.NAME);
-            styleName = lower(obj.PLOT_STYLE_OPTIONS{obj.popupStyle.Value});
-            axis(resultImage.vAxes,styleName)
+            % Get data from ImageScanResult, and apply on views
+            imageScanResult = getObjByName(ImageScanResult.NAME);
+            obj.popupStyle.Value = imageScanResult.plotStyle;
         end
-        
+    end
+       
+    methods (Access = private)
         %%%% Callbacks %%%%        
-        function btnOpenInFigureCallback(obj,~,~) %#ok<INUSD>
+        function btnOpenInFigureCallback(obj, ~, ~) %#ok<INUSD>
             resultImage = getObjByName(ViewImageResultImage.NAME);
             hFigure = figure;
             axes = resultImage.vAxes;
             copyobj([axes,colorbar(axes)],hFigure);
+            
+            try
+                notes = SaveLoad.getInstance(Savable.CATEGORY_IMAGE).mNotes;
+                title(notes); %set the notes as the plot's title
+            catch
+                % There are no available notes, probably
+            end
         end
         
+        function popupStyleCallback(obj, ~, ~)
+            imageScanResult = getObjByName(ImageScanResult.NAME);
+            imageScanResult.plotStyle = obj.popupStyle.Value;
+            imageScanResult.imagePostProcessing;    % Update added layer (including plot style)
+        end
     end
     
 end

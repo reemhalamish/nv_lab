@@ -13,7 +13,6 @@ classdef ViewImageResultImage < GuiComponent & EventListener & BaseObject
     end
     properties(Constant = true)
         NAME = 'ViewImageResultImage';
-        DEFAULT_COLRMAP = 'Pink';
     end
     
     methods
@@ -22,19 +21,26 @@ classdef ViewImageResultImage < GuiComponent & EventListener & BaseObject
             obj@EventListener(ImageScanResult.NAME);
             obj@BaseObject(ViewImageResultImage.NAME);
             addBaseObject(obj);
+            imageScanResult = getObjByName(ImageScanResult.NAME);
             
             obj.component = uicontainer('parent', parent.component);
             obj.vAxes = axes('Parent', obj.component, 'ActivePositionProperty', 'outerposition');
-            colormap(obj.vAxes,obj.DEFAULT_COLRMAP);
-
-            colorbar(obj.vAxes);
-            axes(); % creating floating axes() so that default calls to axes (such as image() surf() etc.) won't reach this view but the invis floating one
+            imageScanResult.addGraphicAxes(obj.vAxes);
             
-            % update the axes with a scan if exists
-            imageScanResult = getObjByName(ImageScanResult.NAME);
+            % Set colormap and colorbar
+            cMap = ImageScanResult.COLORMAP_OPTIONS{imageScanResult.colormapType};
+            colormap(obj.vAxes, cMap);
+            colorbar(obj.vAxes);
+            
+            % Creating floating axes() so that default calls to axes (such
+            % as image() surf() etc.) won't reach this view but rather the
+            % invisible floating one
+            axes();
+            
+            % Update the axes with a scan if exists
             if imageScanResult.isDataAvailable
                 obj.updateAxes(imageScanResult)
-                obj.parent.vHeader.updateAxes;  % let the other views in the header draw on the axes
+                obj.parent.vHeader.updateAxes;  % Let the other views in the header draw on the axes
             end
             
             obj.height = 600;   % minimum
@@ -62,8 +68,8 @@ classdef ViewImageResultImage < GuiComponent & EventListener & BaseObject
         % event is the event sent from the EventSender
         function onEvent(obj, event)
             if isfield(event.extraInfo, ImageScanResult.EVENT_IMAGE_UPDATED)
-                imageScanResult = getObjByName(ImageScanResult.NAME);
-                updateAxes(obj,imageScanResult);
+                imageScanResult = event.creator;
+                updateAxes(obj, imageScanResult);
             end
         end
     end

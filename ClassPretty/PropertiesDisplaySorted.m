@@ -12,7 +12,7 @@ classdef PropertiesDisplaySorted < handle & matlab.mixin.CustomDisplay
         end
         
         function stringCell = getAllConstProperties(obj)
-             mc = metaclass(obj);
+            mc = metaclass(obj);
             allProps = mc.PropertyList;
             stringCell = sort({allProps(and(not([allProps.Hidden]) ,[allProps.Constant])).Name});
         end
@@ -40,10 +40,15 @@ classdef PropertiesDisplaySorted < handle & matlab.mixin.CustomDisplay
         end
         
         function stringCell = getAllNonConstProperties(obj)
+            % This function does not return properties which
+            % are private (that is, their getAccess == private)
+            % If such functionality is needed, it should be probably be
+            % implemented as a different function
             mc = metaclass(obj);
             allProps = mc.PropertyList;
             
-            stringCell = sort({allProps(and(not([allProps.Hidden]) ,not([allProps.Constant]))).Name});
+            stringCell = sort({allProps(and(and(not([allProps.Hidden]) ,not([allProps.Constant])), ...
+                not(strcmp({allProps.GetAccess},'private')))).Name});
         end
     end
     

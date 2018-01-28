@@ -7,15 +7,6 @@ classdef ViewImageResultPanelColormap < GuiComponent
         cbxAuto
         edtMin
         edtMax
-        
-        minVal = 0;
-        maxVal = 1;
-    end
-    
-    properties (Constant = true)
-        TYPE_OPTIONS = {'Pink', 'Jet', 'HSV', 'Hot', 'Cool', ...
-            'Spring', 'Summer', 'Autumn', 'Winter', ...
-            'Gray', 'Bone', 'Copper', 'Lines'};
     end
     
     methods
@@ -28,7 +19,7 @@ classdef ViewImageResultPanelColormap < GuiComponent
             colormap1stRow = uix.HBox('Parent', vboxMain, 'Spacing', 5);
             obj.popupTypes = uicontrol(obj.PROP_POPUP{:}, ...
                 'Parent', colormap1stRow, ...
-                'String', obj.TYPE_OPTIONS, ...
+                'String', ImageScanResult.COLORMAP_OPTIONS, ...
                 'Callback', @obj.popupTypesCallback);
             uix.Empty('Parent', colormap1stRow);
             obj.cbxAuto = uicontrol(obj.PROP_CHECKBOX{:}, ...
@@ -43,101 +34,119 @@ classdef ViewImageResultPanelColormap < GuiComponent
                 'String', 'Min');  % Label
             obj.edtMin = uicontrol(obj.PROP_EDIT{:}, ...
                 'Parent', colormap2ndRow, ...
-                'String', obj.minVal, ...
+                'String', 0, ...
                 'Callback', @obj.edtMinCallback);
             uicontrol(obj.PROP_LABEL{:}, 'Parent', colormap2ndRow, ...
                 'String', 'Max');  % Label
             obj.edtMax = uicontrol(obj.PROP_EDIT{:}, ...
                 'Parent', colormap2ndRow, ...
-                'String', obj.maxVal, ...
+                'String', 1, ...
                 'Callback', @obj.edtMaxCallback);
             colormap2ndRow.Widths =  [-1 -1 -1 -1];
             
             vboxMain.Heights = [25 -1];
             obj.height = 100;
             obj.width = 160;
+            
+            try
+                update;     % It might not succeed if there is no image
+            catch
+                % Stay with default values, for now
+            end
         end
         
         function update(obj)
-            viewImage = getObjByName(ViewImageResultImage.NAME);
-            vAxes = viewImage.vAxes;
-            if obj.cbxAuto.Value
-                obj.autoSetColormapLimits(vAxes);
-            else
-                % Update the plot with the specified min/max values from the GUI
-                caxis(vAxes, [obj.minVal obj.maxVal]);
-            end
-        end
-        
-        function autoSetColormapLimits(obj,axis)
-            img = getimage(axis);
-            if isempty(img)
-                return;     % Can't fetch limits if there is no data
-            end
-            maxValue = max(max(img(~isinf(img))));
-            if maxValue > 0
-                minValue = min(min(img(img ~= 0)));
-                if (minValue ~= maxValue)
-                    caxis(axis, [minValue maxValue]);
-                else % Min and max are the same, there is only one value that is not 0.
-                    caxis(axis, 'auto');
-                end
-            else % Max value is 0, all values are 0.
-                caxis(axis, 'auto');
-            end
-            cAxisLimits = caxis(axis);      % A little silly, but caxis returns the limits
-                                            % only if there are no extra arguments
+            % Get values from ImageScanResult
+            imageScanResult = getObjByName(ImageScanResult.NAME);
+            obj.popupTypes.Value = imageScanResult.colormapType;
             
-            % update the GUI's min and max values with the auto values
-            obj.minVal = min(cAxisLimits);
-            obj.maxVal = max(cAxisLimits);
-            obj.edtMin.String = StringHelper.formatNumber(obj.minVal,2);
-            obj.edtMax.String = StringHelper.formatNumber(obj.maxVal,2);
+            obj.cbxAuto.Value = imageScanResult.colormapAuto;
+            
+            minVal = imageScanResult.colormapLimits(1);
+            obj.edtMin.String = StringHelper.formatNumber(minVal,2);
+            
+            maxVal = imageScanResult.colormapLimits(2);
+            obj.edtMax.String = StringHelper.formatNumber(maxVal,2);
         end
+           
+        
         
         %%%% Callbacks %%%%
-        function popupTypesCallback(obj,~,~)
+        function popupTypesCallback(obj, ~, ~)
+            colormapType = obj.popupTypes.Value;
+            colormapName = ImageScanResult.COLORMAP_OPTIONS{colormapType};
+            
             resultImage = getObjByName(ViewImageResultImage.NAME);
-            colormapName = obj.TYPE_OPTIONS{obj.popupTypes.Value};
-            colormap(resultImage.vAxes,colormapName)
+            colormap(resultImage.vAxes, colormapName)
+            
+            % Also save change in ImageScanResult...
+            imageScanResult = getObjByName(ImageScanResult.NAME);
+            imageScanResult.colormapType = colormapType;
+            imageScanResult.imagePostProcessing;    % which now updates added layer (including colormap)
         end
         
-        function cbxAutoCallback(obj,~,~)
-            if obj.cbxAuto.Value
-                obj.update;
+        function cbxAutoCallback(obj, ~, ~)
+            imageScanResult = getObjByName(ImageScanResult.NAME);
+            imageScanResult.colormapAuto = obj.cbxAuto.Value;
+            if imageScanResult.colormapAuto
+                if imageScanResult.isDataAvailable
+                    % Update added layer (including colormap)
+                    imageScanResult.imagePostProcessing;
+                    % Now get the calculated limits from ImageSR
+                    limits = imageScanResult.colormapLimits;    % = [minVal maxVal]
+                    obj.edtMin.String = StringHelper.formatNumber(limits(1),2);
+                    obj.edtMax.String = StringHelper.formatNumber(limits(2),2);
+                else
+                    obj.edtMin.String = 0;
+                    obj.edtMax.String = 1;
+                end
             end
         end
         
-        function edtMinCallback(obj,~,~)
+        function edtMinCallback(obj, ~, ~)
+            imageScanResult = getObjByName(ImageScanResult.NAME);
+            limits = imageScanResult.colormapLimits;     % = [minVal maxVal]
+            
             if ~ValidationHelper.isStringValueANumber(obj.edtMin.String)
-                obj.edtMin.String = StringHelper.formatNumber(obj.minVal,2);
-                EventStation.anonymousError('Minimum colormap value must be a number! Reverting.')
+                obj.edtMin.String = StringHelper.formatNumber(limits(1),2); % = minVal
+                EventStation.anonymousWarning('Minimum colormap value must be a number! Reverting.')
+                return
             else
                 newMinVal = str2double(obj.edtMin.String);
-                if newMinVal > obj.maxVal
-                    obj.edtMin.String = StringHelper.formatNumber(obj.minVal,2);
-                    EventStation.anonymousError('Minimum colormap value can''t be larger than Maximum! Reverting.')
+                if newMinVal > limits(2) % == maxVal
+                    obj.edtMin.String = StringHelper.formatNumber(limits(1),2); % = minVal
+                    EventStation.anonymousWarning('Minimum colormap value can''t be larger than Maximum! Reverting.')
+                    return
                 end
             end
-            obj.minVal = newMinVal;
+            
             obj.cbxAuto.Value = false;
-            obj.update;
+            imageScanResult.colormapAuto = false;
+            imageScanResult.colormapLimits(1) = newMinVal;
+            imageScanResult.imagePostProcessing;    % Updates added layer (including colormap)
         end
         
-        function edtMaxCallback(obj,~,~)
+        function edtMaxCallback(obj, ~, ~)
+            imageScanResult = getObjByName(ImageScanResult.NAME);
+            limits = imageScanResult.colormapLimits;     % = [minVal maxVal]
+            
             if ~ValidationHelper.isStringValueANumber(obj.edtMax.String)
-                obj.edtMax.String = StringHelper.formatNumber(obj.maxVal,2);
-                EventStation.anonymousError('Maximum colormap value must be a number! Reverting.')
+                obj.edtMax.String = StringHelper.formatNumber(limits(2),2); % = maxVal
+                EventStation.anonymousWarning('Maximum colormap value must be a number! Reverting.')
+                return
             else
                 newMaxVal = str2double(obj.edtMax.String);
-                if obj.minVal > newMaxVal
-                    obj.edtMax.String = StringHelper.formatNumber(obj.maxVal,2);
-                    EventStation.anonymousError('Maximum colormap value can''t be smaller than Minimum! Reverting.')
+                if newMaxVal < limits(1) % == minVal
+                    obj.edtMax.String = StringHelper.formatNumber(limits(2),2); % = maxVal
+                    EventStation.anonymousWarning('Maximum colormap value can''t be smaller than Minimum! Reverting.')
+                    return
                 end
             end
-            obj.maxVal = newMaxVal;
+            
             obj.cbxAuto.Value = false;
-            obj.update;
+            imageScanResult.colormapAuto = false;
+            imageScanResult.colormapLimits(2) = newMaxVal;
+            imageScanResult.imagePostProcessing;    % Updates added layer (including colormap)
         end
     end
     

@@ -111,7 +111,7 @@ classdef ViewLoad < ViewVBox & EventListener
         function handleButtonLoad(obj)
             saveLoad = SaveLoad.getInstance(obj.category);
             loadingFolder = saveLoad.mLoadingFolder;
-            [fileName,folderName,~] = uigetfile('*.mat','Choose file to load...', loadingFolder);
+            [fileName,folderName,~] = uigetfile('*.mat', 'Choose file to load...', loadingFolder);
             
             if ~isequal(fileName,0)  % user has not canceled
                 saveLoad = SaveLoad.getInstance(obj.category);
@@ -138,17 +138,29 @@ classdef ViewLoad < ViewVBox & EventListener
         
         function handleButtonPrev(obj)
             saveLoad = SaveLoad.getInstance(obj.category);
-            saveLoad.loadPreviousFile();
+            try 
+                saveLoad.loadPreviousFile();
+            catch e
+                warning(e.message)
+            end
         end
         
         function handleButtonNext(obj, ~, ~)
             saveLoad = SaveLoad.getInstance(obj.category);
-            saveLoad.loadNextFile();
+            try
+                saveLoad.loadNextFile();
+            catch e
+                warning(e.message)
+            end
         end
         
         function handleButtonLast(obj)
             saveLoad = SaveLoad.getInstance(obj.category);
-            saveLoad.loadLastFile();
+            try
+                saveLoad.loadLastFile();
+            catch e
+                warning(e.message)
+            end
         end
         
         function handleRadioAuto(obj)

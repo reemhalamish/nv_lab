@@ -12,8 +12,8 @@ classdef GuiControllerImage < GuiController
         end
         
         function view = getMainView(obj, figureWindowParent)
-            % this function should get the main View of this GUI.
-            % can call any view constructor with the params:
+            % This function should get the main View of this GUI.
+            % It can call any view constructor with the params:
             % parent=figureWindowParent, controller=obj
             view = ViewMainImage(figureWindowParent, obj);
         end
@@ -24,7 +24,9 @@ classdef GuiControllerImage < GuiController
         end
         
         function onClose(obj)
-            % callback. things to run when need to close the GUI.
+            % Callback. Things to run when need to close the GUI.
+            imageScanResult = getObjByName(ImageScanResult.NAME);
+            imageScanResult.checkGraphicAxes;       % Tell it that vaxes are no longer available (without being an event sender)
 %             StageControlEvents.sendCloseConnection;
                         % requires GUI for closing connection demand
         end
