@@ -18,7 +18,8 @@ classdef PathHelper
             % Determines whether to use dev(elopment) or prod(uction)
             % folder for saving and loading, according to json
             jsonStruct = JsonInfoReader.getJson();
-            devOrProdString = BooleanHelper.ifTrueElse(jsonStruct.debugMode, 'dev', 'prod');
+            isDev = strcmp(jsonStruct.setupNumber, '999');  % The only setup in dev mode is 999, all else are in prod.
+            devOrProdString = BooleanHelper.ifTrueElse(isDev, 'dev', 'prod');
         end
         
         function folderString = recuresiveFindFolder(startingPositionPath, folderNameToSearchString)
@@ -62,6 +63,9 @@ classdef PathHelper
             % fullPath      - string. For exapmle: 'C:\reem\file.txt'
             % folderAndFile - cell with two strings: 'folder' and 'file'. 
             %                 For example: {'C:\reem\','file.txt'}
+            %
+            % See also MATLAB native function "fileparts"
+            
             pathSplitted = strsplit(fullPath, '\\');
             fileName = pathSplitted(end);
             folderName = fullPath(1 : find(fullPath=='\', 1, 'last'));
@@ -109,7 +113,7 @@ classdef PathHelper
         end
         
         function allFileNames = getAllFilesInFolder(inputFolder, optionalSuffix)
-            %%% get all the files from a folder
+            %%% Returns names of all relevant files in a folder
             %
             % allFilesInFolder - cell of strings - files in full path
             % optionalSuffix - optional string. if exists, only filenames
@@ -125,14 +129,18 @@ classdef PathHelper
             allFilesInFolder = dir(inputFolder);
             allFilesInFolder = allFilesInFolder(3 : end);   % the first two aren't relevant
             
-            allFileNames = {};
-            for i = 1 : length(allFilesInFolder)
+            len = length(allFilesInFolder);
+            temp = cell(1,len);
+            isRelevant = false(1, len);
+            for i = 1:len
                 fileName = allFilesInFolder(i).name;
                 fullPath = [inputFolder fileName];
                 if PathHelper.isFileExists(fullPath) && endsWith(fullPath, optionalSuffix)
-                    allFileNames{end + 1} = fullPath; % TODO how better??
+                    temp{i} = fullPath;
+                    isRelevant(i) = true;
                 end
             end
+            allFileNames = temp(isRelevant);
         end
         
         function fullpath = joinToFullPath(folder, fileName)
@@ -141,6 +149,8 @@ classdef PathHelper
             % folder = 'c:\reem'       (ending backslash is optional)
             % filename = 'myfile.txt'
             % fullpath ----> 'c:\reem\myfile.txt'
+            %
+            % See also MATLAB native function "fullfile" 
             
             folder = PathHelper.appendBackslashIfNeeded(folder);
             fullpath = sprintf('%s%s', folder, fileName);

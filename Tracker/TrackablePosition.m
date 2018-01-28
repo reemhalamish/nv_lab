@@ -22,13 +22,13 @@ classdef TrackablePosition < Trackable
     properties (Constant)
         EVENT_STAGE_CHANGED = 'stageChanged'
         
-        THRESHOLD_FRACTION = 0.02;  % Change is significant if dx/x > threshold fraction
+        THRESHOLD_FRACTION = 0.01;  % Change is significant if dx/x > threshold fraction
         NUM_MAX_ITERATIONS = 120;   % After that many steps, convergence is improbable
-        PIXEL_TIME = 0.1 ;  % in seconds
+        PIXEL_TIME = 1 ;  % in seconds
         
         % vector constants, for [X Y Z]
         INITIAL_STEP_VECTOR = [0.1 0.1 0.2];    %[0.1 0.1 0.05];
-        MINIMUM_STEP_VECTOR = [0.02 0.02 0.05]; %[0.01 0.01 0.01];
+        MINIMUM_STEP_VECTOR = [0.02 0.02 0.02]; %[0.01 0.01 0.01];
         STEP_RATIO_VECTOR = 0.5*ones(1, 3);
         ZERO_VECTOR = [0 0 0];
         
@@ -42,7 +42,7 @@ classdef TrackablePosition < Trackable
             expName = Tracker.TRACKABLE_POSITION_NAME;
             obj@Trackable(expName);
             obj.mStageName = stageName;
-            obj.mLaserName = LaserPartAbstract.GREEN_LASER_NAME;
+            obj.mLaserName = LaserGate.GREEN_LASER_NAME;
             
             obj.mScanParams = StageScanParams;
         end
@@ -54,8 +54,11 @@ classdef TrackablePosition < Trackable
             stage = getObjByName(obj.mStageName);
             spcm = getObjByName(Spcm.NAME);
             spcm.setSPCMEnable(true);
-            laser = getObjByName(obj.mLaserName);
-            try laser.setEnabled('true'); catch; end    % If it fails, it means that laser is already on
+            try
+                laser = getObjByName(obj.mLaserName);
+                laser.setEnabled('true');
+            catch
+            end    % If it fails, it means that laser is already on
             
             %%%% Get initial position and signal value, for history %%%%
             % Set parameters for scan
@@ -68,8 +71,7 @@ classdef TrackablePosition < Trackable
                 scanner.switchTo(obj.mStageName)
             end
             
-%             obj.mSignal = scanner.scanPoint(stage, spcm, sp);
-            obj.mSignal = scanner.dummyScanGaussian(sp);          % todo: remove when definitely works
+            obj.mSignal = scanner.scanPoint(stage, spcm, sp);
             obj.recordCurrentState;     % record starting point (time == 0)
 
             % Execution of at least one iteration is acheived by using
@@ -177,6 +179,7 @@ classdef TrackablePosition < Trackable
             % derivative. In other words, this is a simple axis-wise form
             % of gradient ascent.
             stage = getObjByName(obj.mStageName);
+            spcm = getObjByName(Spcm.NAME);
             axes = stage.getAxis(stage.availableAxes);
             scanner = StageScanner.init;
             % Initialize scan parameters for scanning
@@ -184,7 +187,8 @@ classdef TrackablePosition < Trackable
             sp.fixedPos = stage.Pos(axes);
             sp.numPoints = 3 * ones(1,length(axes));
             sp.isFixed = true(size(sp.isFixed));    % all axes are fixed on initalization
-            sp.fastScan = stage.hasFastScan;        % scan fast, if possible
+            sp.fastScan = ~stage.hasSlowScan;        % scan slow, if possible
+            sp.pixelTime = obj.PIXEL_TIME;
             
             while ~obj.stopFlag && any(obj.stepSize > obj.MINIMUM_STEP_VECTOR) && ~obj.isDivergent
                 if obj.stepSize(obj.currAxis) > obj.MINIMUM_STEP_VECTOR(obj.currAxis)
@@ -197,9 +201,7 @@ classdef TrackablePosition < Trackable
                     sp.from(obj.currAxis) = pos - step;
                     sp.to(obj.currAxis) = pos + step;
                     
-%                     signals = scanner.scan(stage, spcm, sp);    % scans [p-dp, p, p+dp]
-                    signals = scanner.dummyScanGaussian(sp);
-                    % todo: remove when definitely works
+                    signals = scanner.scan(stage, spcm, sp);    % scans [p-dp, p, p+dp]
                     shouldMoveBack = obj.isDifferenceAboveThreshhold(signals(1), signals(2));
                     shouldMoveFwd = obj.isDifferenceAboveThreshhold(signals(3), signals(2));
                     
@@ -242,9 +244,7 @@ classdef TrackablePosition < Trackable
                         pos = pos + newStep;
                         sp.fixedPos(obj.currAxis) = pos;
                         sp.isFixed(obj.currAxis) = true;
-%                         newSignal = scanner.scanPoint(stage, spcm, sp);
-                        newSignal = scanner.dummyScanGaussian(sp);
-%                         % todo: remove when definitely works
+                        newSignal = scanner.scanPoint(stage, spcm, sp);
                         
                         shouldContinue = obj.isDifferenceAboveThreshhold(newSignal, obj.mSignal);
                     end

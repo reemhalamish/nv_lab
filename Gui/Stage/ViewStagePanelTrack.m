@@ -15,6 +15,8 @@ classdef ViewStagePanelTrack < GuiComponent & EventListener
     methods
         function obj = ViewStagePanelTrack(parent, controller, stage, laser) %#ok<INUSD>
             obj@GuiComponent(parent, controller);
+            obj@EventListener(Tracker.TRACKABLE_POSITION_NAME)
+            
             obj.mStageName = stage.name;
 
             panelTracking = uix.Panel('Parent', parent.component, 'Title', 'Tracking', 'Padding', 5);

@@ -646,7 +646,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             properties = obj.avilableProperties;
         end
 
-        function bool = isScanable(obj)
+        function bool = isScannable(obj)
             bool = isfield(obj.availableProperties,obj.HAS_SLOW_SCAN) || ...
                 isfield(obj.availableProperties,obj.HAS_FAST_SCAN);
         end
@@ -693,14 +693,14 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                 return
             end
             
-            % save only the stage position
+            % Save only the stage position
             position = obj.Pos(obj.availableAxes);
             outStruct = struct('position', position);
         end
         
         function loadStateFromStruct(obj, savedStruct, category, subCategory) 
             % Loads the state from a struct.
-            % To support older versoins, always check for a value in the
+            % To support older versions, always check for a value in the
             % struct before using it. View example in the first line.
             % category - string
             % subCategory - string. could be empty string
@@ -713,8 +713,13 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                     % load if you have to!
                     if any(strcmp(subCategory, {Savable.SUB_CATEGORY_DEFAULT, Savable.CATEGORY_IMAGE_SUBCAT_STAGE}))
                         % ^ only if sub-category includes the stage
-                        obj.scanParams = StageScanParams.fromStruct(savedStruct.scanParams);
-                        obj.sendEventScanParamsChanged();
+                        if isfield(savedStruct, 'scanParams')
+                            % For backward compatibility: in later versions,
+                            % the scan parameters are saved only in the
+                            % stage scanner
+                            obj.scanParams = StageScanParams.fromStruct(savedStruct.scanParams);
+                            obj.sendEventScanParamsChanged();
+                        end
                     end
                     
                 case Savable.CATEGORY_EXPERIMENTS
