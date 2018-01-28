@@ -1,11 +1,19 @@
-classdef ViewLaserPart < ViewHBox & EventListener
-    % VIEWLASERLASER GUI component that handles a laser part
-    % could be the aom controller for the laser, or the laser source controller
+classdef ViewDoubleAom < ViewVBox & EventListener
+    % VIEWDOUBLEAOM A GUI component that handles a layout with two AOMs,
+    % which can be switched fast from one to another
+    
+    % !!!!! Not Working Yet !!!!!!
+    
     properties
         %%%% UI related %%%
-        cbxEnabled             % check box
-        edtPowerPercentage     % edit-text
-        sliderPower            % slider
+        % AOM 1
+        radioChoose1            % radio button
+        edtPowerPercentage1     % edit-text
+        sliderPower1            % slider
+        % AOM 2
+        radioChoose2            % radio button
+        edtPowerPercentage2     % edit-text
+        sliderPower2            % slider
         
         %%%% the laser part name (to send requests and to listen to) %%%%
         mLaserPartName
@@ -14,7 +22,7 @@ classdef ViewLaserPart < ViewHBox & EventListener
     methods
         
         %% constructor
-        function obj = ViewLaserPart(parent, controller, laserPartPhysical, nameToDisplay)
+        function obj = ViewDoubleAom(parent, controller, laserPartPhysical)
             % parent - gui component
             % controller - the main GUI controller
             % laserPartPhysical - object of derived from LaserPartAbstract 
@@ -25,48 +33,35 @@ classdef ViewLaserPart < ViewHBox & EventListener
             
             %%%%%%%% Constructors %%%%%%%%
             obj@EventListener(nameToListen);
-            obj@ViewHBox(parent, controller);
+            obj@ViewVBox(parent, controller);
             
             %%%%%%%% the laser physics object %%%%%%%%
             obj.mLaserPartName = nameToListen;
             
             
             % UI components init
-            partRow = obj.component;
-            partRow.Spacing = 5;            
-            
-%             label = uicontrol('Parent', partRow, obj.PROP_LABEL{:}, 'String', nameToDisplay); % obj.headerProps got by inheritance from GuiComponent %
-%             labelWidth = obj.getWidth(label);
-            
-            obj.cbxEnabled = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', partRow, ...
-                'String', nameToDisplay, ...
-                'Callback', @obj.cbxEnabledCallback);
-            obj.edtPowerPercentage = uicontrol(obj.PROP_EDIT{:}, 'Parent', partRow);
-            obj.sliderPower = uicontrol(obj.PROP_SLIDER{:}, 'Parent', partRow);
-            
             widths = [70, 50, 150];
-            set(partRow, 'Widths', widths);
+            rowHeight = 30;
             
+            partRow1 = uix.HBox('Parent', obj.component, 'Spacing', 5);
+                obj.radioChoose1 = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', partRow1, ...
+                    'Callback', @obj.);
+                obj.edtPowerPercentage1 = uicontrol(obj.PROP_EDIT{:}, 'Parent', partRow1);
+                obj.sliderPower1 = uicontrol(obj.PROP_SLIDER{:}, 'Parent', partRow1);
+                partRow1.Widths = widths;
+                
+            partRow2 = uix.HBox('Parent', obj.component, 'Spacing', 5);
+                obj.radioChoose2 = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', partRow2, ...
+                    'Callback', @obj.);
+                obj.edtPowerPercentage2 = uicontrol(obj.PROP_EDIT{:}, ...
+                    'Parent', partRow2, 'Callback', @obj.sliderPowerCallback);
+                obj.sliderPower2 = uicontrol(obj.PROP_SLIDER{:}, ...
+                    'Parent', partRow2, 'Callback', @obj.edtPowerPercentageCallback);
+                partRow2.Widths = widths;
             
             %%%%%%%% UI components set values  %%%%%%%%
             obj.width = sum(widths) + 20;
-            obj.height = 30;            
-            
-            
-            % Set functionality for "setEnabled" and "setValue" %%%%%%%%
-            if ~laserPartPhysical.canSetEnabled
-                obj.cbxEnabled.Enable = 'off';
-            end
-            
-            if laserPartPhysical.canSetValue
-                set(obj.sliderPower, 'Callback', @obj.sliderPowerCallback, ...
-                    'Visible', 'on');
-                set(obj.edtPowerPercentage, 'Callback', @obj.edtPowerPercentageCallback, ...
-                    'Enable', 'on');
-            else
-                obj.sliderPower.Enable = 'off';
-                obj.edtPowerPercentage.Enable = 'off';
-            end
+            obj.height = 2*rowHeight + 20;            
             
             obj.refresh();
         end

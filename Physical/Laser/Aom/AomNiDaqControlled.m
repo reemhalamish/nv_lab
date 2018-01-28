@@ -1,5 +1,5 @@
-classdef AomNiDaq < LaserPartAbstract & NiDaqControlled
-    %AOMNIDAQ Laser controlled by NiDaq
+classdef AomNiDaqControlled < LaserPartAbstract & NiDaqControlled
+    %AOMNIDAQCONTROLLED Laser controlled by NiDaq
     
     properties
         niDaqChannel;
@@ -11,7 +11,7 @@ classdef AomNiDaq < LaserPartAbstract & NiDaqControlled
     
     methods
         % constructor
-        function obj = AomNiDaq(name, niDaqChannel)            
+        function obj = AomNiDaqControlled(name, niDaqChannel)            
             obj@LaserPartAbstract(name);
             obj@NiDaqControlled(name, niDaqChannel);
             obj.niDaqChannel = niDaqChannel;
@@ -49,7 +49,7 @@ classdef AomNiDaq < LaserPartAbstract & NiDaqControlled
     
     methods(Static)
         function obj = create(name, jsonStruct)
-            missingField = FactoryHelper.usualChecks(jsonStruct, AomNiDaq.NEEDED_FIELDS);
+            missingField = FactoryHelper.usualChecks(jsonStruct, AomNiDaqControlled.NEEDED_FIELDS);
             if ~isnan(missingField)
                 error(['While trying to create an AOM part for laser "%s",', ...
                     'could not find "%s" field. Aborting'], ...
@@ -57,7 +57,7 @@ classdef AomNiDaq < LaserPartAbstract & NiDaqControlled
             end
             
             niDaqChannel = jsonStruct.channel;
-            obj = AomNiDaq(name, niDaqChannel);
+            obj = AomNiDaqControlled(name, niDaqChannel);
         end
     end
     

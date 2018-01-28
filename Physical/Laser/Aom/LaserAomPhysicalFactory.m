@@ -1,5 +1,5 @@
 classdef LaserAomPhysicalFactory
-    %LASERLASERPHYSICSFACTORY creates the laser part for a laser
+    %LASERAOMPHYSICSFACTORY creates the laser part for a laser
     %   has only one method: createFromStruct()
     
     properties(Constant)
@@ -13,7 +13,7 @@ classdef LaserAomPhysicalFactory
                 return
             end
             
-            missingField = FactoryHelper.usualChecks(struct, LaserLaserPhysicalFactory.NEEDED_FIELDS);
+            missingField = FactoryHelper.usualChecks(struct, LaserSourcePhysicalFactory.NEEDED_FIELDS);
             if ~isnan(missingField)
                 error(...
                     'Trying to create an AOM part for laser "%s", encountered missing field - "%s". Aborting',...
@@ -27,8 +27,10 @@ classdef LaserAomPhysicalFactory
                     aomPhysicalPart = AomDummy(partName);
                     return
                 case 'nidaq'
-                    aomPhysicalPart = AomNiDaq.create(partName, struct);
+                    aomPhysicalPart = AomNiDaqControlled.create(partName, struct);
                     return
+                case 'doubleNidaq'
+                    aomPhysicalPart = AomNiDaqControlledDouble.create(partName, struct);
                 otherwise
                     error('Can''t create a %s-class AOM part for laser "%s" - unknown classname! Aborting.', struct.classname, name);
             end
