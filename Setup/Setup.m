@@ -7,7 +7,7 @@ classdef Setup < handle
     end
     
     properties(Hidden = true, Constant = true)
-        NEEDED_FIELDS = {'lasers', 'niDaq', 'pulseBlaster', 'setupNumber', 'stages', 'spcm'};
+        NEEDED_FIELDS = {'lasers', 'niDaq', 'pulseGenerator', 'setupNumber', 'stages', 'spcm'};
     end
     
     methods (Static)
@@ -28,25 +28,25 @@ classdef Setup < handle
         function obj = Setup()
             obj@handle();          
             
-            %%%% get the json %%%%
+            %%%% Get the json %%%%
             jsonStruct = JsonInfoReader.getJson();          
             
-            %%%% check missing fields %%%%
+            %%%% Check missing fields %%%%
             missingField = FactoryHelper.usualChecks(jsonStruct, Setup.NEEDED_FIELDS);
             if ~isnan(missingField)
-                error('Can''t find the reserved word "%s" in the main section at the file "setupInfo.json"', missingField);
+                error('Can''t find the reserved word "%s" in the main section of the file "setupInfo.json"', missingField);
             end
                         
             %%%% init important objects %%%%
             NiDaq.create(jsonStruct.niDaq);
-            PulseBlaster.create(jsonStruct.pulseBlaster);
+            PulseGenerator.create(jsonStruct.pulseGenerator);
             Spcm.create(jsonStruct.spcm);
             ImageScanResult.init;
             StageScanner.init;
             SpcmCounter.init;
             SaveLoad.init;
-            LaserGate.getLasers;  % the first call on getLasers() also inits them
-			ClassStage.getStages;  % the first call on getStages() also inits them
+            LaserGate.getLasers;	% the first call to getLasers() also inits them
+			ClassStage.getStages;	% the first call to getStages() also inits them
             Tracker.init;
             
 			
