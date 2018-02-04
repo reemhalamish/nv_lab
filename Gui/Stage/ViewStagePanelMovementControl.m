@@ -247,6 +247,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
                 obj.checkEdtCurPosValue(index);
             else
                 EventStation.anonymousWarning('Position must be a number between %d and %d! Reverting!', limNeg, limPos)
+                return;
             end
             
             stage = getObjByName(obj.stageName);
@@ -263,7 +264,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             % index - the index axis
             if shouldShow
                 obj.hboxCurPos(index).Widths = [-1 -1];
-                uicontrol(obj.edtCurPos(index)); % also request focus
+%                 uicontrol(obj.edtCurPos(index)); % also request focus
             else
                 obj.hboxCurPos(index).Widths = [-1 0];
             end
@@ -279,9 +280,9 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             if ValidationHelper.isStringValueInBorders(obj.edtCurPos(index).String, limNeg, limPos)
                 obj.edtCurPosValue(index) = str2double(obj.edtCurPos(index).String);
             elseif isempty(obj.edtCurPos(index).String)
-                % delete it
+                % Delete it
                 obj.clearEdtCurPos(index);
-                % make sure to update the button as well:
+                % Make sure to update the button as well:
                 if all(obj.edtCurPosValue == inf)
                     obj.btnMoveToBlue.Enable = 'off';
                 end
@@ -293,12 +294,12 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
         end
         
         function clearEdtCurPos(obj, index)
-            % clears the gui from the edit-input, also clears the
+            % Clears the GUI from the edit-input, also clears the
             % value stored as a numeric value
             obj.edtCurPos(index).String = '';
             obj.edtCurPosValue(index) = inf;
             obj.showEdtCurPos(index, false);
-            set(gcf, 'CurrentObject',gcf);
+            set(gcf, 'CurrentObject', gcf);
             % ^ removes the focus from the edt and sets the focus to the
             % current figure itself
         end

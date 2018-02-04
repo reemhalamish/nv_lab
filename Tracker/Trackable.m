@@ -82,13 +82,13 @@ classdef (Abstract) Trackable < Experiment
        params = getAllTrackalbeParameter(obj)
        % Returns a cell of values/paramters from the trackable experiment
        
-       start(obj)
+       startTrack(obj)
        % Start running the trackable
        
-       stop(obj)
+       stopTrack(obj)
        % well...
        
-       reset(obj)
+       resetTrack(obj)
        % Re-initialize the trackable
        
        str = textOutput(obj)

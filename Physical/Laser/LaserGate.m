@@ -1,4 +1,4 @@
-classdef LaserGate < Savable
+classdef LaserGate < Savable % Needs to be EventSender
     %GATELASER represents a laser object
     %   A laser object has 3 inner parts: source, AOM, and switch. 
     %   The (fast) switch is usually a pulse blaster or a pulse streamer,
@@ -8,10 +8,15 @@ classdef LaserGate < Savable
     %   Sometimes, the source itself can be enabled\disabled,
     %   and sometimes it can be set to a new voltage value.
     
-    properties
+    properties (SetAccess = protected)
         source
         aom
         aomSwitch
+    end
+    
+    properties (Dependent) % Only this is available for external functions
+        value
+        isOn
     end
     
     properties(Constant)
@@ -42,6 +47,47 @@ classdef LaserGate < Savable
             % Check if this laser gate can manipulate the AOM
             tf = isobject(obj.aom);
         end
+        
+    end
+    
+    methods % setters and getters
+        % Default methods. Assume value in percents.
+        % Child objects can override it, if needed
+        
+        function set.value(obj, newVal)
+            if isnumeric(newVal) && ((newVal < 0) || (newVal > 100))
+                error('Value must be between 0 and 100');
+            elseif ~isAomAvail(obj) || ~obj.aom.canSetValue
+                error('Cannot set value for laser');
+            else
+                obj.aom.currentValue = newVal;
+            end
+        end
+        
+        function set.isOn(obj, newVal)
+            try
+                tf = logical(newVal);
+                obj.aomSwitch = tf;
+            catch
+                error('Cannot set %s as On/off state of %s', newVal, obj.name)
+            end
+        end
+        
+        %%%%
+        function value = get.value(obj)
+            value = 100;
+            if obj.isAomAvail()
+                value = value * obj.aom.currentValue / 100;
+            end
+            if obj.isSourceAvail()
+                value = value * obj.source.currentValue / 100;
+            end
+        end
+        
+        function isOn = get.isOn(obj)
+            isOn = obj.aomSwitch.isEnabled;
+        end
+        
         
     end
     
@@ -117,15 +163,8 @@ classdef LaserGate < Savable
         end
         
         function string = returnReadableString(obj, savedStruct) %#ok<INUSD>
-            isOn = BooleanHelper.boolToOnOff(obj.aomSwitch.isEnabled);
-            value = 100;
-            if obj.isAomAvail()
-                value = value * obj.aom.currentValue / 100;
-            end
-            if obj.isSourceAvail()
-                value = value * obj.source.currentValue / 100;
-            end
-            string = sprintf('%s - value %d%% (%s)', obj.name, int16(value), isOn);
+            isOnString = BooleanHelper.boolToOnOff(obj.isOn);
+            string = sprintf('%s - value %d%% (%s)', obj.name, int16(obj.value), isOnString);
         end
     end
     

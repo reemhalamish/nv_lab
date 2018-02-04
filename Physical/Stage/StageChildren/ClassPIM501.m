@@ -26,7 +26,7 @@ classdef (Sealed) ClassPIM501 < ClassPIMicos
         NAME = 'Stage (coarse) - ClassPIM501'
         
         STEP_MINIMUM_SIZE = 0.3
-        STEP_DEFAULT_SIZE = 10
+        STEP_DEFAULT_SIZE = 100
     end
     
     methods (Static, Access = public) % Get instance constructor

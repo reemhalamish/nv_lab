@@ -11,7 +11,7 @@ classdef (Sealed) ClassPIM686M501 < ClassStage
         AVAILABLE_AXES = 'xyz'
         
         STEP_MINIMUM_SIZE = 0.3
-        STEP_DEFAULT_SIZE = 10
+        STEP_DEFAULT_SIZE = 100
     end
     
     methods (Static, Access = public) % Get instance constructor

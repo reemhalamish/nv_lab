@@ -93,7 +93,7 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
             scanParams = stage.scanParams;
             if ~ValidationHelper.isValuePositive(obj.edtPixelTime.String)
                 obj.edtPixelTime.String = StringHelper.formatNumber(scanParams.pixelTime);
-                EventStation.anonymousError('"Pixel time" has to be a positive number! Reverting.');
+                EventStation.anonymousError('Pixel time has to be a positive number! Reverting.');
             end
             scanParams.pixelTime = str2double(obj.edtPixelTime.String);
             stage.sendEventScanParamsChanged();

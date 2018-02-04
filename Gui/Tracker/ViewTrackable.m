@@ -35,7 +35,7 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
             obj.trackableName = trackableName;
             
             hboxMain = uix.HBox('Parent', obj.component, ...
-                'Spacing', 5);
+                'Spacing', 20, 'Padding', 5);
             %%%% Left column - parameters and control %%%%
             vboxLeft = uix.VBox('Parent', hboxMain, ...
                 'Spacing', 5);
@@ -100,10 +100,11 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
             obj.tvMessage = uicontrol(obj.PROP_TEXT_NO_BG{:}, 'Parent', obj.component, 'HorizontalAlignment', 'center');
             
             obj.setHeights([-1 lineHeight]);
-            obj.refresh;
                         
-            obj.height = 650;
+            obj.height = 750;
             obj.width = 800;
+            
+            % Child objects are in charge of refreshing!
 
         end     % constructor
         
@@ -123,10 +124,23 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
             end
         end
         
-        function showMessage(obj, message)
+        function showMessage(obj, message, colorOptional)
+            if exist('colorOptional', 'var')
+                color = colorOptional;
+            else
+                color = 'black';
+            end
+            
             obj.tvMessage.String = message;
+            obj.tvMessage.ForegroundColor = color;
             T = TimedDisplay(obj.tvMessage);
             T.blinkAndHideAfterTime;
+        end
+        
+        function showWarning(obj, message)
+            orange = [1 0.3 0]; % RGB
+            obj.showMessage(message, orange);
+            EventStation.anonymousWarning(message);
         end
         
     end

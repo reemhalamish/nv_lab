@@ -51,7 +51,7 @@ classdef StageScanParams < handle
             
             % check if "pixelTime" is a positive double
             if ~ValidationHelper.isValuePositive(pixelTime)
-                EventStation.anonymousError('"pixelTime" parameter should be a positive double!')
+                EventStation.anonymousError('pixelTime parameter should be a positive double!')
             end
             
             % check if "isFixed" is logical array of size 3

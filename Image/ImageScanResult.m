@@ -604,6 +604,11 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             if isfield(event.extraInfo, ClassStage.EVENT_POSITION_CHANGED) ...
                     && strcmp(event.creator.name, obj.mStageName)
                 
+                % If scanner is running, and there is no point in updating
+                % crosshairs would really delay it
+                scanner = getObjByName(StageScanner.NAME);
+                if scanner.mCurrentlyScanning; return; end
+                
                 try
                     stage = getObjByName(obj.mStageName);
                     physAxes = obj.mAxesString;

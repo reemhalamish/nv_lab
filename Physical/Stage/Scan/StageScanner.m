@@ -192,7 +192,9 @@ classdef StageScanner < EventSender & EventListener & Savable
             
             % This line will be reached when break()ing out of the for,
             % or when all trials went without success
-            if ~scanOk; obj.sendError(sprintf('Reading from SPCM failed after %d trials', StageScanner.TRIALS_AMOUNT_ON_ERROR));end
+            if ~scanOk
+                obj.sendError(sprintf('Reading from SPCM failed after %d trials', StageScanner.TRIALS_AMOUNT_ON_ERROR));
+            end
             
             kcpsValue = kcps;
         end

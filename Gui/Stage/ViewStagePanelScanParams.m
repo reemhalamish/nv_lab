@@ -200,8 +200,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
                 obj.sendWarning(warningMsg);
             end
 
-            scanParams.from(axis) = from;
-            viewFrom.String = StringHelper.formatNumber(from);
+            [viewFrom.String, scanParams.from(axis)] = StringHelper.formatNumber(from);
         end
         
         function edtToChangedCallback(obj, index)
@@ -226,8 +225,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
                 obj.sendWarning(warningMsg);
             end
             
-            scanParams.to(axis) = to;
-            viewTo.String = StringHelper.formatNumber(to);
+            [viewTo.String, scanParams.to(axis)] = StringHelper.formatNumber(to);
             
         end
         
@@ -257,9 +255,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
                 end
             end
             
-            scanParams.fixedPos(axis) = fixedPos;
-            viewFixed.String = StringHelper.formatNumber(fixedPos);
-            
+            [viewFixed.String, scanParams.fixedPos(axis)] = StringHelper.formatNumber(fixedPos);
         end
         
         function colorifyFixed(obj, index)
@@ -295,7 +291,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
                 obj.edtTo(i).String = scanParams.to(axisIndex);
                 obj.edtNumPoints(i).String = scanParams.numPoints(axisIndex);
                 obj.cbxFixed(i).Value = scanParams.isFixed(axisIndex);
-                obj.edtFixedPos(i).String = StringHelper.formatNumber(scanParams.fixedPos(axisIndex),3);
+                obj.edtFixedPos(i).String = StringHelper.formatNumber(scanParams.fixedPos(axisIndex));
                 
                 obj.colorifyFixed(i);
             end

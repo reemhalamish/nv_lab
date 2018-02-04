@@ -12,6 +12,8 @@ classdef SaveLoad < Savable & EventSender
         mSavingFolder                    % string. Used for saving
         mLoadingFolder                   % string. Used by obj.previous(), obj.next() and obj.last()
                                          %         Usually (always?) points to PATH_DEFAULT_AUTO_SAVE, or to mSavingFolder
+                                         
+        notesStatus                      % string. Whether the notes are saved on current file.
     end
     
     properties(Dependent = true)
@@ -97,6 +99,7 @@ classdef SaveLoad < Savable & EventSender
             obj.mCategory = category;
             obj.mSavingFolder = obj.PATH_DEFAULT_SAVE;  % to be overridden later by the user, if needed...
             obj.mLoadingFolder = obj.PATH_DEFAULT_AUTO_SAVE;      % to be overridden later by the user, if needed...
+            obj.notesStatus = obj.STRUCT_STATUS_NOTHING;
         end
     end
     
@@ -106,11 +109,12 @@ classdef SaveLoad < Savable & EventSender
             if (ischar(newNotes))
                 if ~strcmp(newNotes, obj.mNotes)
                     obj.mNotes = newNotes;
+                    obj.notesStatus = obj.STRUCT_STATUS_NOT_SAVED;
                     if isstruct(obj.mLocalSaveStruct)
                         % Update the struct (and the file if needed)
                         obj.mLocalSaveStruct.(obj.name) = obj.saveStateAsStruct(obj.mCategory,obj.TYPE_RESULTS);
                         if shouldSaveToFile
-                            obj.saveLocalStructToFile(obj.mLoadedFileFullPath);
+                            obj.saveNotesToFile;
                         end
                     else 
                         obj.sendEvent(struct('notes', newNotes));
@@ -265,6 +269,7 @@ classdef SaveLoad < Savable & EventSender
                     savableObject.loadStateFromStruct(structToLoadFrom.(nameToLoad), category, subCategory);
                 end
             end
+            
         end
         
         function outputStructToSave = postProcessLocalSaveStruct(obj, inputStructToSave) %#ok<INUSL>
@@ -278,6 +283,9 @@ classdef SaveLoad < Savable & EventSender
             obj.mLocalSaveStruct = obj.postProcessLocalSaveStruct(structToSave);
 %             obj.mLocalSaveStruct = structToSave;
             obj.mLocalStructStatus = SaveLoad.STRUCT_STATUS_NOT_SAVED;
+            if ischar(obj.mNotes) % We have notes, but they are unsaved, by definition
+                obj.notesStatus = obj.STRUCT_STATUS_NOT_SAVED;
+            end
             
             eventStruct = struct(... 
                 obj.EVENT_STATUS_LOCAL_STRUCT, obj.mLocalStructStatus, ...
@@ -335,6 +343,10 @@ classdef SaveLoad < Savable & EventSender
                 obj.mLocalStructStatus = obj.STRUCT_STATUS_SAVED;
             end
             
+            if ischar(obj.mNotes) % there were some notes to save
+                obj.notesStatus = obj.STRUCT_STATUS_SAVED;
+            end
+            
             folder = PathHelper.getFolderFromFullPathFile(fileFullPath);
             
             structEvent = struct();
@@ -343,6 +355,16 @@ classdef SaveLoad < Savable & EventSender
             structEvent.(SaveLoad.EVENT_SAVE_SUCCESS_LOCAL_TO_FILE) = true;
             structEvent.(obj.EVENT_STATUS_LOCAL_STRUCT) = obj.mLocalStructStatus;
             obj.sendEvent(structEvent);
+        end
+        
+        function saveNotesToFile(obj)
+            if strcmp(obj.notesStatus, obj.STRUCT_STATUS_NOT_SAVED)
+                obj.saveLocalStructToFile(obj.mLoadedFileFullPath);
+            else
+                ME = MException('','Should this have happenned?');
+                warningToDev(ME);
+                % For now, do nothing. Maybe should throw warning
+            end
         end
         
         function autoSave(obj)
@@ -403,8 +425,8 @@ classdef SaveLoad < Savable & EventSender
         
         function success = loadFileToLocal(obj, fileFullPath, shouldSendErrorsOptional)
             % Loads a file to the local struct
-            % fileFullPath - string. the file path
-            % shouldSendErrorsOptional - optional boolean. if true, errors
+            % fileFullPath - string. file path, including file name
+            % shouldSendErrorsOptional - optional boolean. If true, errors
             %                            will be sent via obj.sendWarning() 
             %
             sendWarnings = exist('shouldSendErrorsOptional', 'var') && shouldSendErrorsOptional;
@@ -424,14 +446,14 @@ classdef SaveLoad < Savable & EventSender
             structEvent.(SaveLoad.EVENT_FILENAME) = obj.mLoadedFileName;
             structEvent.(obj.EVENT_LOCAL_STRUCT) = obj.mLocalSaveStruct;
             structEvent.(obj.EVENT_STATUS_LOCAL_STRUCT) = obj.mLocalStructStatus;
-            obj.sendEvent(structEvent);
             
             % Handle the notes
             if isfield(obj.mLocalSaveStruct.(obj.name), 'mNotes')
-                saveFileOnNewNotes = false; % We don't want the file to be saved when the notes change
-                obj.setNotes(obj.mLocalSaveStruct.(obj.name).mNotes, saveFileOnNewNotes)
+                obj.setNotes(obj.mLocalSaveStruct.(obj.name).mNotes)
+                obj.notesStatus = obj.STRUCT_STATUS_LOADED;
             end
             
+            obj.sendEvent(structEvent);
             success = true;
         end
         
@@ -443,6 +465,7 @@ classdef SaveLoad < Savable & EventSender
             obj.mLoadedFileName = NaN;
             obj.mLocalSaveStruct = NaN;
             obj.mLocalStructStatus = obj.STRUCT_STATUS_NOTHING;
+            obj.notesStatus = obj.STRUCT_STATUS_NOTHING;
             
             % Tell the world
             structEvent = struct();
@@ -451,6 +474,15 @@ classdef SaveLoad < Savable & EventSender
             structEvent.(obj.EVENT_STATUS_LOCAL_STRUCT) = obj.mLocalStructStatus;
             obj.sendEvent(structEvent);
         end
+        
+        %% Should add:
+        % We want a function, maybe called availableFiles, which is called
+        % every time there is load or save. It will output some data
+        % structure of logicals (vector? struct?), which expresses the
+        % availability of each of [previous, next, last]
+        % They will all be false if what we have now is unsaved
+        
+        %%
         
         function loadPreviousFile(obj)
             % Load the previous file to the one currently in use.

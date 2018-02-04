@@ -38,9 +38,9 @@ classdef (Sealed) ClassDummyStage  < ClassStage
             if isempty(localObj) || ~isvalid(localObj)
                 name = 'stage dummy';
                 availableAxes = ClassStage.SCAN_AXES;
-                isScnanable = true;
+                isScannable = true;
                 tiltAvailable = true;
-                localObj = ClassDummyStage(name, availableAxes, isScnanable, tiltAvailable);
+                localObj = ClassDummyStage(name, availableAxes, isScannable, tiltAvailable);
             end
             obj = localObj;
         end

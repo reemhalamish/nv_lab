@@ -58,7 +58,7 @@ classdef ViewStagePanelTrack < GuiComponent & EventListener
             
             gui = GuiControllerTrackablePosition;
             gui.start();
-            trackablePos.start;
+            trackablePos.startTrack;
         end
         
         function cbxContinuousCallback(obj,~,~)

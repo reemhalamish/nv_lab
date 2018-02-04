@@ -12,7 +12,7 @@ classdef (Abstract) LaserPartAbstract < EventSender
     
     properties
         % Have setters, need default values
-        currentValue = 0;   % double
+        currentValue = 100; % double. If it cannot be changed, it is effectively on full power.
         isEnabled = true;   % logical
     end
     
@@ -42,6 +42,8 @@ classdef (Abstract) LaserPartAbstract < EventSender
         %% Old syntax
         function bool = setNewValue(obj, newValue)
             % Set a new value to the laser
+            % This is a wrapper function for set.currentValue, which
+            % returns whether it succeeded
             try
                 obj.currentValue = newValue;
                 bool = true;

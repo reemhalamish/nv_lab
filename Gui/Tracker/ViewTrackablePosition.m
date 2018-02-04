@@ -11,8 +11,10 @@ classdef ViewTrackablePosition < ViewTrackable
     end
     
     properties
-        edtStepSize     % edit-input. Controls minimum step size
+        edtInitStepSize % 3x1 edit-input. Initial step size
+        edtMinStepSize  % 3x1 edit-input. Minimum step size
         edtNumStep      % edit-input. Maximum number of steps before giving up
+        edtPixelTime    % edit-input. Time for reading at each point.
         edtLaserPower   % edit-input. Power of green laser
     end
     
@@ -43,15 +45,21 @@ classdef ViewTrackablePosition < ViewTrackable
             longLabelWidth = 120;
             shortLabelWidth = 80;
             lineHeight = 30;
-            heights = [lineHeight*ones(1,4) -1];
+            heights = [lineHeight*ones(1,6) -1];
             
             hboxInput = uix.HBox('Parent', obj.panelInput, 'Spacing', 5, 'Padding', 5);
             
             vboxLabels = uix.VBox('Parent', hboxInput, 'Spacing', 5, 'Padding', 0);
-            uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels, 'String', 'Tracked Stage');
-            uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels, 'String', 'Max # of steps');
+            uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels, ...
+                'String', 'Tracked Stage');
+            uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels, ...
+                'String', 'Max # of steps');
+            uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels, ...
+                'String', 'Pixel Time');
             uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels, ...
                 'String', 'Initial Step Size');
+            uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels, ...
+                'String', 'Min. Step Size');
             uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels, ...
                 'String', 'Laser Power')
             uix.Empty('Parent', vboxLabels);
@@ -63,14 +71,25 @@ classdef ViewTrackablePosition < ViewTrackable
             obj.edtNumStep = uicontrol(obj.PROP_EDIT{:}, ...
                 'Parent', vboxValues, ...
                 'Callback', @obj.edtNumStepCallback);
-            hboxStepSize = uix.HBox('Parent', vboxValues, 'Spacing', 5, 'Padding', 0);
-                obj.edtStepSize = gobjects(1, axesLen);
-                for i = 1:axesLen
-                    obj.edtStepSize(i) = uicontrol(obj.PROP_EDIT{:}, ...
-                        'Parent', hboxStepSize, ...
-                        'Callback', @obj.edtStepSizeCallback);
-                end
-                hboxStepSize.Widths = -oneForEachAxis;
+            obj.edtPixelTime = uicontrol(obj.PROP_EDIT{:}, ...
+                'Parent', vboxValues, ...
+                'Callback', @obj.edtPixelTimeCallback);
+            
+            hboxInitStepSize = uix.HBox('Parent', vboxValues, 'Spacing', 5, 'Padding', 0);
+                obj.edtInitStepSize = gobjects(1, axesLen);
+            hboxMinStepSize = uix.HBox('Parent', vboxValues, 'Spacing', 5, 'Padding', 0);
+                obj.edtMinStepSize = gobjects(1, axesLen);
+            for i = 1:axesLen
+                obj.edtInitStepSize(i) = uicontrol(obj.PROP_EDIT{:}, ...
+                    'Parent', hboxInitStepSize, ...
+                    'Callback', @(h,e)obj.edtInitStepSizeCallback(i));
+                obj.edtMinStepSize(i) = uicontrol(obj.PROP_EDIT{:}, ...
+                    'Parent', hboxMinStepSize, ...
+                    'Callback', @(h,e)obj.edtMinStepSizeCallback(i));
+            end
+                hboxInitStepSize.Widths = -oneForEachAxis;
+                hboxMinStepSize.Widths = -oneForEachAxis;
+                
             hboxLaserPower = uix.HBox('Parent', vboxValues, 'Spacing', 5, 'Padding', 0);
                 obj.edtLaserPower = uicontrol(obj.PROP_EDIT{:}, ...
                     'Parent', hboxLaserPower, ...
@@ -104,20 +123,22 @@ classdef ViewTrackablePosition < ViewTrackable
             stage = getObjByName(trackablePos.mStageName);
             laserGate = getObjByName(trackablePos.mLaserName);
             
-            % If tracking is being performed, Start/Stop should be "Stop"
+            % If tracking is currently performed, Start/Stop should be "Stop"
             % and reset should be disabled
             obj.btnStartStopChangeMode(obj.btnStartStop, trackablePos.isCurrentlyTracking)
             obj.btnReset.Enable = BooleanHelper.boolToOnOff(~trackablePos.isCurrentlyTracking);
             
             obj.cbxContinuous.Value = trackablePos.isRunningContinuously;
-            obj.edtNumStep.String = trackablePos.NUM_MAX_ITERATIONS; %change this in the future
-            obj.edtLaserPower.String = laserGate.laser.currentValue;
+            obj.edtNumStep.String = trackablePos.nMaxIterations;
+            obj.edtPixelTime.String = trackablePos.pixelTime;
+            obj.edtLaserPower.String = laserGate.value;
             
             currentPos = stage.Pos(obj.stageAxes);
             axesLen = length(obj.stageAxes);
             for i = 1:axesLen
                 obj.tvCurPos(i).String = StringHelper.formatNumber(currentPos(i));
-                obj.edtStepSize(i).String = trackablePos.INITIAL_STEP_VECTOR(i); %change this in the future
+                obj.edtInitStepSize(i).String = trackablePos.initialStepSize(i);
+                obj.edtMinStepSize(i).String = trackablePos.minimumStepSize(i);
             end
         end
         
@@ -160,20 +181,20 @@ classdef ViewTrackablePosition < ViewTrackable
         function btnStartCallback(obj, ~, ~)
             trackablePos = getExpByName(obj.trackableName);
             try
-                trackablePos.start;
+                trackablePos.startTrack;
             catch err
-                trackablePos.stop;     % sets trackablePos.isCurrentlyTracking = false
+                trackablePos.stopTrack;     % sets trackablePos.isCurrentlyTracking = false
                 rethrow(err);
             end
         end
         function btnStopCallback(obj, ~, ~)
             trackablePos = getExpByName(obj.trackableName);
-            trackablePos.stop;
+            trackablePos.stopTrack;
             obj.refresh;
         end
         function btnResetCallback(obj, ~, ~)
             trackablePos = getExpByName(obj.trackableName);
-            trackablePos.reset;
+            trackablePos.resetTrack;
             obj.refresh;
             cla(obj.vAxes1)
             cla(obj.vAxes2)
@@ -196,18 +217,49 @@ classdef ViewTrackablePosition < ViewTrackable
         end
         
         % Unique to class
-        function edtStepSizeCallback(obj, ~, ~)
-            obj.showMessage('Requested action is not available yet. Reverting.');
-            obj.refresh;
+        function edtInitStepSizeCallback(obj, index)
+            edt = obj.edtInitStepSize(index);   % For brevity
+            trackablePos = getExpByName(obj.trackableName);
+            
+            if ~ValidationHelper.isStringValueInBorders(edt.String, ...
+                    trackablePos.minimumStepSize(index), inf)
+                edt.String = trackablePos.initialStepSize(index);
+                obj.showWarning('Initial step size is smaller than minimum step size! Reveting.');
+            end
+            [edt.String, newVal] = StringHelper.formatNumber(str2double(edt.String));
+            trackablePos.setInitialStepSize(index, newVal);
+        end
+        function edtMinStepSizeCallback(obj, index)
+            edt = obj.edtMinStepSize(index);   % For brevity
+            trackablePos = getExpByName(obj.trackableName);
+            
+            if ~ValidationHelper.isStringValueInBorders(edt.String, ...
+                    0, trackablePos.initialStepSize(index))
+                edt.String = trackablePos.minimumStepSize(index);
+                obj.showWarning('Minimum step size must be between 0 and initial step size! Reveting.');
+            end
+            [edt.String, newVal] = StringHelper.formatNumber(str2double(edt.String));
+            trackablePos.setMinimumStepSize(index, newVal);
         end
         function edtNumStepCallback(obj, ~, ~)
             obj.showMessage('Requested action is not available yet. Reverting.');
             obj.refresh;
         end
+        function edtPixelTimeCallback(obj, ~, ~)
+            trackablePos = getExpByName(obj.trackableName);
+            if ~ValidationHelper.isValuePositive(obj.edtPixelTime.String)
+                obj.edtPixelTime.String = StringHelper.formatNumber(trackablePos.pixelTime);
+                obj.showWarning('Pixel time has to be a positive number! Reverting.');
+            end
+            trackablePos.pixelTime = str2double(obj.edtPixelTime.String);
+        end
         function edtLaserPowerCallback(obj, ~, ~)
             trackablePos = getExpByName(obj.trackableName);
             laserGate = getObjByName(trackablePos.mLaserName);
-            laserGate.laser.setNewValue(obj.edtLaserPower.String);
+            
+            decimalDigits = 1;
+            val = str2double(obj.edtLaserPower.String);
+            [obj.edtLaserPower.String, laserGate.value] = StringHelper.formatNumber(val, decimalDigits);
         end
     end
     

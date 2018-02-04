@@ -1,10 +1,8 @@
-classdef TrackablePosition < Trackable
-    %TRACKABLEPOSITION Makes sure that the experiment is still focused on
-    %the desired NV center 
+classdef TrackablePosition < Trackable % & StageScanner
+    %TRACKABLEPOSITION Makes sure that the experiment is still focused on the desired NV center 
     % The class uses a simple algorithm to counter mechanical drift
     % of the stage
-    
-    % Maybe inherit from StageScanner??? or vice versa?
+
     properties (SetAccess = private)
         stepNum = 0;	% int. Steps since beginning of tracking
         currAxis = 1;   % int. Numerical value of currently scanned axis (1 for X, etc.)
@@ -12,16 +10,25 @@ classdef TrackablePosition < Trackable
         mSignal
         mScanParams     % Object of class StageScanParams, to store current running scan
         stepSize        % 3x1 double. Holds the current size of position step
+        
+        % Tracking options
+        initialStepSize
+        minimumStepSize
     end
     
     properties % have setters
         mStageName
         mLaserName
+        
+        thresholdFraction
+        pixelTime
+        nMaxIterations
     end
     
     properties (Constant)
         EVENT_STAGE_CHANGED = 'stageChanged'
         
+        % Default properties
         THRESHOLD_FRACTION = 0.01;  % Change is significant if dx/x > threshold fraction
         NUM_MAX_ITERATIONS = 120;   % After that many steps, convergence is improbable
         PIXEL_TIME = 1 ;  % in seconds
@@ -45,9 +52,16 @@ classdef TrackablePosition < Trackable
             obj.mLaserName = LaserGate.GREEN_LASER_NAME;
             
             obj.mScanParams = StageScanParams;
+            
+            % Set default tracking properties
+            obj.initialStepSize = obj.INITIAL_STEP_VECTOR;
+            obj.minimumStepSize = obj.MINIMUM_STEP_VECTOR;
+            obj.thresholdFraction = obj.THRESHOLD_FRACTION;
+            obj.pixelTime = obj.PIXEL_TIME;
+            obj.nMaxIterations = obj.NUM_MAX_ITERATIONS;
         end
 
-        function start(obj)
+        function startTrack(obj)
             %%%% Initialize %%%%
             obj.resetAlgorithm;
             obj.isCurrentlyTracking = true;
@@ -66,8 +80,9 @@ classdef TrackablePosition < Trackable
             sp = obj.mScanParams;
             sp.fixedPos = stage.Pos(axes);
             sp.isFixed = true(size(sp.isFixed));    % all axes are fixed on initalization
+            sp.pixelTime = obj.pixelTime;
             scanner = StageScanner.init;
-            if ~ischar(scanner.mStageName) || ~strcmp(scanner.mStageName,obj.mStageName)
+            if ~ischar(scanner.mStageName) || ~strcmp(scanner.mStageName, obj.mStageName)
                 scanner.switchTo(obj.mStageName)
             end
             
@@ -87,13 +102,13 @@ classdef TrackablePosition < Trackable
             obj.sendEventTrackableExpEnded;     % We want the GUI to catch that the tracker is not tracking anymore
         end
                 
-        function stop(obj)
+        function stopTrack(obj)
             obj.stopFlag = true;
             obj.isCurrentlyTracking = false;
             obj.sendEventTrackableExpEnded;
         end
         
-        function reset(obj)
+        function resetTrack(obj)
             obj.resetAlgorithm;
             obj.timer = [];
             obj.clearHistory;
@@ -119,15 +134,70 @@ classdef TrackablePosition < Trackable
     
     %% setters
     methods
-        function set.mStageName(obj,newStageName)
-            if ~strcmp(obj.mStageName,newStageName)     % MATLAB doc says this check is done internally, but we don't count on it
+        function set.mStageName(obj, newStageName)
+            if ~strcmp(obj.mStageName, newStageName)    % MATLAB doc says this check is done internally, but we don't count on it
                 if obj.isCurrentlyTracking
                     obj.sendWarning('Can''t switch stage while tracking. Try again later.')
                 else
                     obj.mStageName = newStageName;
-                    obj.sendEvent(struct(obj.EVENT_STAGE_CHANGED,true));
+                    obj.sendEvent(struct(obj.EVENT_STAGE_CHANGED, true));
                 end
             end
+        end
+        
+        function setMinimumStepSize(obj, index, newSize)
+            % Allows for vector input
+            if length(newSize) ~= length(index)
+                error('Inputs are incompatible. Cannot Complete action.')
+            elseif  any (index > length(obj.minimumStepSize)) || any(newSize <= 0)
+                error('Cannot set this step size!')
+            elseif any(newSize > obj.initialStepSize(index))
+                error('Minimum step size can''t be larger than the initial step size, or tracking will LITERALLY take forever.')
+            elseif any(newSize <= 0)
+                error('There is no point in setting negative step size.')
+            end
+            obj.minimumStepSize(index) = newSize;
+        end
+        
+        function setInitialStepSize(obj, index, newSize)
+            % Allows for vector input
+            if length(newSize) ~= length(index)
+                error('Inputs are incompatible. Cannot Complete action.')
+            elseif  any (index > length(obj.minimumStepSize)) || any(newSize <= 0)
+                error('Cannot set this step size!')
+            elseif any(newSize < obj.minimumStepSize(index))
+                error('Initial step size can''t be smaller than the minimum step size, or tracking will LITERALLY take forever.')
+            end
+            obj.initialStepSize(index) = newSize;
+        end
+        
+        function set.thresholdFraction(obj, newFraction)
+            if ~isnumeric(newFraction) || newFraction <= 0 || newFraction >= 1
+                error('Fraction must be a numeric value between 0 and 1');
+            end
+            obj.thresholdFraction = newFraction;
+        end
+        
+        function set.pixelTime(obj, newTime)
+            if ~(newTime > 0)       % False if zero or less, and also if not a number
+                error('Pixel time must be a positive number');
+            end
+            obj.pixelTime = newTime;
+        end
+        
+        function set.nMaxIterations(obj, newNum)
+            if isnumeric(newNum)
+                num = uint32(newNum);
+            else
+                num = uint32(str2double(newNum));
+            end
+            
+            if num == 0
+                error('We don''t allow for %s iterations', newNum);
+            elseif num ~= newNum
+                warning('Maximum number of iterations was rounded to nearest integer')
+            end
+                obj.nMaxIterations = num;     
         end
         
     end
@@ -161,7 +231,7 @@ classdef TrackablePosition < Trackable
             
             obj.mSignal = [];
             obj.mScanParams = StageScanParams;
-            obj.stepSize = obj.INITIAL_STEP_VECTOR;
+            obj.stepSize = obj.initialStepSize;
         end
     end
     
@@ -182,13 +252,11 @@ classdef TrackablePosition < Trackable
             spcm = getObjByName(Spcm.NAME);
             axes = stage.getAxis(stage.availableAxes);
             scanner = StageScanner.init;
-            % Initialize scan parameters for scanning
+            
+            % Initialize scan parameters for search
             sp = obj.mScanParams;
             sp.fixedPos = stage.Pos(axes);
-            sp.numPoints = 3 * ones(1,length(axes));
-            sp.isFixed = true(size(sp.isFixed));    % all axes are fixed on initalization
-            sp.fastScan = ~stage.hasSlowScan;        % scan slow, if possible
-            sp.pixelTime = obj.PIXEL_TIME;
+            sp.pixelTime = obj.pixelTime;
             
             while ~obj.stopFlag && any(obj.stepSize > obj.MINIMUM_STEP_VECTOR) && ~obj.isDivergent
                 if obj.stepSize(obj.currAxis) > obj.MINIMUM_STEP_VECTOR(obj.currAxis)
@@ -197,11 +265,16 @@ classdef TrackablePosition < Trackable
                     step = obj.stepSize(obj.currAxis);
                     
                     % scan to find forward and backward 'derivative'
-                    sp.isFixed(obj.currAxis) = false;
-                    sp.from(obj.currAxis) = pos - step;
-                    sp.to(obj.currAxis) = pos + step;
+                    % backward
+                    sp.fixedPos(obj.currAxis) = pos - step;
+                    signals(1) = scanner.scanPoint(stage, spcm, sp);
+                    % current
+                    sp.fixedPos(obj.currAxis) = pos;
+                    signals(2) = scanner.scanPoint(stage, spcm, sp);
+                    % forward
+                    sp.fixedPos(obj.currAxis) = pos + step;
+                    signals(3) = scanner.scanPoint(stage, spcm, sp);
                     
-                    signals = scanner.scan(stage, spcm, sp);    % scans [p-dp, p, p+dp]
                     shouldMoveBack = obj.isDifferenceAboveThreshhold(signals(1), signals(2));
                     shouldMoveFwd = obj.isDifferenceAboveThreshhold(signals(3), signals(2));
                     

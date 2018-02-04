@@ -1,8 +1,8 @@
-function errorToDev( ME )
+function warningToDev( ME )
 %ERRORTODEV gets MException, and sends warning, if we are in Debug mode
 
 if JsonInfoReader.getJson.debugMode
-    throwAsCaller(ME)
+    warning(ME.message)
 end
 
 end
