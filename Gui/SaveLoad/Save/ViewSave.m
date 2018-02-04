@@ -3,67 +3,81 @@ classdef ViewSave < GuiComponent & EventListener
     %   Detailed explanation goes here
     
     properties
-        btnSave;        % the button
-        btnSaveAs;      % the button
-        edtNotes;       % the input text of "notes"
-        category;       % the category to save to. mostly 'image' or 'Experiments'
+        btnSave;        % button
+        btnSaveAs;      % button
+        btnUpdate       % button
+        edtNotes;       % edit-text. Contains "notes"
+        
+        category;       % category to save to. Mostly 'image' or 'experiment'
     end
     
     methods
         % constructor
         function obj = ViewSave(parent, controller, category)
-            %%%%%%%% the object to work with %%%%%%%%
+            %%%%% Get object to work with %%%%
             saveLoadPhysical = SaveLoad.getInstance(category);
             
-            %%%%%%%% Constructors %%%%%%%%            
+            %%%% Constructors %%%%        
             obj@EventListener(saveLoadPhysical.name);
             obj@GuiComponent(parent, controller);
             
-            %%%%%%%% Ui components init  %%%%%%%%
+            %%%% Ui components init %%%%
             boxPanel = parent.component;
             vboxSaveImage = uix.VBox('Parent', boxPanel, 'Spacing', 5);
             saveImage1stRow = uix.HBox('Parent', vboxSaveImage, 'Spacing', 5);
+            saveImage2stRow = uix.HBox('Parent', vboxSaveImage, 'Spacing', 5);
             
             obj.btnSave = uicontrol(obj.PROP_BUTTON{:}, 'Parent', saveImage1stRow, 'string', 'Save');
             obj.btnSaveAs = uicontrol(obj.PROP_BUTTON{:}, 'Parent', saveImage1stRow, 'string', 'Save As');
             uix.Empty('Parent', saveImage1stRow);  % space
-            uicontrol(obj.PROP_LABEL{:}, 'Parent', saveImage1stRow, 'String', 'Notes:'); % the 'Notes' label
-            obj.edtNotes = uicontrol(obj.PROP_EDIT{:}, 'Parent', saveImage1stRow);
-            saveImage1stRow.Widths = [-4 -5 -1 -4 -8];
-            vboxSaveImage.Heights = 35;
+            obj.btnUpdate = uicontrol(obj.PROP_BUTTON{:}, 'Parent', saveImage1stRow, 'string', 'Update Save');
+            saveImage1stRow.Widths = [-4 -5 -1 -5];
             
-            %%%%%%%% Ui components set callbacks  %%%%%%%%
-            set(obj.edtNotes, 'Callback', @(h,e)obj.respondToInputNotes);
-            set(obj.btnSave, 'Callback', @(h,e)obj.respondToSave);
-            set(obj.btnSaveAs, 'Callback', @(h,e)obj.respondToSaveAs);
+            uicontrol(obj.PROP_LABEL{:}, 'Parent', saveImage2stRow, 'String', 'Notes:'); % 'Notes' label
+            obj.edtNotes = uicontrol(obj.PROP_EDIT{:}, 'Parent', saveImage2stRow);
+            saveImage2stRow.Widths = [-1 -4];
             
-            %%%%%%%% set internal values %%%%%%%%
-            obj.height = 40;
+            vboxSaveImage.Heights = [35 25];
+            
+            %%%% UI components set callbacks %%%%
+            set(obj.edtNotes, 'Callback', @obj.edtNotesCallback);
+            set(obj.btnSave, 'Callback', @obj.btnSaveCallback);
+            set(obj.btnSaveAs, 'Callback', @obj.btnSaveAsCallback);
+            set(obj.btnUpdate, 'Callback', @obj.btnUpdateCallback);
+            
+            %%%% Set internal values %%%%
+            obj.height = 70;
             obj.width = 400;
             obj.category = category;
             
-            %%%%%%% init values from the saveLoad object %%%%%%%
+            %%%% Init. values from the saveLoad object %%%%
             obj.refresh(saveLoadPhysical);
         end
         
         function respondToInputNotes(obj, ~, ~)
-            notesString = get(obj.edtNotes, 'String');
             saveLoad = SaveLoad.getInstance(obj.category);
-            saveLoad.setNotes(notesString);
+            saveLoad.setNotes(obj.edtNotes.String);
         end
         
-        function respondToSave(obj, ~, ~)
-            obj.respondToInputNotes(); % to let the notes get into the saveload
+        %%%% Callbacks %%%%
+        function edtNotesCallback(obj, ~, ~)
+            obj.respondToInputNotes;
+            saveLoad = SaveLoad.getInstance(obj.category);
+            obj.refresh(saveLoad);
+        end
+        
+        function btnSaveCallback(obj, ~, ~)
+            obj.respondToInputNotes(); % Let the notes get into the saveload obj.
             saveLoad = SaveLoad.getInstance(obj.category);
             saveLoad.save();
         end
                 
-        function respondToSaveAs(obj, ~, ~)
-            obj.respondToInputNotes(); % to let the notes get into the saveload
+        function btnSaveAsCallback(obj, ~, ~)
+            obj.respondToInputNotes(); % Let the notes get into the saveload obj.
             
-            [fileName,fullPathFolder,~] = uiputfile('.mat','Save As...');
+            [fileName, fullPathFolder, ~] = uiputfile('.mat', 'Save As...');
             if ~ischar(fileName) || ~ischar(fullPathFolder)
-                % the user pressed cancel
+                % User pressed cancel
                 return
             end
             fullPathFolder = PathHelper.appendBackslashIfNeeded(fullPathFolder);
@@ -72,12 +86,21 @@ classdef ViewSave < GuiComponent & EventListener
             saveLoad.saveAs([fullPathFolder fileName]);
         end
         
+        function btnUpdateCallback(obj, ~, ~)
+            saveLoad = SaveLoad.getInstance(obj.category);
+            saveLoad.saveNotesToFile;
+        end
+        
+        %%%% end (Callbacks) %%%%
+        
         function refresh(obj, saveLoadObject)
-            % refresh the view on the screen
+            % Refresh the view on the screen
             %
-            % saveLoadObject - the saveLoad to take info from
+            % saveLoadObject - saveLoad object to take info from
             
             obj.edtNotes.String = saveLoadObject.mNotes;
+            status = saveLoadObject.notesStatus;
+            obj.edtNotes.ForegroundColor = ViewSaveLoad.statusColor(status);
         end
     end
         

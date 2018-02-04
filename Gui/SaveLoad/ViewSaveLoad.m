@@ -1,6 +1,6 @@
 classdef ViewSaveLoad < GuiComponent & EventListener
-    %VIEWSAVELOAD view to save and load
-    %   contains the ViewSave and the ViewLoad
+    %VIEWSAVELOAD View to save and load
+    %   Contains ViewSave and ViewLoad
     
     properties
         saveView    % the child view
@@ -10,10 +10,15 @@ classdef ViewSaveLoad < GuiComponent & EventListener
         categoryToSave  % string. the category to save ('image', 'experiments', etc...)
     end
     
-    properties(Constant = true)
+    properties (Constant)
         DELAY_BG_COLOR_BACK_SEC = 0.2;
         GREEN_BG_COLOR = [0.1 1 0.1];
         RED_BG_COLOR = [1 0.1 0.1];
+        
+        COLOR_DEFAULT = [0 0 0];            % black
+        COLOR_UNSAVED = [1 0.1 0.1];        % red
+        COLOR_SAVED = [0.1 0.1 1];          % blue
+        COLOR_AUTOSAVED = [0.1 0.8 0.1];    % medium-dark green
     end
     
     methods
@@ -86,7 +91,24 @@ classdef ViewSaveLoad < GuiComponent & EventListener
                         toDisplay = sprintf('File Name - %s', status);                        
                     end
                     obj.tvFileName.String = toDisplay;
+                    obj.tvFileName.ForegroundColor = obj.statusColor(status);
                 end
+            end
+        end
+    end
+    
+    methods (Static)
+        function RGB = statusColor(status)
+            % Returns appropriate color for status
+            RGB =  ViewSaveLoad.COLOR_DEFAULT;
+            if ~ischar(status); return; end
+            switch status
+                case SaveLoad.STRUCT_STATUS_SAVED
+                    RGB = ViewSaveLoad.COLOR_SAVED;
+                case SaveLoad.STRUCT_STATUS_AUTO_SAVED
+                    RGB = ViewSaveLoad.COLOR_AUTOSAVED;
+                case SaveLoad.STRUCT_STATUS_NOT_SAVED
+                    RGB = ViewSaveLoad.COLOR_UNSAVED;
             end
         end
     end

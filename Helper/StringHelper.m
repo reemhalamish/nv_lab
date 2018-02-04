@@ -34,18 +34,19 @@ classdef StringHelper
             string = regexprep(string,'\.*0+$','');     % remove 0's @end (+decimal point, if unneeded)
         end
         
-        function string = formatNumber(num,decimalDigits)
-            % formats variable num (of any of the number types) as string,
-            % while removing trailing zeros.
+        function [string, roundedNum] = formatNumber(num, decimalDigits)
+            % Formats variable num (of any of the number types) as string,
+            % while removing trailing zeros. Optionally, returns also the
+            % rounded number as double.
             % If not specified, variables of type double will have 3
             % decimal digits (at most)
             
             if ~exist('decimalDigits','var')
                 decimalDigits = 3;
             end
-            formatSpec = sprintf('%%.%df',decimalDigits);
-            stringWithZeros = sprintf(formatSpec,num);
-            string = regexprep(stringWithZeros,'\.*0+$','');     % remove 0's @end (+decimal point, if unneeded)
+            roundedNum = round(num, decimalDigits);
+            stringWithZeros = sprintf('%f', num);
+            string = regexprep(stringWithZeros, '\.*0+$', '');     % remove 0's @end (+decimal point, if unneeded)
             
             if strcmp(string, '-0'); string='0'; end
         end

@@ -45,14 +45,14 @@ classdef ViewLoad < ViewVBox & EventListener
             vboxRadioButtons = uix.VBox('Parent', loadRadioPanel, 'Spacing', 5);
             obj.radioLoadAuto = uicontrol(obj.PROP_RADIO{:}, 'Parent', vboxRadioButtons, 'string', 'Autosave');
             obj.radioLoadManual = uicontrol(obj.PROP_RADIO{:}, 'Parent', vboxRadioButtons, 'string', 'Last saved');
-            % in order to have scrolling in this box, we use a workaround: we define it as an editbox, which is inactive, and set 'Max'-'Min' > 1
+            % In order to have scrolling in this box, we use a workaround: we define it as an inactive editbox, and set 'Max'-'Min' > 1
             obj.tvLoadedInfo = uicontrol(obj.PROP_EDIT_SMALL{:}, 'Parent', hboxSecondRow, 'String', 'Loaded File Info', ...
-                'Enable', 'inactive', 'Min', 0, 'Max', 2);    % These last three name-value pairs SHOULD make it a scrollable textview. Refer to MATLAB help for more explanations.
+                'Enable', 'inactive', 'Min', 0, 'Max', 2);    % These last three name-value pairs SHOULD make it a scrollable textview. Refer to MATLAB doc for more explanations.
             vboxRadioButtons.Heights = [20 20];
             hboxSecondRow.Widths = [-38 -70];
             
             
-            %%%%%%%% 3rd row: the "load to system!" buttons (inc. callbacks) %%%%%%%%
+            %%%% 3rd row: the "load to system!" buttons (inc. callbacks) %%%%
             hbox3rdRow = uix.HBox('Parent', obj.component, 'Spacing', 15);
             labels = obj.getDisplayLoadToSystemButtons(saveLoadCategory);
             subCats = obj.getSubCategoriesForLoadToSystemButtons(saveLoadCategory);
@@ -64,7 +64,7 @@ classdef ViewLoad < ViewVBox & EventListener
                 obj.btnLoadToSystem(i).Callback = @(h,e) obj.handleButtonLoadToSystem(subCats{i});
             end
             
-            %%%%%%%% Ui components set callbacks  %%%%%%%%
+            %%%% Ui components set callbacks  %%%%
             set(obj.radioLoadAuto, 'Callback', @(h,e)obj.handleRadioAuto);
             set(obj.radioLoadManual, 'Callback', @(h,e)obj.handleRadioManual);
             set(obj.btnLoad, 'Callback', @(h,e)obj.handleButtonLoad);
@@ -75,19 +75,19 @@ classdef ViewLoad < ViewVBox & EventListener
             
             
             
-            %%%% internal properties set values %%%%
+            %%%% Internal properties set values %%%%
             obj.height = 200;
             obj.setHeights([30 100 40]);
             obj.width = 200;
             
-            %%%% set values from the saveLoad %%%%
+            %%%% Set values from the saveLoad %%%%
             obj.refresh();
         end
         
         function cellOfStrings = getDisplayLoadToSystemButtons(~, category)
-            % the strings to be displayed in the "load to" buttons.
-            % as depending on the relevant category. implement here other
-            % buttons for other categories!
+            % Strings to be displayed in the "load to" buttons, depending
+            % on the relevant category.
+            % Implement here other buttons for other categories!
             switch category
                 case Savable.CATEGORY_IMAGE
                     cellOfStrings = {'To Stages!', 'To Lasers!'};
@@ -97,8 +97,8 @@ classdef ViewLoad < ViewVBox & EventListener
         end
         
         function cellOfStrings = getSubCategoriesForLoadToSystemButtons(~, category)
-            % the sub-categories matching the "load to" buttons
-            % should be a cell from same length as
+            % Sub-categories matching the "load to" buttons.
+            % should be a cell of same length as
             % obj.getDisplayLoadToSystemButtons with the same category
             switch category
                 case Savable.CATEGORY_IMAGE
@@ -221,7 +221,7 @@ classdef ViewLoad < ViewVBox & EventListener
                 obj.refresh();
             end
             
-            %%%% handle the visibility (based on is a struct loaded) ~~~~
+            %%%% handle the visibility (based on whether a struct loaded) ~~~~
             if isfield(event.extraInfo, SaveLoad.EVENT_STATUS_LOCAL_STRUCT)
                 structStatus = event.extraInfo.(SaveLoad.EVENT_STATUS_LOCAL_STRUCT);
                 statusesNoFile = {SaveLoad.STRUCT_STATUS_NOT_SAVED, SaveLoad.STRUCT_STATUS_NOTHING};
