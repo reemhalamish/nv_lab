@@ -1,7 +1,7 @@
 classdef ViewMainImage < ViewVBox
     %VIEWMAIN the main window
-    %   is cunstructed from a vertical box with 2 elements: 
-    %     *  top erea is for the 3 columns (via horizontal box), 
+    %   is constructed from a vertical box with 2 elements: 
+    %     *  top erea is for the 3 columns (via horizontal box) + dummy column, 
     %     *  bottom erea is for the error messages. 
     %
     %   notice that obj.component is a vertical box!
@@ -22,8 +22,7 @@ classdef ViewMainImage < ViewVBox
             column1 = ViewContainerStage(mainView, controller);
             column2 = ViewImageResult(mainView, controller);
             column3 = ViewVBox(mainView, controller);
-            column3.component.Spacing = 5;
-            column3.component.Padding = 5;
+            ViewVBox(mainView, controller);     % Dummy column, so that the third column doesn't end at the right end of the window
             
             viewLaserContainer = ViewLasersContainer(column3, controller);
             viewSaveLoad = ViewSaveLoad(column3, controller, Savable.CATEGORY_IMAGE);
@@ -31,9 +30,10 @@ classdef ViewMainImage < ViewVBox
             
             column3.setHeights([viewLaserContainer.height, viewSaveLoad.height, viewSpcmInImage.height]);
             column3width = max(viewLaserContainer.width, viewSaveLoad.width);
+            dummyWidth = 3;
 
-            columnsWidths = [column1.width, column2.width, column3width];
-            mainView.component.Widths = [column1.width, -1, column3width];
+            columnsWidths = [column1.width, column2.width, column3width, dummyWidth];
+            mainView.component.Widths = [column1.width, -1, column3width, dummyWidth];
             errorView = ViewError(obj, controller);
             column3height = viewSaveLoad.height + viewLaserContainer.height + 10;
             maximumColumnsHeight = max([column1.height, column2.height, column3height]);

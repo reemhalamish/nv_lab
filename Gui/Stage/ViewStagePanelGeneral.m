@@ -15,11 +15,11 @@ classdef ViewStagePanelGeneral < GuiComponent
             obj.stageName = stage.name;
             
             %%%% panel init %%%%
-            panelGeneral = uix.Panel('Parent', parent.component,'Title','General', 'Padding', 5);
+            panelGeneral = uix.Panel('Parent', parent.component, 'Title', 'General', 'Padding', 5);
             vboxMain = uix.VBox('Parent', panelGeneral, 'Spacing', 5, 'Padding', 0);
             obj.component = vboxMain;
             
-            %getting closed-loop options
+            % Getting closed-loop options
             hasClosedLoop = stage.hasClosedLoop;
             hasOpenLoop = stage.hasOpenLoop;
             
@@ -42,6 +42,7 @@ classdef ViewStagePanelGeneral < GuiComponent
         function btnResetStageCallback(obj,~,~)
             stage = getObjByName(obj.stageName);
             stage.Reconnect;
+            stage.sendEventPositionChanged;     % It might have
         end
         
         function cbxClosedLoopCallback(obj,~,~)

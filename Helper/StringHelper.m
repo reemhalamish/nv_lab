@@ -45,7 +45,7 @@ classdef StringHelper
                 decimalDigits = 3;
             end
             roundedNum = round(num, decimalDigits);
-            stringWithZeros = sprintf('%f', num);
+            stringWithZeros = sprintf('%f', roundedNum);
             string = regexprep(stringWithZeros, '\.*0+$', '');     % remove 0's @end (+decimal point, if unneeded)
             
             if strcmp(string, '-0'); string='0'; end

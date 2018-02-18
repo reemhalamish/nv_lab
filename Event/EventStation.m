@@ -25,7 +25,8 @@ classdef EventStation < handle
             % varargin - so we can pass multiple arguments (like sprintf)
             errorMsg = sprintf(errorMsg, varargin{:});
             EventStation.getInstance.newEvent(Event.createErrorEvent(struct('name', 'anonymous'), errorMsg));
-            error(errorMsg); %#ok<SPERR>
+            ME = MException('',errorMsg);
+            throwAsCaller(ME);
         end
         
         function anonymousWarning(errorMsg, varargin)

@@ -90,7 +90,7 @@ classdef ViewDoubleAom < ViewVBox & EventListener
     methods (Access = protected)
         
         function refresh(obj)
-            obj.setValueInternally(obj.laserPart.currentValue);
+            obj.setValueInternally(obj.laserPart.value);
             obj.setEnabledInternally(obj.laserPart.isEnabled);
         end
         
