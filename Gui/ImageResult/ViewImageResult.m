@@ -20,13 +20,5 @@ classdef ViewImageResult < ViewVBox
             obj.setHeights([obj.vHeader.height, -1]);
         end
     end
-    
-    methods(Static = true)
-        function axesFig = getAxes
-            % get the axes() in the GUI figure
-            view = getObjByName(ViewImageResultImage.NAME);
-            axesFig = view.vAxes;
-        end
-    end
 end
 

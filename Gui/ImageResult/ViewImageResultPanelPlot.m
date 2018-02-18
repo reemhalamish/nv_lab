@@ -45,17 +45,8 @@ classdef ViewImageResultPanelPlot < GuiComponent
     methods (Access = private)
         %%%% Callbacks %%%%        
         function btnOpenInFigureCallback(obj, ~, ~) %#ok<INUSD>
-            resultImage = getObjByName(ViewImageResultImage.NAME);
-            hFigure = figure;
-            axes = resultImage.vAxes;
-            copyobj([axes,colorbar(axes)],hFigure);
-            
-            try
-                notes = SaveLoad.getInstance(Savable.CATEGORY_IMAGE).mNotes;
-                title(notes); %set the notes as the plot's title
-            catch
-                % There are no available notes, probably
-            end
+            imageScanResult = getObjByName(ImageScanResult.NAME);
+            imageScanResult.copyToFigure;
         end
         
         function popupStyleCallback(obj, ~, ~)

@@ -60,19 +60,33 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         
         %% Updating Image
         function update(obj, structExtra)
-            % Get EVERYTHING from the struct
-            obj.mData = structExtra.scan;
-            obj.mDimNumber = structExtra.dimNumber;
-            obj.mFirstAxis = structExtra.getFirstAxis;
-            obj.mSecondAxis = structExtra.getSecondAxis;
-            obj.mStageName = structExtra.stageName;
-            obj.mAxesString = structExtra.axesString;
-            obj.mLabelBot = structExtra.botLabel;
-            obj.mLabelLeft = structExtra.leftLabel;
+            % This function could be called in two cases:
+            % 1. When new data arrives. We then have structExtra.
+            % 2. When ViewImageResultImage starts, and wants data to plot.
+            %    Then, no structExtra will be available, but if there is
+            %    available data, we still want to plot it.
             
-            % We need to calculate this:
-            obj.colormapLimits = obj.calcColormapLimits(obj.mData);
+            if exist('structExtra', 'var')
+                % Get EVERYTHING from the struct
+                obj.mData = structExtra.scan;
+                obj.mDimNumber = structExtra.dimNumber;
+                obj.mFirstAxis = structExtra.getFirstAxis;
+                obj.mSecondAxis = structExtra.getSecondAxis;
+                obj.mStageName = structExtra.stageName;
+                obj.mAxesString = structExtra.axesString;
+                obj.mLabelBot = structExtra.botLabel;
+                obj.mLabelLeft = structExtra.leftLabel;
+            elseif ~obj.isDataAvailable
+                % No data is available, neither externally nor internally.
+                return
+            end
             
+            % We need to calculate this, before sending event (so as to update the header):
+            if obj.colormapAuto
+                obj.colormapLimits = obj.calcColormapLimits(obj.mData);
+            end
+            
+            AxesHelper.fillAxes(obj.gAxes, obj.mData, obj.mDimNumber, obj.mFirstAxis, obj.mSecondAxis, obj.mLabelBot, obj.mLabelLeft);
             obj.sendEventImageUpdated();
             obj.imagePostProcessing;
         end
@@ -88,13 +102,15 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             colormapName = obj.COLORMAP_OPTIONS{obj.colormapType};
             colormap(obj.gAxes, colormapName)
             
+            
+            if obj.colormapAuto
+                obj.colormapLimits = obj.calcColormapLimits(obj.mData);
+            end
             try
-                if obj.colormapAuto
-                    obj.colormapLimits = obj.calcColormapLimits(obj.mData);
-                end
                 caxis(obj.gAxes, obj.colormapLimits);
-            catch % there is a problem with the limits we tried to enforce
+            catch % There is a problem with the limits we tried to enforce
                 caxis(obj.gAxes, 'auto');
+                obj.sendWarning('Colorbar limits were problematic, and they were set automatically.');
             end
             
             % Get current stage position
@@ -433,21 +449,16 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             set(obj.cursor,'UpdateFcn',@obj.cursorMarkerDisplay);
         end
         
-        function changeMyStage(obj, stageName)
+        function fig = copyToFigure(obj)
+            fig = figure;
+            axes = obj.gAxes;
+            copyobj([axes,colorbar(axes)],fig);
+            
             try
-                % We might not need to do anything, since we are using the
-                % same stage.
-                if ~strcmp(stageName, obj.mStageName)
-                    % Check that required stage is available
-                    getObjByName(stageName);
-                    
-                    % Switch to new stage
-                    obj.stopListeningTo(obj.mStageName);
-                    obj.mStageName = stageName;
-                    obj.startListeningTo(obj.mStageName);
-                end
+                notes = SaveLoad.getInstance(Savable.CATEGORY_IMAGE).mNotes;
+                title(notes); % Set the notes as the figure title
             catch
-                obj.sendWarning('New stage is not available. Some things might not work properly.');
+                % There are no available notes, probably
             end
         end
         
@@ -465,7 +476,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             
             if isempty(obj.mData) || isempty(obj.mData); return; end
             
-            figureInvis = AxesHelper.copyAxes(ViewImageResult.getAxes);
+            figureInvis = AxesHelper.copyAxes(obj.gAxes);
             
             filename = PathHelper.removeDotSuffix(filename);
             filename = [filename '.' ImageScanResult.IMAGE_FILE_SUFFIX];
@@ -485,6 +496,58 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         function init
             removeObjIfExists(ImageScanResult.NAME); 
             addBaseObject(ImageScanResult);
+        end
+        
+        function limits = calcColormapLimits(data)
+            % Calculate auto-limits from data.
+            maxValue = max(max(data(~isinf(data))));
+            minValue = min(min(data(data ~= 0)));
+            limits = [minValue maxValue];
+        end 
+    end
+    
+    %% Setters
+    methods
+        function set.mStageName(obj, stageName)
+            % The stage might have changed, and we need to start listening to it
+            try
+                % We might not need to do anything, since we are using the
+                % same stage.
+                if ~strcmp(stageName, obj.mStageName)
+                    % Check that required stage is available
+                    getObjByName(stageName);
+                    
+                    % Switch to new stage
+                    obj.stopListeningTo(obj.mStageName);
+                    obj.mStageName = stageName;
+                    obj.startListeningTo(obj.mStageName);
+                end
+            catch
+                obj.sendWarning('New stage is not available. Some things might not work properly.');
+            end
+        end
+    end
+    
+    %% Getters (for backward compatibility)
+    methods 
+        function limits = get.colormapLimits(obj)
+            if isnumeric(obj.colormapLimits) && (length(obj.colormapLimits) == 2)
+                limits = obj.colormapLimits;
+            elseif obj.isDataAvailable
+                limits = obj.calcColormapLimits(obj.mData);
+            else
+                limits = [0 1];
+            end
+        end
+        
+        function tf = get.colormapAuto(obj)
+            % the second condition in this if is odd, but we need it, for
+            % now. todo: check what's going on here
+            if islogical(obj.colormapAuto) || obj.colormapAuto == 1
+                tf = obj.colormapAuto;
+            else
+                tf = false;
+            end
         end
     end
     
@@ -582,7 +645,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             % need to change our reference stage
             if strcmp(event.creator.name, StageScanner.NAME) ...
                     && isfield(event.extraInfo, StageScanner.EVENT_SCAN_STARTED)
-                obj.changeMyStage(event.creator.mStageName);
+                obj.mStageName = event.creator.mStageName;
             end
                     
             
@@ -619,14 +682,5 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             end
         end
     end
-    
-    %%
-    methods (Static)
-       function limits = calcColormapLimits(data)
-            % Calculate auto-limits from data.
-            maxValue = max(max(data(~isinf(data))));
-            minValue = min(min(data(data ~= 0)));
-            limits = [minValue maxValue];
-        end 
-    end
+
 end
