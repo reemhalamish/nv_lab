@@ -22,7 +22,7 @@ classdef LaserGate < Savable % Needs to be EventSender
     properties(Constant)
         NEEDED_FIELDS = {'nickname', 'directControl', 'aomControl', 'switch'};
         STRUCT_IO_IS_ENABLED = 'isEnabled';     % used to save and load the state
-        STRUCT_IO_CUR_VALUE = 'currentValue';   % used to save and load the state
+        STRUCT_IO_CUR_VALUE = 'value';          % used to save and load the state
         
         GREEN_LASER_NAME = 'Green Laser';
     end
@@ -40,12 +40,12 @@ classdef LaserGate < Savable % Needs to be EventSender
         
         function tf = isSourceAvail(obj)
             % Check if this laser gate can manipulate a smart laser source
-            tf = isobject(obj.source);
+            tf = isobject(obj.source) && obj.source.canSetValue;
         end
         
         function tf = isAomAvail(obj)
             % Check if this laser gate can manipulate the AOM
-            tf = isobject(obj.aom);
+            tf = isobject(obj.aom) && obj.aom.canSetValue;
         end
         
     end
@@ -55,13 +55,18 @@ classdef LaserGate < Savable % Needs to be EventSender
         % Child objects can override it, if needed
         
         function set.value(obj, newVal)
-            if isnumeric(newVal) && ((newVal < 0) || (newVal > 100))
-                error('Value must be between 0 and 100');
-            elseif ~isAomAvail(obj) || ~obj.aom.canSetValue
-                error('Cannot set value for laser');
-            else
-                obj.aom.currentValue = newVal;
+            % Value is given in percentage
+            tfSource = obj.isSourceAvail;
+            tfAom = obj.isAomAvail;
+            if ~tfAom && ~tfSource
+                EventStation.anonymousError('Can''t set value for laser');
+            elseif tfAom
+                part = obj.aom;
+            elseif tfSource
+                part = obj.source;
+            % there is no other option
             end
+            part.value = obj.percent2absolute(part, newVal);
         end
         
         function set.isOn(obj, newVal)
@@ -69,26 +74,42 @@ classdef LaserGate < Savable % Needs to be EventSender
                 tf = logical(newVal);
                 obj.aomSwitch = tf;
             catch
-                error('Cannot set %s as On/off state of %s', newVal, obj.name)
+                err = sprintf('Cannot set %s as On/off state of %s', newVal, obj.name);
+                EventStation.anonymousError(err);
             end
         end
         
         %%%%
         function value = get.value(obj)
-            value = 100;
+            % Value is given in percentage
             if obj.isAomAvail()
-                value = value * obj.aom.currentValue / 100;
+                part = obj.aom;
+            elseif obj.isSourceAvail()
+                part = obj.source;
+            else
+                value = 100;
+                return
             end
-            if obj.isSourceAvail()
-                value = value * obj.source.currentValue / 100;
-            end
+            value = obj.absolute2percent(part, part.value);
         end
         
         function isOn = get.isOn(obj)
             isOn = obj.aomSwitch.isEnabled;
         end
         
+    end
+    
+    %%
+    methods (Static)
+        function absValue = percent2absolute(part, percentValue)
+            assert(isprop(part, 'maxValue'))
+            absValue = percentValue * part.maxValue / 100;      % We assume, for simplicity, that minimum value is 0
+        end
         
+        function percentValue = absolute2percent(part, absValue)
+            assert(isprop(part, 'maxValue'))
+            percentValue = absValue * 100 / part.maxValue;      % We assume, for simplicity, that minimum value is 0
+        end
     end
     
     %% overriding from Savable
@@ -112,11 +133,11 @@ classdef LaserGate < Savable % Needs to be EventSender
             outStruct.switch = obj.aomSwitch.isEnabled;
             if obj.isAomAvail()
                 outStruct.aom_isEnabled = obj.aom.isEnabled;
-                outStruct.aom_curValue = obj.aom.currentValue;
+                outStruct.aom_curValue = obj.aom.value;
             end
             if obj.isSourceAvail()
                 outStruct.source_isEnabled = obj.source.isEnabled;
-                outStruct.source_curValue = obj.source.currentValue;
+                outStruct.source_curValue = obj.source.value;
             end
         end
         
@@ -197,7 +218,7 @@ classdef LaserGate < Savable % Needs to be EventSender
                 laserName = laserStruct.nickname;
                 sourcePhysical = LaserSourcePhysicalFactory.createFromStruct(laserName, laserStruct.directControl);
                 aomPhysical = LaserAomPhysicalFactory.createFromStruct(laserName, laserStruct.aomControl);
-                switchPhysical = SwitchPbControlled.createFromStruct(laserName, laserStruct.switch);    % need to create3 switch factory
+                switchPhysical = LaserSwitchPhysicalFactory.createFromStruct(laserName, laserStruct.switch);
                 laserGate = LaserGate(laserName, sourcePhysical, aomPhysical, switchPhysical);
         end        
     end

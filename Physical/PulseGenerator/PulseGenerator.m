@@ -1,10 +1,15 @@
-classdef PulseGenerator < handle
+classdef PulseGenerator < EventSender
     %PULSEGENERATOR Class for creating a pulse generator
+    % For now, it is also a wrapper for the old PulseStreamerClass.
     %   todo: make it an abstract class, from which both the pulse-blaster
     %   and -streamer inherit
     
     properties
         type
+    end
+    
+    properties
+        pulseStreamer
     end
     
     properties (Constant)
@@ -16,14 +21,17 @@ classdef PulseGenerator < handle
     
     methods
         function obj = PulseGenerator(struct)
-            obj@handle;
+            name = PulseGenerator.NAME;
+            obj@EventSender(name);
             
             obj.type = obj.generatorType(struct);
             switch obj.type
                 case obj.NAME_PULSE_BLASTER
                     PulseBlaster.create(struct);
                 case obj.NAME_PULSE_STREAMER
-                    obj.createPulseStreamer(struct)
+                    removeObjIfExists(name);
+                    addBaseObject(obj);  % so it can be reached by getObjByName(PulseGenerator.NAME)
+                    obj.pulseStreamer = obj.createPulseStreamer(struct);
             end
         end
     end
@@ -33,9 +41,17 @@ classdef PulseGenerator < handle
             try
                 type = PulseGenerator.generatorType(struct);
                 getObjByName(type);
-                return
             catch
                 PulseGenerator(struct);
+            end
+            switch type
+                case PulseGenerator.NAME_PULSE_STREAMER
+                    PG = getObjByName(PulseGenerator.NAME);
+                    names = struct.channelNames;
+                    values = struct.channelValues;
+                    PG.pulseStreamer.setChannelNameAndValue(names, values);
+                case PulseGenerator.NAME_PULSE_BLASTER
+                    warning('You will have to add channels to the pulseBlaster manually')
             end
         end
         

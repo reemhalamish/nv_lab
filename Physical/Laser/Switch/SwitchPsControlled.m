@@ -6,6 +6,8 @@ classdef SwitchPsControlled < EventSender & EventListener
     
     properties
         isEnabled
+        
+        channel
     end
     
     properties(Constant = true, Hidden = true)
@@ -17,12 +19,14 @@ classdef SwitchPsControlled < EventSender & EventListener
         function obj = SwitchPsControlled(name, psChannel)
             % name - the nickname of the object
             % psChannel - integer, the channel that PS will work with
-            ps = getObjByName(PulseStreamer.NAME);
+            PG = getObjByName(PulseGenerator.NAME);
             obj@EventSender(name);
-            obj@EventListener(ps.name);
+            obj@EventListener(PG.NAME);
             BaseObject.addObject(obj);  % so it can be reached by BaseObject.getByName()
             
-            ps.addNewChannel(name, psChannel);
+%            ps = PG.pulseStreamer;                 in the meanwhile,
+%            ps.addNewChannel(name, psChannel);     this is not needed
+            obj.channel = psChannel;
             obj.isEnabled = false;
         end
         
@@ -31,8 +35,13 @@ classdef SwitchPsControlled < EventSender & EventListener
             if ((isnumeric(newValue) && (newValue == 0 || newValue == 1)) ...
                     || islogical(newValue))
                 obj.isEnabled = newValue;
-                ps = getObjByName(PulseStreamerClass.NAME);
-                ps.switchOnly(obj.name, newValue);
+                PG = getObjByName(PulseGenerator.NAME);
+                ps = PG.pulseStreamer;
+                if newValue
+                    ps.On(obj.channel); %#ok<MCSUP>
+                else
+                    ps.Off;
+                end
                 obj.sendEvent(struct('isEnabled', newValue));
                 % ^ let everyone know about the success! :)
             else
@@ -64,7 +73,7 @@ classdef SwitchPsControlled < EventSender & EventListener
     methods
         % event is the event sent from the EventSender
         function onEvent(obj, event)
-            ps = getObjByName(PulseStreamerClass.NAME);
+            ps = event.sender.pulseStreamer;
             newEnabled = ps.isOn(obj.name);
             if newEnabled ~= obj.isEnabled
                 obj.isEnabled = newEnabled;

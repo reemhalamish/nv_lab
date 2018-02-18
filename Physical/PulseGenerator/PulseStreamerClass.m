@@ -86,13 +86,13 @@ classdef (Sealed) PulseStreamerClass < handle
         function newSequence(obj)
             obj.durationPrivate = []; %mus
             obj.nicknamePrivate = {};
-            obj.sequencePrivate = [];
+            obj.sequencePrivate = {};
         end
         function newSequenceLine(obj,newEvent,newDuration,nickname)
             if nargin<4 || isempty(nickname)
                 nickname = {''};
             end
-            [~,newChannels] = obj.ChannelValuesFromNames(newEvent);
+            newChannels = obj.ChannelValuesFromNames(newEvent);
             if length(newDuration) > 1 || isempty(newDuration)
                 error('invalid input duration')
             end
@@ -100,8 +100,8 @@ classdef (Sealed) PulseStreamerClass < handle
                 error('Duration must be between %s and %s',num2str(obj.minDuration),num2str(obj.maxDuration))
             end
             obj.durationPrivate = [obj.durationPrivate, newDuration];
-            obj.sequencePrivate = [obj.sequencePrivate, newChannels];
-            obj.nicknamePrivate = {obj.nicknamePrivate ,nickname};
+            obj.sequencePrivate{end+1} = newChannels;
+            obj.nicknamePrivate{end+1} = nickname;
         end
         
         function addEventAtGivenTime(obj,newTime,newEvent,newDuration) %no nickname here!
@@ -111,7 +111,7 @@ classdef (Sealed) PulseStreamerClass < handle
             
             %newNickname = {''};
             
-            [~, newEvent] = obj.ChannelValuesFromNames(newEvent);
+            [~, newEvent] = obj.ChannelValuesFromNames(newEvent); todo = 'maybe will not work'
             if length(newDuration) > 1 || isempty(newDuration) || length(newTime) > 1 || isempty(newTime)
                 error('invalid input duration / initial time')
             end
@@ -180,8 +180,8 @@ classdef (Sealed) PulseStreamerClass < handle
                     end
                     obj.durationPrivate(index) = newValue;
                 case {'sequence','event','pb'}
-                    [~,newChannels] = obj.ChannelValuesFromNames(newValue);
-                    obj.sequencePrivate(:,index) = newChannels;
+                    newChannels = obj.ChannelValuesFromNames(newValue); todo = 'maybe will not work'
+                    obj.sequencePrivate{index} = newChannels;
                 otherwise
                     error('Unknown option')
             end
@@ -216,8 +216,8 @@ classdef (Sealed) PulseStreamerClass < handle
             if isempty(channels)
                 channels = 0;
             else
-                if sum(rem(channels,1)) || min(channels) <0 || max(channels)> obj.maxPBchannel
-                    error('Input must be integers from 0 to %f', obj.maxPBchannel)
+                if sum(rem(channels,1)) || min(channels) <0 || max(channels)> obj.maxDigitalChannels
+                    error('Input must be integers from 0 to %f', obj.maxDigitalChannels)
                 end
                 channels = sum(2.^channels);
             end
@@ -231,6 +231,7 @@ classdef (Sealed) PulseStreamerClass < handle
         end
         
         function Run(obj)
+            obj.uploadSequence;
             obj.ps.startNow;
         end
         
@@ -256,7 +257,7 @@ classdef (Sealed) PulseStreamerClass < handle
             numberOfSequences = length(obj.durationPrivate);
             sequences = [];
             for i=1:numberOfSequences
-                sequences = sequences + P(obj.durationPrivate(i)*1e3, obj.sequencePrivate(:,i)', 0, 0);
+                sequences = sequences + P(obj.durationPrivate(i)*1e3, obj.sequencePrivate{i}, 0, 0);
             end
             obj.ps.stream(sequences, obj.repeatsPrivate, initialOutputState, finalOutputState, underflowOutputState, start);
         end

@@ -115,7 +115,7 @@ classdef ViewTrackablePosition < ViewTrackable
             end
             set(gridTracked, 'Widths', [shortLabelWidth -1], 'Heights', -oneForEachAxis );
             
-            obj.refreshUponStageChange;     % technically, not "refresh", but is needed @init.
+            obj.refreshUponStageChange;     % technically, not "refresh", but is needed @ init.
         end
 
         function refresh(obj)
@@ -159,7 +159,7 @@ classdef ViewTrackablePosition < ViewTrackable
             
             p_1 = pos(1, :);
             dp = diff([p_1;pos]);
-            plot(obj.vAxes1,t,dp); % plots each column (x,y,z) against the time
+            plot(obj.vAxes1, t, dp); % plots each column (x,y,z) against the time
             drawnow;
             set(obj.legend1,'String', {'x','y','z'}, ... % todo: should use obj.stageAxes
                 'Visible', 'on');
@@ -259,7 +259,16 @@ classdef ViewTrackablePosition < ViewTrackable
             
             decimalDigits = 1;
             val = str2double(obj.edtLaserPower.String);
-            [obj.edtLaserPower.String, laserGate.value] = StringHelper.formatNumber(val, decimalDigits);
+            [string, numeric] = StringHelper.formatNumber(val, decimalDigits);
+            try
+                laserGate.value = numeric;
+            catch err
+                % Laser did not accept the value. Reverting.
+                numeric = laserGate.value;
+                string = StringHelper.formatNumber(numeric, decimalDigits);
+                EventStation.anonymousWarning(err.message);
+            end
+            obj.edtLaserPower.String = string;
         end
     end
     

@@ -1,31 +1,48 @@
 classdef LaserSourceDummy < LaserPartAbstract
     %LASERSOURCEDUMMY dummy laser in which everything works
     
+    properties
+        canSetEnabled = true;
+        canSetValue = true;  
+    end
+    
+    properties (Hidden)
+        dummyValue
+        dummyEnabled
+    end
+    
     methods
         % constructor
         function obj = LaserSourceDummy(name)
             obj@LaserPartAbstract(name);
             obj.initLaserPart();
         end
-        
-        function out = canSetValue(obj)
-            out = true;
+    end
+    
+    %% Overridden from LaserPartAbstract
+    %% These functions call physical objects. Tread with caution!
+    methods (Access = protected)
+        function setValueRealWorld(obj, newValue)
+            % Sets the voltage value in physical laser part
+            obj.dummyValue = newValue;
         end
         
-        function out = canSetEnabled(obj)
-            out = true;
+        function setEnabledRealWorld(obj, newBool)
+            % Sets the physical laser part on (true) or off (false)
+            obj.dummyEnabled = newBool;
         end
     end
     
-    methods(Access = protected)
-        function out = setEnabledRealWorld(obj, newBoolValue) %#ok<*INUSD,*MANU>
-            out = true;
+    methods
+        function value = getValueRealWorld(obj)
+            % Gets the voltage value from physical laser part
+            value = obj.dummyValue;
         end
         
-        function out = setValueRealWorld(obj, newValue)
-            out = true;
+        function tf = getEnabledRealWorld(obj)
+            % Returns whether the physical laser part is on (true) or off (false)
+            tf = obj.dummyEnabled;
         end
     end
-    
 end
 

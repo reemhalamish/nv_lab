@@ -20,7 +20,6 @@ classdef SwitchPbControlled < EventSender & EventListener
             pb = getObjByName(PulseBlaster.NAME);
             obj@EventSender(name);
             obj@EventListener(pb.name);
-            BaseObject.addObject(obj);  % so it can be reached by BaseObject.getByName()
             
             pb.addNewChannel(name, pbChannel);
             obj.isEnabled = false;

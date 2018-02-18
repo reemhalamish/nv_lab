@@ -1,29 +1,43 @@
 classdef AomDummy < LaserPartAbstract
     %AOMDUMMY dummy aom in which everything works
     
+    properties
+        canSetValue = true;
+        canSetEnabled = true;
+    end
+    
+    properties (Access = private)
+        valuePrivate
+        enabledPrivate
+    end
+    
     methods
         % constructor
         function obj = AomDummy(name)
             obj@LaserPartAbstract(name);
             obj.initLaserPart();
         end
-        
-        function out = canSetValue(obj)
-            out = true;
+    end
+    
+    methods
+        function val = getValueRealWorld(obj)
+            % Gets the voltage value from physical laser part
+            val = obj.valuePrivate;
         end
         
-        function out = canSetEnabled(obj)
-            out = true;
+        function tf = getEnabledRealWorld(obj)
+            % Returns whether the physical laser part is on (true) or off (false)
+            tf = obj.enabledPrivate;
         end
     end
     
     methods(Access = protected)
-        function out = setEnabledRealWorld(obj, ~) %#ok<*INUSD,*MANU>
-            out = true;
+        function setEnabledRealWorld(obj, tf) %#ok<*INUSD,*MANU>
+            obj.enabledPrivate = tf;
         end
         
-        function out = setValueRealWorld(obj, ignored)
-            out = true;
+        function setValueRealWorld(obj, val)
+            obj.valuePrivate = val;
         end
     end
     

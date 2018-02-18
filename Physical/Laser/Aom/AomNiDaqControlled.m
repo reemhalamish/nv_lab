@@ -3,6 +3,13 @@ classdef AomNiDaqControlled < LaserPartAbstract & NiDaqControlled
     
     properties
         niDaqChannel;
+
+        canSetEnabled = true;
+        canSetValue = false;  
+    end
+    
+    properties (Access = private)
+        valuePrivate
     end
     
     properties(Constant)
@@ -17,21 +24,13 @@ classdef AomNiDaqControlled < LaserPartAbstract & NiDaqControlled
             obj.niDaqChannel = niDaqChannel;
             obj.initLaserPart();
         end
-        
-        function out = canSetValue(obj) %#ok<*MANU>
-            out = true;
-        end
-        
-        function out = canSetEnabled(obj)
-            out = false;
-        end
     end
     
     methods(Access = protected)
-        function out = setValueRealWorld(obj, newValue)
+        function setValueRealWorld(obj, newValue)
             niDaq = getObjByName(NiDaq.NAME);
             niDaq.writeVoltage(obj.name, newValue);
-            out = true;
+            obj.valuePrivate = newValue;        % patch. see obj.getValueRealWorld()
         end
         
         function out = setEnabledRealWorld(obj, newValue) %#ok<*INUSD>
@@ -40,10 +39,16 @@ classdef AomNiDaqControlled < LaserPartAbstract & NiDaqControlled
     end
     
     methods
+        function value = getValueRealWorld(obj)
+            value = obj.valuePrivate;           % patch. todo: actually read value from NiDaq
+        end
+    end
+    
+    methods
         function onNiDaqReset(obj, niDaq)
             % This function jumps when the NiDaq resets
             % Each component can decide what to do
-            obj.setValue(obj.currentValue);
+            obj.setValue(obj.value);
         end
     end
     

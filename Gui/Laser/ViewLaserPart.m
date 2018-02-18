@@ -7,29 +7,37 @@ classdef ViewLaserPart < ViewHBox & EventListener
         edtPowerPercentage     % edit-text
         sliderPower            % slider
         
-        %%%% the laser part name (to send requests and to listen to) %%%%
+        %%%% properties of the laser %%%%
         mLaserPartName
+        minValue
+        maxValue
+        units
+    end
+    
+    properties (Constant)
+        SIGNIFICANT_DIGITS = 2
     end
     
     methods
-        
-        %% constructor
+        % constructor
         function obj = ViewLaserPart(parent, controller, laserPartPhysical, nameToDisplay)
             % parent - gui component
             % controller - the main GUI controller
             % laserPartPhysical - object of derived from LaserPartAbstract 
             % (LaserPartAbstract is in the folder Physical\Laser)
             
-            %%%%%%%% init variables %%%%%%%%
+            %%%% init variables %%%%
             nameToListen = laserPartPhysical.name;
             
-            %%%%%%%% Constructors %%%%%%%%
+            %%%% Constructors %%%%
             obj@EventListener(nameToListen);
             obj@ViewHBox(parent, controller);
             
-            %%%%%%%% the laser physics object %%%%%%%%
+            %%%% the laser physics object %%%%
             obj.mLaserPartName = nameToListen;
-            
+            obj.minValue = laserPartPhysical.minValue;
+            obj.maxValue = laserPartPhysical.maxValue;
+            obj.units = laserPartPhysical.units;
             
             % UI components init
             partRow = obj.component;
@@ -42,18 +50,19 @@ classdef ViewLaserPart < ViewHBox & EventListener
                 'String', nameToDisplay, ...
                 'Callback', @obj.cbxEnabledCallback);
             obj.edtPowerPercentage = uicontrol(obj.PROP_EDIT{:}, 'Parent', partRow);
-            obj.sliderPower = uicontrol(obj.PROP_SLIDER{:}, 'Parent', partRow);
+            obj.sliderPower = uicontrol(obj.PROP_SLIDER{:}, 'Parent', partRow, ...
+                'Min', obj.minValue, 'Max', obj.maxValue);
             
             widths = [70, 50, 150];
             set(partRow, 'Widths', widths);
             
             
-            %%%%%%%% UI components set values  %%%%%%%%
+            %%%% UI components set values  %%%%
             obj.width = sum(widths) + 20;
             obj.height = 30;            
             
             
-            % Set functionality for "setEnabled" and "setValue" %%%%%%%%
+            % Set functionality for "setEnabled" and "setValue" %%%%
             if ~laserPartPhysical.canSetEnabled
                 obj.cbxEnabled.Enable = 'off';
             end
@@ -75,15 +84,15 @@ classdef ViewLaserPart < ViewHBox & EventListener
         %%%% Callbacks %%%%
         function edtPowerPercentageCallback(obj, ~, ~)
             newValue = obj.edtPowerPercentage.String;
-            newValue = cell2mat(regexp(newValue,'^-?\d+','match'));  % leave only digits (maybe proceeded by a minus sign)
-            newValue = str2double(newValue);
+            newValue = cell2mat(regexp(newValue, '^-?\d+(\.\d+)?', 'match'));  % leave only digits (maybe with decimal point or proceeded by a minus sign)
+            newValue = round(str2double(newValue), obj.SIGNIFICANT_DIGITS);
             obj.requestNewValue(newValue);
         end
         
         function sliderPowerCallback(obj, ~, ~)
-            newValue = get(obj.sliderPower,'Value');
-            % newValue now is in [0, 1]
-            obj.requestNewValue(round(newValue * 100));
+            newValue = get(obj.sliderPower, 'Value');
+            newValue = round(newValue, obj.SIGNIFICANT_DIGITS);
+            obj.requestNewValue(newValue);
         end
         
         function cbxEnabledCallback(obj, ~, ~)
@@ -95,15 +104,20 @@ classdef ViewLaserPart < ViewHBox & EventListener
     methods (Access = protected)
         
         function refresh(obj)
-            obj.setValueInternally(obj.laserPart.currentValue);
-            obj.setEnabledInternally(obj.laserPart.isEnabled);
+            % Get values from laser part
+            value = obj.laserPart.value;
+            tf = obj.laserPart.isEnabled;
+            % Update in GUI
+            obj.setValueInternally(value);
+            obj.setEnabledInternally(tf);
         end
         
         % Internal setter for the new value
         function out = setValueInternally(obj, newLaserValue)
-            % newLaserValue - double. Between [0,100]
-            set(obj.edtPowerPercentage, 'String', strcat(num2str(newLaserValue),'%'));
-            set(obj.sliderPower, 'Value', newLaserValue/100);
+            % newLaserValue - double.
+            newValString = num2str(newLaserValue);
+            set(obj.edtPowerPercentage, 'String', strcat(newValString, obj.units));
+            set(obj.sliderPower, 'Value', newLaserValue);
             out = true;
         end
         
