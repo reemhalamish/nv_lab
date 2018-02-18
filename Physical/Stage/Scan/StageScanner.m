@@ -114,7 +114,7 @@ classdef StageScanner < EventSender & EventListener & Savable
                 obj.sendEventScanStopped();
             end
             
-            stage.sendEvent(struct(ClassStage.EVENT_POSITION_CHANGED, true));
+            stage.sendEventPositionChanged;
             obj.mCurrentlyScanning = false;
         end
         
@@ -126,7 +126,7 @@ classdef StageScanner < EventSender & EventListener & Savable
             % scanParams - the scan parameters. an object deriving from StageScanParams
             % kcpsScanMatrixOptional - the last scanned matrix, if exists
             skipCreatingMatrix = exist('kcpsScanMatrixOptional', 'var');
-            if ~skipCreatingMatrix
+            if skipCreatingMatrix
                 stage.sanityChecksRaiseErrorIfNeeded(scanParams);
                 % because we already trust the scan params
             end
@@ -378,7 +378,7 @@ classdef StageScanner < EventSender & EventListener & Savable
                 kcpsMatrix, ... scan matrix (maybe partly filled)
                 spcm, ... Spcm object
                 stage, ... Stage object. to scan
-                tPixel, ... double. Timeout per pixel (in sec)
+                tPixel, ... double. Time per pixel (in sec)
                 axisAPixelsPerLine, ... vector of double
                 axisBLinesPerScan, ... vector of double
                 axisADirectionIndex, ... integer. Index in {1, 2, 3} for "xyz"
@@ -404,13 +404,15 @@ classdef StageScanner < EventSender & EventListener & Savable
             % for each in {x, y, z}, it could be one of:
             % the axisA vector, the axisB vector, or the axisC point
             [x, y, z] = obj.getXYZfor2dScanChunk(axisAPixelsPerLine, axisBLinesPerScan, axisADirectionIndex, axisBDirectionIndex, axisCPoint0); %#ok<ASGLU>
+            nPixels = length(axisAPixelsPerLine);
+            timeout = 10*nPixels*tPixel;
             
             % prepare scan
             nFlat = 0;      % A flat section at the start of ramp. parameter not needed genrally, a stage can overwrite if needed. BACKWARD_COPITABILITY
             nOverRun = 0;   % Let the waveform over run the start and end. Not needed genrally, a stage can overwrite if needed. BACKWARD_COPITABILITY
             axesLettersUpper = upper(ClassStage.SCAN_AXES([axisADirectionIndex, axisBDirectionIndex]));
             eval(sprintf('stage.PrepareScan%s(x, y, z, nFlat, nOverRun, tPixel);', axesLettersUpper));
-            spcm.prepareReadByStage(stage.name, length(axisAPixelsPerLine), tPixel, isFastScan);
+            spcm.prepareReadByStage(stage.name, nPixels, timeout, isFastScan);
             
             % do the scan
             spcm.startScanRead();

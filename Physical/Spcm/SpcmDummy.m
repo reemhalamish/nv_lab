@@ -72,8 +72,8 @@ classdef SpcmDummy < Spcm
                 obj.sendError('Can''t readFromScan() without calling startScanRead()!');
             end
             
-            pause(obj.integrationTime / 1000);
-            vectorOfKcps = randi([0 obj.MAX_RANDOM_READ],1,obj.timesToRead);
+            pause(obj.integrationTime * obj.timesToRead);
+            vectorOfKcps = randi([0 obj.MAX_RANDOM_READ], 1, obj.timesToRead);
         end
         
         % complete the task of reading the spcm from a stage

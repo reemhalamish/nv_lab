@@ -412,13 +412,24 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         function sendEventLimitsChanged(obj)
             obj.sendEvent(struct(obj.EVENT_LIM_CHANGED, true));
         end
+        function sendEventPositionChanged(obj)
+            obj.sendEvent(struct(obj.EVENT_POSITION_CHANGED, true));
+        end
         
         function sendPosToScanParams(obj)
             % New behavior: update "Fixed Position" to be current position,
             % in all available axes.
             params = obj.scanParams;
             axesIndex = obj.getAxis(obj.availableAxes);
-            params.fixedPos(axesIndex) = obj.Pos(axesIndex);
+            pos = obj.Pos(axesIndex);
+            
+            %%%% If we're off bounds by a bit, send bound to fixedPos
+            [lowerBound, upperBound] = obj.ReturnLimits(axesIndex);
+            pos(pos > upperBound) = upperBound(pos > upperBound);
+            pos(pos < lowerBound) = lowerBound(pos < lowerBound);
+            %%%%
+            
+            params.fixedPos(axesIndex) = pos;
             obj.sendEventScanParamsChanged;
             
             % % Old behavior: For all the positions marked as "fixed" in
@@ -449,7 +460,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             % Calls Move, sends an event. Listens to errors to send errorEvent
             try
                 obj.Move(axis, pos);
-                obj.sendEvent(struct(ClassStage.EVENT_POSITION_CHANGED, true));
+                obj.sendEventPositionChanged;
             catch matlabError
                 obj.sendError(matlabError.message);
             end
@@ -460,7 +471,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             % Vectorial axis is possible
             try
                 obj.RelativeMove(axis, change);
-                obj.sendEvent(struct(ClassStage.EVENT_POSITION_CHANGED, true));
+                obj.sendEventPositionChanged;
             catch matlabError
                 obj.sendError(matlabError.message);
             end
@@ -511,7 +522,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             % the way: copy the scan parameters, call updateByLimit() on
             % the new object and see if something has changed.  
             % 
-            % If nothing changed, than all the parameters were in the
+            % If nothing changed, then all the parameters were in the
             % limits in the first place! 
             [limNeg, limPos] = obj.ReturnLimits(obj.availableAxes);
             wasChange = scanParams.copy.updateByLimit(obj.availableAxes, limNeg, limPos);
@@ -596,9 +607,9 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                     msgAxis = ClassStage.GetLetterFromAxis(axis);
                     msgStagePos = num2str(obj.Pos(ClassStage.SCAN_AXES));
                     msg = sprintf(...
-                        ['you are about to change the %s limit to %d in axis %s.\n', ...
+                        ['You are about to change the %s limit to %d in axis %s.\n', ...
                         'Doing so will move the stage!\n', ....
-                        '(current position in %s: %s,\n', ...
+                        '(Current position in %s: %s,\n', ...
                         'new position in axis %s: %d).\n', ...
                         'Are you sure?'], ...
                         msgLimUpperOrLower, ...

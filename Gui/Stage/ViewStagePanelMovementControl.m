@@ -245,16 +245,15 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
                 obj.edtCurPos(index).String = obj.tvCurPos(index).String;
                 obj.showEdtCurPos(index, true);
                 obj.checkEdtCurPosValue(index);
+                obj.btnMoveToBlue.Enable = 'on';
             else
-                EventStation.anonymousWarning('Position must be a number between %d and %d! Reverting!', limNeg, limPos)
-                return;
+                EventStation.anonymousWarning('Position must be a number, and within limits! Current limits: [%d, %d]', limNeg, limPos)
             end
             
             stage = getObjByName(obj.stageName);
             axis = ClassStage.getAxis(obj.stageAxes(index));
             pos = stage.Pos(axis);
             obj.tvCurPos(index).String = pos;
-            obj.btnMoveToBlue.Enable = 'on';
             
         end
         
@@ -288,7 +287,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
                 end
                 return
             else
-                EventStation.anonymousWarning('Value must be a number between %d and %d, reverting!', limNeg, limPos)
+                EventStation.anonymousWarning('Value must be a number between %d and %d! Reverting.', limNeg, limPos)
             end
             obj.edtCurPos(index).String = StringHelper.formatNumber(obj.edtCurPosValue(index));
         end

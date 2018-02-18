@@ -343,7 +343,7 @@ classdef SaveLoad < Savable & EventSender
                 obj.mLocalStructStatus = obj.STRUCT_STATUS_SAVED;
             end
             
-            if ischar(obj.mNotes) % there were some notes to save
+            if ~isempty(obj.mNotes)
                 obj.notesStatus = obj.STRUCT_STATUS_SAVED;
             end
             
@@ -359,7 +359,7 @@ classdef SaveLoad < Savable & EventSender
         
         function saveNotesToFile(obj)
             if strcmp(obj.notesStatus, obj.STRUCT_STATUS_NOT_SAVED)
-                obj.saveLocalStructToFile(obj.mLoadedFileFullPath);
+                obj.saveLocalStructToFile(obj.mLoadedFileFullPath, obj.mLocalStructStatus);
             else
                 ME = MException('','Should this have happenned?');
                 warningToDev(ME);
@@ -626,14 +626,18 @@ classdef SaveLoad < Savable & EventSender
                 obj.sendError(sprintf('Can''t delete file - file does not exist! Ignoring\n(file name: %s)', obj.mLoadedFileFullPath));
             end
             
-            % When a file is deleted, try loading an available file from
-            % the current folder: first try previous, then try next. 
-            % If all else fails, clear struct
-            
+            % Delete both m-file & png image
+            % (Ideally, ImageScanResult should have deleted the PNG file,
+            % but it has a lot of overhead (sending event, etc.), so probably not.
             fullPath = obj.mLoadedFileFullPath;
             delete(fullPath);
-            
-            % We need to decide what should be the next local struct
+            fullPathPng = [PathHelper.removeDotSuffix(fullPath), '.', ImageScanResult.IMAGE_FILE_SUFFIX];
+            delete(fullPathPng);
+
+            % When a file is deleted, we need to decide what should be the
+            % next local struct. Try loading an available file from the
+            % current folder: first try previous, then try next. If all
+            % else fails, clear struct.
             try
                 obj.loadPreviousFile;
             catch   % Could not find any previous file
