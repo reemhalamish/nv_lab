@@ -1,4 +1,6 @@
-classdef (Sealed) PulseStreamerClass < handle
+classdef (Sealed) PulseGeneratorDummyClass < handle
+    
+    % Created form PulseStreamerClass. Many functions here are unneeded.
     properties (Dependent = true)
         channelNames
         channelValues
@@ -18,7 +20,6 @@ classdef (Sealed) PulseStreamerClass < handle
     end
     
     properties (Access = private)
-        ps % Local PS type
         channelNamesPrivate
         channelValuesPrivate
         durationPrivate %mus
@@ -32,7 +33,7 @@ classdef (Sealed) PulseStreamerClass < handle
             % Returns a singelton instance.
             persistent localObj
             if isempty(localObj) || ~isvalid(localObj)
-                localObj = PulseStreamerClass();
+                localObj = PulseGeneratorDummyClass();
                 localObj.Initialize;
             end
             obj = localObj;
@@ -40,7 +41,7 @@ classdef (Sealed) PulseStreamerClass < handle
     end
     
     methods (Access = private)
-        function obj= PulseStreamerClass()
+        function obj= PulseGeneratorDummyClass()
             % Private default constructor.
             Initialize(obj)
         end
@@ -48,7 +49,6 @@ classdef (Sealed) PulseStreamerClass < handle
     methods (Access = public)
         
         function Initialize(obj)
-            obj.ps = PulseStreamer('132.64.56.49');
             obj.newSequence;
         end
     end
@@ -180,7 +180,7 @@ classdef (Sealed) PulseStreamerClass < handle
                     end
                     obj.durationPrivate(index) = newValue;
                 case {'sequence','event','pb'}
-                    newChannels = obj.ChannelValuesFromNames(newValue); todo = 'maybe will not work'
+                    newChannels = obj.ChannelValuesFromNames(newValue);
                     obj.sequencePrivate{index} = newChannels;
                 otherwise
                     error('Unknown option')
@@ -209,30 +209,15 @@ classdef (Sealed) PulseStreamerClass < handle
     end
     
     methods
-        function On(obj,channels)
+        function On(obj,channels) %#ok<*INUSD>
             % OutPuts - channels to be opened (0,1,2,,,,), as a double
-            % vector            
-            channels = obj.ChannelValuesFromNames(channels); %converts from a cell of names to channel numbers, if needed
-            if isempty(channels)
-                channels = 0;
-            else
-                if sum(rem(channels,1)) || min(channels) <0 || max(channels)> obj.maxDigitalChannels
-                    error('Input must be integers from 0 to %f', obj.maxDigitalChannels)
-                end
-                channels = sum(2.^channels);
-            end
-            
-            output = OutputState(channels,0,0);
-            obj.ps.constant(output);
+            % vector
         end
-        function Off(obj)
-            output = OutputState(0,0,0);
-            obj.ps.constant(output);
+        function Off(obj) %#ok<*MANU>
         end
         
         function Run(obj)
             obj.uploadSequence;
-            obj.ps.startNow;
         end
         
         function sequences = uploadSequence(obj)
@@ -247,25 +232,18 @@ classdef (Sealed) PulseStreamerClass < handle
                 error('Upload sequence')
             end
             
-            outputZero = OutputState(0,0,0);
-            initialOutputState = outputZero;
-            finalOutputState = outputZero;
-            underflowOutputState = outputZero;
-            start = PSStart.Software;
-            
             % settings for sequence generation
             numberOfSequences = length(obj.durationPrivate);
             sequences = [];
             for i=1:numberOfSequences
                 sequences = sequences + P(obj.durationPrivate(i)*1e3, obj.sequencePrivate{i}, 0, 0);
             end
-            obj.ps.stream(sequences, obj.repeatsPrivate, initialOutputState, finalOutputState, underflowOutputState, start);
         end
     end
     
     methods 
         function [j]= Index(obj,channel)
-            %Recieves either channel's name or number
+            %recives either channel's name or number
             %returnes the channels location in channelPrivate
             if iscell(channel)
                 j=obj.channelPrivate(strcmp(channel,obj.NamePrivate));

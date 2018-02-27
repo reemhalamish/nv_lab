@@ -1,6 +1,6 @@
 classdef LaserGate < Savable % Needs to be EventSender
     %GATELASER represents a laser object
-    %   A laser object has 3 inner parts: source, AOM, and switch. 
+    %   A laser object has 3 inner parts: source, AOM, and switch.
     %   The (fast) switch is usually a pulse blaster or a pulse streamer,
     %   controlling the AOM.
     %   Sometimes, the AOM can be enabled\disabled itself, and can be set
@@ -40,12 +40,12 @@ classdef LaserGate < Savable % Needs to be EventSender
         
         function tf = isSourceAvail(obj)
             % Check if this laser gate can manipulate a smart laser source
-            tf = isobject(obj.source) && obj.source.canSetValue;
+            tf = isobject(obj.source);
         end
         
         function tf = isAomAvail(obj)
             % Check if this laser gate can manipulate the AOM
-            tf = isobject(obj.aom) && obj.aom.canSetValue;
+            tf = isobject(obj.aom);
         end
         
     end
@@ -56,26 +56,47 @@ classdef LaserGate < Savable % Needs to be EventSender
         
         function set.value(obj, newVal)
             % Value is given in percentage
-            tfSource = obj.isSourceAvail;
-            tfAom = obj.isAomAvail;
+            tfSource = obj.isSourceAvail && obj.source.canSetValue;
+            tfAom = obj.isAomAvail && obj.aom.canSetValue;
             if ~tfAom && ~tfSource
-                EventStation.anonymousError('Can''t set value for laser');
+                errMsg = sprintf('Cannot set %s as value for %s', newVal, obj.name);
+                EventStation.anonymousError(errMsg);
             elseif tfAom
                 part = obj.aom;
             elseif tfSource
                 part = obj.source;
-            % there is no other option
+                % there is no other option
             end
             part.value = obj.percent2absolute(part, newVal);
         end
         
         function set.isOn(obj, newVal)
-            try
-                tf = logical(newVal);
-                obj.aomSwitch = tf;
-            catch
-                err = sprintf('Cannot set %s as On/off state of %s', newVal, obj.name);
-                EventStation.anonymousError(err);
+            tf = logical(newVal);
+                        
+            % Maybe it isn't possible
+            tfAom = obj.isAomAvail;
+            tfSource = isSourceAvail && obj.source.canSetEnabled;
+            if ~tfAom && ~tfSource
+                errMsg = sprintf('On/off state of %s can''t be set!', obj.name);
+                EventStation.anonymousError(errMsg);
+            end
+            
+            switch tf
+                case true
+                    % We want everything on
+                    if tfAom; obj.aomSwitch.isEnabled = true; end
+                    if tfSource; obj.source.isEnabled = true; end
+                case false
+                    % turn off only AOM, if possible
+                    if tfAom
+                        obj.aomSwitch.isEnabled = false;
+                    else
+                        obj.source.isEnabled = true;
+                    end
+                otherwise
+                    % tf could not be converted to logical
+                    errMsg = sprintf('Cannot set %s as On/off state of %s!', newVal, obj.name);
+                    EventStation.anonymousError(errMsg);
             end
         end
         
@@ -94,7 +115,7 @@ classdef LaserGate < Savable % Needs to be EventSender
         end
         
         function isOn = get.isOn(obj)
-            isOn = obj.aomSwitch.isEnabled;
+            isOn = obj.aomSwitch.isEnabled && obj.source.isEnabled;
         end
         
     end
@@ -113,7 +134,7 @@ classdef LaserGate < Savable % Needs to be EventSender
     end
     
     %% overriding from Savable
-    methods(Access = protected) 
+    methods(Access = protected)
         function outStruct = saveStateAsStruct(obj, category, type) %#ok<*MANU>
             % Saves the state as struct. Overriden from Savable
             
@@ -149,8 +170,8 @@ classdef LaserGate < Savable % Needs to be EventSender
             %            only for the 'image_lasers' category and not for
             %            'image_stages' category, for example
             % subCategory - string. could be empty string
-
-            % load only if you're in need to load: 
+            
+            % load only if you're in need to load:
             %       @ if the category is Experiment
             %       @ or, category is image, and subCat is "default" or "laser"
             
@@ -165,20 +186,20 @@ classdef LaserGate < Savable % Needs to be EventSender
                 obj.aomSwitch.isEnabled = savedStruct.switch;
             end
             
-            if obj.isAomAvail()
-                if isfield(savedStruct, 'aom_isEnabled') && obj.aom.canSetEnabled()
-                    obj.aom.setEnabled(savedStruct.aom_isEnabled);
+            if obj.isAomAvail
+                if isfield(savedStruct, 'aom_isEnabled') && obj.aom.canSetEnabled
+                    obj.aom.isEnabled = savedStruct.aom_isEnabled;
                 end
                 if isfield(savedStruct, 'aom_curValue') && obj.aom.canSetValue()
-                    obj.aom.setNewValue(savedStruct.aom_curValue);
+                    obj.aom.value = savedStruct.aom_curValue;
                 end
             end
             if obj.isSourceAvail()
                 if isfield(savedStruct, 'source_isEnabled') && obj.source.canSetEnabled
-                        obj.source.setEnabled(savedStruct.source_isEnabled);
+                    obj.source.isEnabled = savedStruct.source_isEnabled;
                 end
                 if isfield(savedStruct, 'source_curValue') && obj.source.canSetValue
-                        obj.source.setNewValue(savedStruct.source_curValue);
+                    obj.source.value = savedStruct.source_curValue;
                 end
             end
         end
@@ -190,37 +211,37 @@ classdef LaserGate < Savable % Needs to be EventSender
     end
     
     methods(Static)
-		function cellOfLasers = getLasers()
-		% Creates all the lasers from the json.
-		
-			persistent lasersCellContainer
-			if isempty(lasersCellContainer) || ~isvalid(lasersCellContainer)
-				lasersJson = JsonInfoReader.getJson.lasers;
-				lasersCellContainer = CellContainer;
-				
-				for i = 1 : length(lasersJson)
-					curLaserJson = lasersJson(i);
-					newLaserGate = LaserGate.createFromStruct(curLaserJson);
-					lasersCellContainer.cells{end + 1} = newLaserGate;
-				end
-			end
-			cellOfLasers = lasersCellContainer.cells;
-		end
-	
-        function laserGate = createFromStruct(laserStruct)
-
-                missingField = FactoryHelper.usualChecks(laserStruct, LaserGate.NEEDED_FIELDS);
-                if ~isnan(missingField)
-                    warning('Can''t initialize Laser - needed field "%s" was not found in initialization struct!', missingField);
-                    error(laserStruct);
-                end
+        function cellOfLasers = getLasers()
+            % Creates all the lasers from the json.
+            
+            persistent lasersCellContainer
+            if isempty(lasersCellContainer) || ~isvalid(lasersCellContainer)
+                lasersJson = JsonInfoReader.getJson.lasers;
+                lasersCellContainer = CellContainer;
                 
-                laserName = laserStruct.nickname;
-                sourcePhysical = LaserSourcePhysicalFactory.createFromStruct(laserName, laserStruct.directControl);
-                aomPhysical = LaserAomPhysicalFactory.createFromStruct(laserName, laserStruct.aomControl);
-                switchPhysical = LaserSwitchPhysicalFactory.createFromStruct(laserName, laserStruct.switch);
-                laserGate = LaserGate(laserName, sourcePhysical, aomPhysical, switchPhysical);
-        end        
+                for i = 1 : length(lasersJson)
+                    curLaserJson = lasersJson(i);
+                    newLaserGate = LaserGate.createFromStruct(curLaserJson);
+                    lasersCellContainer.cells{end + 1} = newLaserGate;
+                end
+            end
+            cellOfLasers = lasersCellContainer.cells;
+        end
+        
+        function laserGate = createFromStruct(laserStruct)
+            
+            missingField = FactoryHelper.usualChecks(laserStruct, LaserGate.NEEDED_FIELDS);
+            if ~isnan(missingField)
+                warning('Can''t initialize Laser - needed field "%s" was not found in initialization struct!', missingField);
+                error(laserStruct);
+            end
+            
+            laserName = laserStruct.nickname;
+            sourcePhysical = LaserSourcePhysicalFactory.createFromStruct(laserName, laserStruct.directControl);
+            aomPhysical = LaserAomPhysicalFactory.createFromStruct(laserName, laserStruct.aomControl);
+            switchPhysical = LaserSwitchPhysicalFactory.createFromStruct(laserName, laserStruct.switch);
+            laserGate = LaserGate(laserName, sourcePhysical, aomPhysical, switchPhysical);
+        end
     end
 end
 

@@ -4,11 +4,13 @@ classdef SerialControlled < matlab.mixin.SetGet
     % our purposes
     
     properties (Hidden)
-        s   % serial. MATLAB representation of the connection
+        s                   % serial. MATLAB representation of the connection
+        commDelay = 0.05    % double. Time (in seconds) between consecutive commands
     end
     
     properties (Dependent)
         status
+        bytesAvailable
     end
     
     properties
@@ -40,7 +42,17 @@ classdef SerialControlled < matlab.mixin.SetGet
         end
         
         function open(obj)
-            fopen(obj.s);
+            try 
+                fopen(obj.s);
+            catch error
+                if strcmp(error.identifier, 'MATLAB:serial:fopen:opfailed')
+                    % If the device is open by MATLAB, we can still make it
+                    fclose(instrfind(obj.port));
+                    fopen(obj.s);
+                else
+                    rethrow(error)
+                end
+            end
         end
         
         function close(obj)
@@ -50,44 +62,63 @@ classdef SerialControlled < matlab.mixin.SetGet
         function delete(obj)
             delete(obj.s);
         end
-        
-        function varargout = sendCommand(obj, command)
+    end
+    
+    %% Wrapper methods for serial class
+    methods
+        function sendCommand(obj, command)
             if ~ischar(command)
                 error('Command should be a string! Cannot send command to device.')
             end
-            nargoutchk(0,1)     % Check number of output arguments
             
-            if ~obj.keepConnected
-                obj.open;
-            end
+            if ~obj.keepConnected; obj.open; end
             fprintf(obj.s, command);
-            if nargout == 1
-                varargout = {fscanf(obj.s)};
-            end
-            if ~obj.keepConnected
-                obj.close;
-            end
+            pause(obj.commDelay);
+            if ~obj.keepConnected; obj.close; end
         end
         
-        function string = read(obj, format) % wrapper method
+        function string = read(obj, format)
+            if ~obj.keepConnected; obj.open; end
             if exist('format', 'var')
                 string = fscanf(obj.s, format);
-            else % Realy, you should readAll. But just in case...
+            else % Realy, you should readAll(). But just in case you only want one line...
                 string = fscanf(obj.s);
             end
+            pause(obj.commDelay);
+            if ~obj.keepConnected; obj.close; end
         end
         
         function string = readAll(obj)
-            string = [];
-            while obj.s.BytesAvailable > 1    % Might have one char, without terminator
+            if ~obj.keepConnected; obj.open; end
+            string = [];        % init
+            while obj.s.BytesAvailable > 1
+                % Might have one char, without terminator. Ideally, this should have been 0.
+                % In the onefive Katana, it is 1.
                 temp = fscanf(obj.s);
                 string = [string temp]; %#ok<AGROW>
+                pause(obj.commDelay);
+            end
+            if ~obj.keepConnected; obj.close; end
+        end
+        
+        % One command to rule them all
+        function string = query(obj, command, regex)
+            % Sends command and empties output before next command --
+            % should be used even if output is irrelevant
+            % We can filter out only wanted information, using regular
+            % expressions (RegEx, for short), the output will return the
+            % tokens specified in the regex.
+            obj.sendCommand(command);
+            string = obj.readAll;
+            if exist('regex', 'var')
+                string = regexp(string, regex, 'tokens', once);    % returns cell of strings
+                string = cell2mat(string);
             end
         end
     end
     
     methods % Setters & getters
-        % setters
+        % Setters
         function set(obj, varargin)
             % Validity of values is not checked here, It should be
             % done by programmer, or obj.s will alert about it.
@@ -103,9 +134,13 @@ classdef SerialControlled < matlab.mixin.SetGet
                 obj.keepConnected = value;
         end
         
-        % getters
+        % Getters
         function status = get.status(obj)
             status = obj.s.Status;
+        end
+        
+        function bytes = get.bytesAvailable(obj)
+            bytes = obj.s.BytesAvailable;
         end
     end
     

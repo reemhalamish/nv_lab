@@ -84,7 +84,7 @@ classdef ViewLaserPart < ViewHBox & EventListener
         %%%% Callbacks %%%%
         function edtPowerPercentageCallback(obj, ~, ~)
             newValue = obj.edtPowerPercentage.String;
-            newValue = cell2mat(regexp(newValue, '^-?\d+(\.\d+)?', 'match'));  % leave only digits (maybe with decimal point or proceeded by a minus sign)
+            newValue = regexp(newValue, '^-?\d+(\.\d+)?', 'match', 'once');  % leave only digits (maybe with decimal point or proceeded by a minus sign)
             newValue = round(str2double(newValue), obj.SIGNIFICANT_DIGITS);
             obj.requestNewValue(newValue);
         end
@@ -136,15 +136,17 @@ classdef ViewLaserPart < ViewHBox & EventListener
     %% These methods actually request stuff from the physics. Carefull!
     methods (Access = protected)
         function requestNewValue(obj, newValue)
-            obj.laserPart.setNewValue(newValue);
+            obj.laserPart.value = newValue;
             % If the physics got our change - it will send an event to notify us
             % If not, it will send an error Event to notify us
+            pause(0.05)         % todo: do it better (uiwait)
         end
         
         function requestNewEnabled(obj, newBoolValue)
-            obj.laserPart.setEnabled(newBoolValue);
+            obj.laserPart.isEnabled = newBoolValue;
             % If the physics got our change - it will send an event to notify us
             % If not, it will send an error Event to notify us
+            pause(0.05)         % todo: do it better (uiwait)
         end
     end
     

@@ -9,23 +9,42 @@ classdef (Abstract) LaserPartAbstract < EventSender
     %   @ call method initLaserPart() after calling all the inheritance constructors
     %
     %   If needed, Child class should override:
+    %   @ initLaserPart
+    %   @ setValueRealWorld
+    %   @ getValueRealWorld
+    %   @ setEnabledRealWorld
+    %   @ getEnabledRealWorld
+    %
+    %   The code is right here for use:
+    %-------------------------------------------------------
     %     
     %     %% Overridden from LaserPartAbstract
-    %         %% These functions call physical objects. Tread with caution!
+    %         methods
+    %             function initLaserPart(obj)
+    %                 % Default initiation. Could be overridden by subclasses
+    %                 obj.isEnabled = false;
+    % 
+    %                 obj.minValue = obj.DEFAULT_MIN_VALUE;
+    %                 obj.maxValue = obj.DEFAULT_MAX_VALUE;
+    %                 obj.units = obj.DEFAULT_UNITS;
+    % 
+    %                 obj.value = obj.minValue;
+    %             end
+    %         end
+    %
+    %         %%%% These functions call physical objects. Tread with caution! %%%%
     %         methods (Access = protected)
     %             function setValueRealWorld(obj, newValue)
     %                 % Sets the voltage value in physical laser part
     %             end
-    %             
-    %             function setEnabledRealWorld(obj, newBool)
-    %                 % Sets the physical laser part on (true) or off (false)
-    %             end
-    %         end
-    %             
-    %         methods
+    %
     %             function value = getValueRealWorld(obj)
     %                 % Gets the voltage value from physical laser part
     %                 value = 100;
+    %             end             
+    %             
+    %             function setEnabledRealWorld(obj, newBool)
+    %                 % Sets the physical laser part on (true) or off (false)
     %             end
     %             
     %             function tf = getEnabledRealWorld(obj)
@@ -66,13 +85,9 @@ classdef (Abstract) LaserPartAbstract < EventSender
         
         function initLaserPart(obj)
             % Default initiation. Could be overridden by subclasses
-            obj.isEnabled = false;
-            
             obj.minValue = obj.DEFAULT_MIN_VALUE;
             obj.maxValue = obj.DEFAULT_MAX_VALUE;
             obj.units = obj.DEFAULT_UNITS;
-            
-            obj.value = obj.minValue;
         end
         
         function on(obj)
@@ -84,8 +99,8 @@ classdef (Abstract) LaserPartAbstract < EventSender
         end
     end
        
-    methods % Setters
-        %% New syntax
+    methods
+        %% Setters
         function set.value(obj, newValue)
             % Set a new value to the laser
             if ~isnumeric(newValue)
@@ -96,12 +111,8 @@ classdef (Abstract) LaserPartAbstract < EventSender
             end
             
             if ValidationHelper.isInBorders(newValue, obj.minValue, obj.maxValue)
-                try
-                    obj.setValueRealWorld(newValue);
-                    obj.sendEvent(struct('value', newValue));
-                catch
-                    obj.sendErrorRealWorld();
-                end
+                obj.setValueRealWorld(newValue);
+                obj.sendEvent(struct('value', newValue));
             else
                 obj.sendError(sprintf('Laser power can''t be set to %d%s: out of limits!\nIgnoring. (limits: [%d, %d])', ...
                     newValue, obj.units, obj.minValue, obj.maxValue));
@@ -110,43 +121,15 @@ classdef (Abstract) LaserPartAbstract < EventSender
         
         function set.isEnabled(obj, newValueLogical)
             % Setting the "enabled" state of the laser
+            %
+            % we want to assert that newValueBool is logical, however
+            % islogical would not work, since 0 and 1 are not logical,
+            % yet they equal false and true.
+            logicalValues = [true, false];
+            assert(ismember(newValueLogical, logicalValues), ...
+                'Value must be either true or false! Nothing happenned.')
             obj.setEnabledRealWorld(newValueLogical);
             obj.sendEvent(struct('isEnabled', newValueLogical));
-        end
-        
-        %% Old syntax
-        function bool = setNewValue(obj, newValue)
-            % Set a new value to the laser
-            % This is a wrapper function for set.value, which returns
-            % whether it succeeded
-            try
-                obj.value = newValue;
-                bool = true;
-            catch err
-                bool = false;
-                if err.message == obj.ERROR_MESSAGE_PHYSICAL    % Throw error only if it is physical
-                    rethrow(err);
-                else
-                    warning(err);
-                end
-            end
-        end
-        
-        function bool = setEnabled(obj, newValueBool)
-            % Setting the "enabled" state of the laser
-            try
-                % we want to assert that newValueBool is logical, however
-                % islogical would not work, since 0 and 1 are not logical,
-                % yet they equal false and true.
-                logicalValues = [true, false];      
-                assert(ismember(newValueBool, logicalValues), ...
-                    'Value must be either true or false! Nothing happenned.')
-                obj.isEnabled = newValueBool;
-                bool = true;
-            catch err
-                bool = false; %#ok<NASGU>
-                rethrow(err);
-            end
         end
         
         %% Getters
@@ -177,9 +160,7 @@ classdef (Abstract) LaserPartAbstract < EventSender
             function setEnabledRealWorld(~, ~)
                 % Sets the physical laser part on (true) or off (false)
             end
-        end
             
-        methods
             function value = getValueRealWorld(~)
                 % Gets the voltage value from physical laser part
                 value = 100;

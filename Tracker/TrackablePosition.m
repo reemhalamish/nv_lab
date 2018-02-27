@@ -70,8 +70,9 @@ classdef TrackablePosition < Trackable % & StageScanner
             spcm.setSPCMEnable(true);
             try
                 laser = getObjByName(obj.mLaserName);
-                laser.setEnabled('true');
-            catch
+                laser.isOn = true;
+            catch err
+                disp(err.message)
             end    % If it fails, it means that laser is already on
             
             %%%% Get initial position and signal value, for history %%%%

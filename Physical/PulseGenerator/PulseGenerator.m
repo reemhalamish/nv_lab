@@ -1,15 +1,19 @@
 classdef PulseGenerator < EventSender
     %PULSEGENERATOR Class for creating a pulse generator
-    % For now, it is also a wrapper for the old PulseStreamerClass.
+    % For now, it is a wrapper for the old PulseStreamerClass &
+    % PulseBlasterClass.
     %   todo: make it an abstract class, from which both the pulse-blaster
     %   and -streamer inherit
     
-    properties
-        type
+    properties (SetAccess = private)
+        % This information seems unavailable in the PS & PB classes. This
+        % is (hopefully) a *temporary* patch
+        isOn = struct();	
     end
     
-    properties
-        pulseStreamer
+    properties (Access = private)
+        pulseGeneratorPrivate
+        type
     end
     
     properties (Constant)
@@ -24,18 +28,42 @@ classdef PulseGenerator < EventSender
             name = PulseGenerator.NAME;
             obj@EventSender(name);
             
+            removeObjIfExists(name);
+            addBaseObject(obj);  % so it can be reached by getObjByName(PulseGenerator.NAME)
+            
             obj.type = obj.generatorType(struct);
-            switch obj.type
-                case obj.NAME_PULSE_BLASTER
-                    PulseBlaster.create(struct);
-                case obj.NAME_PULSE_STREAMER
-                    removeObjIfExists(name);
-                    addBaseObject(obj);  % so it can be reached by getObjByName(PulseGenerator.NAME)
-                    obj.pulseStreamer = obj.createPulseStreamer(struct);
+
+            if isfield(struct, 'dummy')
+                obj.pulseGeneratorPrivate = PulseGeneratorDummyClass.GetInstance;
+            else
+                switch obj.type
+                    case obj.NAME_PULSE_BLASTER
+                        obj.pulseGeneratorPrivate = PulseBlasterClass.GetInstance;
+                    case obj.NAME_PULSE_STREAMER
+                        obj.pulseGeneratorPrivate = PulseStreamerClass.GetInstance;
+                end
             end
+        end     % constructor
+    end
+    
+    %% wrapper methods
+    methods 
+        function on(obj, channel)
+            obj.pulseGeneratorPrivate.On(channel);
+            obj.isOn.(channel) = true;
+        end
+        
+        function off(obj)
+            obj.pulseGeneratorPrivate.Off;
+            StructHelper.setAllFields(obj.isOn, false);
+        end
+        
+        function ind = name2index(obj, name)
+            ind = obj.pulseGeneratorPrivate.Index(name);
         end
     end
 
+    %%
     methods (Static)
         function create(struct)
             try
@@ -44,15 +72,11 @@ classdef PulseGenerator < EventSender
             catch
                 PulseGenerator(struct);
             end
-            switch type
-                case PulseGenerator.NAME_PULSE_STREAMER
-                    PG = getObjByName(PulseGenerator.NAME);
-                    names = struct.channelNames;
-                    values = struct.channelValues;
-                    PG.pulseStreamer.setChannelNameAndValue(names, values);
-                case PulseGenerator.NAME_PULSE_BLASTER
-                    warning('You will have to add channels to the pulseBlaster manually')
-            end
+            
+            PG = getObjByName(PulseGenerator.NAME);
+            names = struct.channelNames;
+            values = struct.channelValues;
+            PG.pulseGeneratorPrivate.setChannelNameAndValue(names, values);
         end
         
         function type = generatorType(struct)
@@ -65,33 +89,5 @@ classdef PulseGenerator < EventSender
             end
         end
     end
-    
-    %% PulseStreamer Control
-    
-    methods
-        % Exists here for now, in order not to interact with Old class
-        % Experiment
-    function ps = createPulseStreamer(~, psstruct)
-            % create a new instance of the pulse streamer, to be retreived
-            % via getInstance()
-            % 
-            % "psStruct" - a struct. 
-            % If the struct contains the optional property "dummy" with the value true, 
-            % no actual physics will be involved. Good for testing purposes
-            % If "dummy" isn't in the struct, it will be considered as false
-            %
-            if ~isfield(psstruct, 'libPathName')
-                error('"libPathName must be in the struct! (pulse streamer)')
-            end
-            
-            if isfield(psstruct, 'dummy')
-                ps = PulseStreamerClass.GetInstance;
-            else
-                ps = PulseStreamerClass.GetInstance;
-            end
-        end
-    end
-        
-    
 end
 

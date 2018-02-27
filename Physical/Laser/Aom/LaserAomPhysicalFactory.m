@@ -29,8 +29,8 @@ classdef LaserAomPhysicalFactory
                 case 'nidaq'
                     aomPhysicalPart = AomNiDaqControlled.create(partName, struct);
                     return
-                case 'doubleNidaq'
-                    aomPhysicalPart = AomNiDaqControlledDouble.create(partName, struct);
+                case 'nidaqdouble'
+                    aomPhysicalPart = AomDoubleNiDaqControlled.create(partName, struct);
                 otherwise
                     error('Can''t create a %s-class AOM part for laser "%s" - unknown classname! Aborting.', struct.classname, name);
             end

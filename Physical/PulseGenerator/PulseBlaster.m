@@ -18,10 +18,10 @@ classdef PulseBlaster < EventSender
     end
     
     properties (Access = private)
-        mChannels;          % 1D array  of integers
+        mChannels;          % vector of integers
         mChannelNames;      % 1D cell of strings
-        mChannelStatuses;   % 1D array of true \ false  
-        libPathName  % the name of the folder where the PB library can be found
+        mChannelStatuses;   % vector of logicals
+        libPathName         % name of the folder where the PB library is found
         
     end
     
@@ -36,7 +36,7 @@ classdef PulseBlaster < EventSender
         MAX_DURATION = 1e5;
         MAX_REPEATS=1e6;
         ERROR = -1;
-        PBl_LIB_NAME = 'PB_LIB_NAME'; %Aliace name of the PB library
+        PBl_LIB_NAME = 'PB_LIB_NAME'; %Alias name of the PB library
     end
     
     methods(Access = private)
@@ -79,7 +79,7 @@ classdef PulseBlaster < EventSender
     
     methods(Static)
         function obj = create(pbStruct)
-            % create a new instance of the pulse blaster, to be retreived
+            % Create a new instance of the pulse blaster, to be retreived
             % via getInstance()
             % 
             % "pbStruct" - a struct. 
@@ -105,8 +105,8 @@ classdef PulseBlaster < EventSender
     
     methods(Access = private)
         function channel = getChannel(obj, channelNameOrNumber)
-            % get the channel from a name or number
-            % if it's a name, search for it. 
+            % Get the channel from a name or number:
+            % if it's a name, search for it;
             % if it's a number - use it
             %
             % returns - the channel if exists or PulseBlaster.ERROR
@@ -136,7 +136,7 @@ classdef PulseBlaster < EventSender
             % newChannelValue - int
             rowsAmnt = length(obj.mChannelNames);
             if rowsAmnt >= obj.MAX_PB_CHANNEL
-                msg = sprintf('can''t add channel "%s", the pulse blaster is full! channels taken: [%s]   aborting.', newChannelName, obj.mChannelNames);
+                msg = sprintf('Can''t add channel "%s", since the pulse blaster is full! Aborting.\nChannels taken: [%s]', newChannelName, obj.mChannelNames);
                 obj.sendError(msg);
             end
             
@@ -149,7 +149,7 @@ classdef PulseBlaster < EventSender
             
             captured = find(obj.mChannels == newChannelValue);
             if ~isempty(captured)
-                obj.sendError(sprintf('can''t asign channel %d  to "%s" as it is already captured by "%s"!\naborting.', ...
+                obj.sendError(sprintf('Can''t asign channel %d to "%s" as it is already taken by "%s"!\nAborting.', ...
                     newChannelValue, newChannelName, obj.mChannelNames{captured(1)}));
             end
             
@@ -169,14 +169,14 @@ classdef PulseBlaster < EventSender
         end
         
         function activatedChannels = switchOnly(obj, channelNameOrNumber, newBooleanValue)
-            % switches only one channel, leaving the others unharmed
+            % Switches only one channel, leaving the others unharmed
             %
             % channelNameOrNumber - can be a char vector or an int
             %
             % returns - the activated channels
             %
             if ~all(or(newBooleanValue==0, newBooleanValue==1))
-                obj.sendError('''newBooleanValue'' has to be false or true only! aborting')
+                obj.sendError('''newBooleanValue'' has to be false or true only! Aborting.')
             end
             
             if ischar(channelNameOrNumber)
@@ -185,7 +185,7 @@ classdef PulseBlaster < EventSender
                 argChannelLength = length(channelNameOrNumber);
             end
             if argChannelLength ~= length(newBooleanValue)
-                obj.sendError('''newBooleanValue'' and ''channelNameOrNumber'' has to be from the same length! aborting')
+                obj.sendError('''newBooleanValue'' and ''channelNameOrNumber'' must be of the same length! Aborting.')
             end
             
             if argChannelLength > 1
@@ -215,11 +215,11 @@ classdef PulseBlaster < EventSender
             % newBooleanValue - array of [1s or 0s]
             
             if ~all(or(newBooleanValue==0, newBooleanValue==1))
-                obj.sendError('''newBooleanValue'' has to be false or true only! aborting')
+                obj.sendError('''newBooleanValue'' has to be either false or true! Aborting.')
             end
             
             if length(channelNameCellOrIntegerArray) ~= length(newBooleanValue)
-                obj.sendError('''newBooleanValue'' and ''channelNameCellOrIntegerArray'' has to be from the same length! aborting')
+                obj.sendError('''newBooleanValue'' and ''channelNameCellOrIntegerArray'' must be of the same length! Aborting.')
                 return
             end
             
@@ -287,7 +287,7 @@ classdef PulseBlaster < EventSender
             end
             
             if newVal < 1 || newVal > obj.MAX_REPEATS
-                error('Value out of range. range: [%d, %d]', 1, obj.MAX_REPEATS);
+                error('Value out of range. Range: [%d, %d]', 1, obj.MAX_REPEATS);
             end
             obj.seqRepeats = newVal;
         end
@@ -300,7 +300,7 @@ classdef PulseBlaster < EventSender
             % set the value for a channel
             indices = find(obj.mChannels == channel);
             if isempty(indices)
-                warningMsg = sprintf('channel (%d) not registered! ignoring\n(call obj.addNewChannel() to register this channel)', channel);
+                warningMsg = sprintf('Channel (%d) not registered! Ignoring.\n(Call obj.addNewChannel() to register this channel)', channel);
                 obj.sendError(warningMsg);
                 return
             end
@@ -317,7 +317,7 @@ classdef PulseBlaster < EventSender
             % or PulseBlaster.ERROR if not found
             indices = find(strcmp(obj.mChannelNames,channelName));
             if isempty(indices)
-                obj.sendError(sprintf('No such channel with name "%s"!', channelName));
+                obj.sendError(sprintf('No channel with name "%s" exists!', channelName));
             end
             index = indices(1);
         end
@@ -484,4 +484,3 @@ classdef PulseBlaster < EventSender
         
     end
 end
-

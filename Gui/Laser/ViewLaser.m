@@ -45,7 +45,12 @@ classdef ViewLaser < GuiComponent
             end
             
             if aomAvailBool
-                aomView = ViewLaserPart(obj, controller, laserGate.aom, 'AOM:');
+                aom = laserGate.aom;
+                if isa(aom, 'AomDoubleNiDaqControlled')
+                    aomView = ViewDoubleAom(obj, controller, aom);
+                else
+                    aomView = ViewLaserPart(obj, controller, aom, 'AOM:');
+                end
                 heights = [heights, aomView.height];
                 width = max([width, aomView.width]);
             end

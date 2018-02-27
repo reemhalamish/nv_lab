@@ -7,8 +7,8 @@ classdef LaserSourceDummy < LaserPartAbstract
     end
     
     properties (Hidden)
-        dummyValue
-        dummyEnabled
+        dummyValue = 0;
+        dummyEnabled = false;
     end
     
     methods
@@ -31,9 +31,7 @@ classdef LaserSourceDummy < LaserPartAbstract
             % Sets the physical laser part on (true) or off (false)
             obj.dummyEnabled = newBool;
         end
-    end
-    
-    methods
+
         function value = getValueRealWorld(obj)
             % Gets the voltage value from physical laser part
             value = obj.dummyValue;

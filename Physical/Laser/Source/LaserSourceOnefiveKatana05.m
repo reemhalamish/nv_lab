@@ -41,24 +41,30 @@ classdef LaserSourceOnefiveKatana05 < LaserPartAbstract & SerialControlled
             obj.commDelay = 0.05;
             obj.keepConnected = true;
             try
-                obj.open;
-                obj.query(obj.COMMAND_POWER_TAKE_CONTROL);
+                obj.connect;
             catch err
                 % We can't communicate with the laser, so what's the point?
                 obj.delete
                 rethrow(err)
             end
         end
-    end
-    
-    methods
+        
+        function connect(obj)
+            obj.open;
+            obj.query(obj.COMMAND_POWER_TAKE_CONTROL);
+        end
+        
+        function disconnect(obj)
+            if strcmp(obj.status, 'closed')
+                obj.open;
+            end
+            obj.query(obj.COMMAND_POWER_GIVE_CONTROL);
+            obj.close;
+        end
+
         function delete(obj)
             try
-                if strcmp(obj.status, 'closed')
-                    obj.open;
-                end
-                obj.query(obj.COMMAND_POWER_GIVE_CONTROL);
-                obj.close;
+                obj.disconnect;
             catch
             end
         end
@@ -85,9 +91,7 @@ classdef LaserSourceOnefiveKatana05 < LaserPartAbstract & SerialControlled
             commandPower = sprintf(obj.COMMAND_POWER_FORMAT_SPEC, newValue);
             obj.query(commandPower);
         end
-    end
-       
-    methods
+        
         function val = getValueRealWorld(obj)
             regex = 'lp=(\d\.\d+)\n'; % a number of the form #.### followed by new-line
             val = str2double(obj.query(obj.COMMAND_POWER_QUERY, regex));

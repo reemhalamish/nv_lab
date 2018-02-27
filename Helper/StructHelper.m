@@ -19,6 +19,14 @@ classdef StructHelper
             string = StructHelper.recGetStructOut(inputStruct, 0);
         end
         
+        function struc = setAllFields(struc, newValue)
+            fNames = fieldnames(struc);
+            for i = 1:length(fNames)
+                f = fNames{i};
+                struc.(f) = newValue;
+            end
+        end
+        
         function structCombined = merge(structOld,structNew,collisionBehavior)
             % Merges two two structs by the following algorithm: Take 1st
             % struct, and add any field from 2nd struct which is not a
@@ -63,12 +71,13 @@ classdef StructHelper
                     numString = 'All of the fields';
                     verbString = 'were';
                 otherwise
-                    numString = sprintf('%d fields',nCollisions);
+                    numString = sprintf('%d fields', nCollisions);
                     verbString = 'were';
             end
-            actionString = BooleanHelper.ifTrueElse(shouldSkip,'skipped','overridden');
+            actionString = BooleanHelper.ifTrueElse(shouldSkip, 'skipped', 'overridden');
             
-            warning('%s in the new array already existed in the old one, and %s %s.',numString,verbString,actionString)
+            warning('%s in the new array already existed in the old one, and %s %s.', ...
+                numString, verbString, actionString)
         end
     end
     
