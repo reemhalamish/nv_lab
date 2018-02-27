@@ -277,6 +277,18 @@ classdef (Sealed) ClassPIM686M501 < ClassStage
         end
     end
     
+    %% overriding from Savable
+    % This pseudo-stage should not return string.
+    methods(Access = protected)
+        function string = returnReadableString(obj, savedStruct)
+            % return a readable string to be shown. if this object
+            % doesn't need a readable string, make (string = NaN;) or
+            % (string = '';)
+            
+            string = NaN;
+        end
+    end
+    
     %% Blank/warning Implementions of scan methods
     methods (Access = public)
         function PrepareScanX(obj, x, y, z, nFlat, nOverRun, tPixel)  %#ok<*INUSD>

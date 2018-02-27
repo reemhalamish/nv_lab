@@ -222,21 +222,31 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             % Get parameters
             if (nOverRun == 0); nOverRun = 1; end % In order to be centered around the pixel we need at least one extra point from each side.
             numberOfPixels = length(scanAxisVector); % This is the number of pixels
-            pixelLengthInPoints = tPixel/5e-5; % The wave generator works in 50us points.
-            pixelSizeInum = (scanAxisVector(end) - scanAxisVector(1))/(numberOfPixels-1);
-            extraDistanceToSideInPoints = pixelLengthInPoints*nOverRun; % Always positive
-            extraDistanceToSideInum = pixelSizeInum*nOverRun; % Can be negative
+            pixelLengthInPoints = tPixel/50e-6; % The wave generator works in 50us points.
+            pixelSizeInum = (scanAxisVector(end) - scanAxisVector(1))/(numberOfPixels-1); % Can be negative if scanning in reverse
+            nOverRunInPoints = pixelLengthInPoints*nOverRun; % Always positive
+            nOverRunInum = pixelSizeInum*nOverRun; % Can be negative if scanning in reverse
+            nFlatInPoints = pixelLengthInPoints*nFlat;
+            numberOfPixelsInPoints = pixelLengthInPoints*numberOfPixels;
             scanAxis = GetAxis(obj, scanAxis);
             
             % Parameters according to the PI function, look at GCS manual
             % page 115 (PI_WAV_LIN)
             iWaveTableId = 1;
-            iOffsetOfFirstPointInWaveTable = nFlat;
-            iNumberOfSpeedUpDownPointsOfWave = extraDistanceToSideInPoints/2; % This is taken twice in the GCS code, so only half for each side.
-            iNumberOfWavePoints = pixelLengthInPoints*numberOfPixels + 2*iNumberOfSpeedUpDownPointsOfWave; % But this is only taken once, so need to put it twice.
-            iSegmentLength = iNumberOfWavePoints+2*iOffsetOfFirstPointInWaveTable;
-            dOffsetOfWave = scanAxisVector(1) - extraDistanceToSideInum;
-            dAmplitudeOfWave = scanAxisVector(end) - scanAxisVector(1) + 2*extraDistanceToSideInum;
+            iOffsetOfFirstPointInWaveTable = nFlatInPoints; % This is taken twice in the GCS code, once from each side.
+            iNumberOfSpeedUpDownPointsOfWave = nOverRunInPoints; % This is taken twice in the GCS code, once from each side.
+            iNumberOfWavePoints = numberOfPixelsInPoints + 2*iNumberOfSpeedUpDownPointsOfWave;
+            iSegmentLength = iNumberOfWavePoints + 2*iOffsetOfFirstPointInWaveTable;
+            dOffsetOfWave = scanAxisVector(1) - nOverRunInum;
+            dAmplitudeOfWave = scanAxisVector(end) - scanAxisVector(1) + 2*nOverRunInum;
+            
+            % Parameters according to the PI function, look at GCS manual
+            % page 34 & E725 page 78
+            piTriggerOutputIds = [1 1 1 1 1];
+            piTriggerParameterArray = [2 3 1 8 9];
+            pdValueArray = [SwitchXYAxis(obj, scanAxis, 'integer'), 0, abs(pixelSizeInum),...
+                scanAxisVector(1) - pixelSizeInum/2, scanAxisVector(end) + 3*pixelSizeInum/4];
+            iArraySize = length(piTriggerOutputIds);
 
             % Only redefine waveforms if different from previous.
             localScanStruct = struct('scanAxisVector', scanAxisVector, 'nFlat', nFlat, 'nOverRun', nOverRun, 'tPixel', tPixel, 'scanAxis', scanAxis);
@@ -244,23 +254,11 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
                 obj.scanStruct = localScanStruct;
                 
                 % Clear old stuff
-                SendPICommand(obj, 'PI_TWC', obj.ID); % Clears trigger points.
                 SendPICommand(obj, 'PI_DTC', obj.ID, [1 2 3], 3); % Clears DDL Data for all axes.
                 
                 % Define Scan
-                SendPICommand(obj, 'PI_WAV_LIN', obj.ID, iWaveTableId, iOffsetOfFirstPointInWaveTable, iNumberOfWavePoints, 0, iNumberOfSpeedUpDownPointsOfWave, dAmplitudeOfWave, dOffsetOfWave, iSegmentLength);
-                numberOfTWSCommands = ceil((numberOfPixels+1)/10); % Up to 10 trigger points per command line can be send
-                for i=1:numberOfTWSCommands % Defines the positive edges
-                    numberOfTWSPoints = 10*(i < numberOfTWSCommands) + (mod(numberOfPixels, 10)+1)*(i == numberOfTWSCommands);
-                    triggerChannelIdsArray = ones(1, numberOfTWSPoints);
-                    firstTWSPoint = iOffsetOfFirstPointInWaveTable+10*pixelLengthInPoints*(i-1)+iNumberOfSpeedUpDownPointsOfWave;
-                    TWSJump = pixelLengthInPoints;
-                    lastTWSPoint = iOffsetOfFirstPointInWaveTable+min(pixelLengthInPoints*10*i, iNumberOfWavePoints-iNumberOfSpeedUpDownPointsOfWave);
-                    positiveEdgePointNumberArray = firstTWSPoint:TWSJump:lastTWSPoint;
-                    positiveSwitchArray = ones(1, numberOfTWSPoints);
-                    SendPICommand(obj, 'PI_TWS', obj.ID, triggerChannelIdsArray, positiveEdgePointNumberArray, positiveSwitchArray, numberOfTWSPoints);
-                end
-                SendPICommand(obj, 'PI_CTO', obj.ID, 1, 3, 4, 1); % Defines output to be synced with generator.
+                SendPICommand(obj, 'PI_WAV_LIN', obj.ID, iWaveTableId, iOffsetOfFirstPointInWaveTable, iNumberOfWavePoints, 0, iNumberOfSpeedUpDownPointsOfWave, dAmplitudeOfWave, dOffsetOfWave, iSegmentLength);                
+                SendPICommand(obj, 'PI_CTO', obj.ID, piTriggerOutputIds, piTriggerParameterArray, pdValueArray, iArraySize); % Defines output to be position based.
                 SendPICommand(obj, 'PI_WSL', obj.ID, SwitchXYAxis(obj, scanAxis, 'integer'), iWaveTableId, 1); % Defines which table to use.
                 
                 % Initialize DDL
