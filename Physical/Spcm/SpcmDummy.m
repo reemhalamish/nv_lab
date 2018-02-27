@@ -47,10 +47,10 @@ classdef SpcmDummy < Spcm
         % prepare to read from the spcm, when using a stage as a signal
         function prepareReadByStage(obj, ~, nPixels, timeout, ~)
             if ~ValidationHelper.isValuePositiveInteger(nPixels)
-                obj.sendError(sprintf('Can''t prepare for reading %s times, only positive integers allowed! igonring',nPixels));
+                obj.sendError(sprintf('Can''t prepare for reading %s times, only positive integers allowed! igonring', nPixels));
             end
             obj.timesToRead = nPixels;
-            obj.integrationTime = timeout;
+            obj.integrationTime = timeout / (10 * nPixels);
         end
         
         % actually start the process

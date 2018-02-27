@@ -3,6 +3,8 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
     %   inherit NiDaqControlled, also inherit Spcm
     
     properties (Access = protected)
+        isEnabled       % logical
+        
         % For scanning
         nScanCounts
         scanTimeoutTime
@@ -22,20 +24,25 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
     end
     
     properties(Constant = true, Hidden = true)
-        NEEDED_FIELDS_SPCM_DAQ = {'nidaq_channel_gate', 'nidaq_channel_counts'};
+        NEEDED_FIELDS = {'nidaq_channel_gate', 'nidaq_channel_counts'};
+        OPTIONAL_FIELDS = {'nidaq_channel_min_val', 'nidaq_channel_max_val'};
     end
     
     
     methods
-        function obj = SpcmNiDaqControlled(name, niDaqGateChannel, niDaqCountsChannel)
+        function obj = SpcmNiDaqControlled(name, niDaqGateChannel, niDaqCountsChannel, channelMinValue, channelMaxValue)
             % Contructor, creates the object and registers the channels in
             % the DAQ.
             obj@Spcm(name);
             niDaqGateChannelName = sprintf('%s_gate', name);
             niDaqCountChannelName= sprintf('%s_channel', name);
-            obj@NiDaqControlled({niDaqGateChannelName, niDaqCountChannelName}, {niDaqGateChannel, niDaqCountsChannel});
+            obj@NiDaqControlled({niDaqGateChannelName, niDaqCountChannelName}, ...
+                {niDaqGateChannel, niDaqCountsChannel}, channelMinValue, channelMaxValue);
             obj.niDaqGateChannelName = niDaqGateChannelName;
             obj.niDaqCountChannelName = niDaqCountChannelName;
+            
+            daq = getObjByName(NiDaq.NAME);
+            obj.isEnabled = daq.readDigital(obj.niDaqGateChannelName);
             obj.nScanCounts = 0;
         end
         
@@ -145,6 +152,7 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
             % Enables/Disables the SPCM.
             daq = getObjByName(NiDaq.NAME);
             daq.writeDigital(obj.niDaqGateChannelName, newBooleanValue)
+            obj.isEnabled = newBooleanValue;
         end
     end
     
@@ -153,6 +161,12 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
             % This function jumps when the NiDaq resets
             if obj.nScanCounts > 0
                 prepareReadByStageInternal(obj, niDaq);
+            end
+            if obj.isEnabled
+                % When reset, the NiDaq no longer remembers whether the
+                % channel was off or on. We need to set the value, but only
+                % if needed (since writeDigital is costly)
+                obj.setSPCMEnable(obj.isEnabled)
             end
         end
     end
@@ -163,9 +177,17 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
             if ~isnan(missingField)
                 error('Can''t initialize NiDaq-controlled SPCM - required field "%s" was not found in initialization struct!', missingField);
             end
+            
+            % We want to get either values set in json, or empty variables
+            % (which will be handled by NiDaqControlled constructor):
+            spcmStruct = FactoryHelper.supplementStruct(spcmStruct, AomNiDaqControlled.OPTIONAL_FIELDS);
+            
             counts = spcmStruct.nidaq_channel_counts;
             gate = spcmStruct.nidaq_channel_gate;
-            spcmObj = SpcmNiDaqControlled(spcmName, gate, counts);
+            minVal = spcmStruct.nidaq_channel_min_val;
+            maxVal = spcmStruct.nidaq_channel_max_val;
+            
+            spcmObj = SpcmNiDaqControlled(spcmName, gate, counts, minVal, maxVal);
         end
     end
     

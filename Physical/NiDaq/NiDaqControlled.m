@@ -18,22 +18,26 @@ classdef (Abstract) NiDaqControlled < EventListener
     end
     
     methods(Access = protected)
-        function obj = NiDaqControlled(niDaqChannelName, niDaqChannel)
+        function obj = NiDaqControlled(niDaqChannelName, niDaqChannel, minVal, maxVal)
             % niDaqChannelName - string. the name that the daq will call this component
             % niDaqChannel - string. the channel to register to.
             % SUPPORTS CELL (NON-SCALAR) INPUT!
             obj@EventListener(NiDaq.NAME);
             niDaq = getObjByName(NiDaq.NAME);
-            if iscell(niDaqChannelName) && iscell(niDaqChannel)
-                if length(niDaqChannelName) ~= length(niDaqChannel)
+            
+            lengths = [length(niDaqChannelName), length(niDaqChannel), length(minVal), length(maxVal)];
+            isCell = iscell(niDaqChannelName) && iscell(niDaqChannel) && iscell(minVal) && iscell(maxVal);
+            
+            if isCell
+                if all(lengths == lengths(1))   % they are all the same length
                     EventStation.anonymousError('can''t initiate NiDaqControlled object - cell-size mismatch')
                 end
                 
                 for i=1:length(niDaqChannelName)
-                    niDaq.registerChannel(niDaqChannel{i}, niDaqChannelName{i});
+                    niDaq.registerChannel(niDaqChannel{i}, niDaqChannelName{i}, minVal{i}, maxVal{i});
                 end
             else  % scalar
-                niDaq.registerChannel(niDaqChannel, niDaqChannelName);
+                niDaq.registerChannel(niDaqChannel, niDaqChannelName, minVal, maxVal);
             end
         end
     end

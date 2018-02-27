@@ -59,23 +59,23 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         end
         
         %% Updating Image
-        function update(obj, structExtra)
+        function update(obj, newStruct)
             % This function could be called in two cases:
             % 1. When new data arrives. We then have structExtra.
             % 2. When ViewImageResultImage starts, and wants data to plot.
             %    Then, no structExtra will be available, but if there is
             %    available data, we still want to plot it.
             
-            if exist('structExtra', 'var')
+            if exist('newStruct', 'var')
                 % Get EVERYTHING from the struct
-                obj.mData = structExtra.scan;
-                obj.mDimNumber = structExtra.dimNumber;
-                obj.mFirstAxis = structExtra.getFirstAxis;
-                obj.mSecondAxis = structExtra.getSecondAxis;
-                obj.mStageName = structExtra.stageName;
-                obj.mAxesString = structExtra.axesString;
-                obj.mLabelBot = structExtra.botLabel;
-                obj.mLabelLeft = structExtra.leftLabel;
+                obj.mData = newStruct.mData;
+                obj.mDimNumber = newStruct.mDimNumber;
+                obj.mFirstAxis = newStruct.mFirstAxis;
+                obj.mSecondAxis = newStruct.mSecondAxis;
+                obj.mStageName = newStruct.mStageName;
+                obj.mAxesString = newStruct.mAxesString;
+                obj.mLabelBot = newStruct.mLabelBot;
+                obj.mLabelLeft = newStruct.mLabelLeft;
             elseif ~obj.isDataAvailable
                 % No data is available, neither externally nor internally.
                 return
@@ -128,6 +128,8 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                 obj.drawCrosshairs(axis(obj.gAxes),pos)
             catch
             end
+            
+            obj.updateDataCursor;
             
         end
         
@@ -200,22 +202,23 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                 return
             end
             
-            actionIndex = find(strcmp(action,obj.CURSOR_OPTIONS));
+            obj.ClearCursorData;
+            if ~exist('action', 'var')
+                actionIndex = 1;    % Marker is default
+            else
+                actionIndex = find(strcmp(action,obj.CURSOR_OPTIONS));
+            end
             switch actionIndex
                 case 1      % Display cursor with specific data tip
-                    datacursormode on;
-                    obj.setUpdateFcn;
+                    set(obj.cursor, 'Enable', 'on')
+                    obj.cursor.UpdateFcn = @obj.cursorMarkerDisplay;
                 case 2      % Create a rectangle on the selected area, and update the GUI scanParams's min and max values accordingly
-                    obj.UpdataDataByZoom;
+                    obj.updataDataByZoom;
                 case 3      % Move the stage to selected location
-                    datacursormode off;
+                    set(obj.cursor, 'Enable', 'off')
                     img = imhandles(obj.gAxes);
                     set(img, 'ButtonDownFcn', @obj.setLocationFromCursor);
             end
-        end
-        
-        function setUpdateFcn(obj)      % for ease of use for other objects
-            obj.cursor.UpdateFcn = @obj.cursorMarkerDisplay;
         end
         
         function txt = cursorMarkerDisplay(obj, ~, event_obj)
@@ -253,7 +256,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             end
         end
         
-        function UpdataDataByZoom(obj)
+        function updataDataByZoom(obj)
             % Draw the rectangle on the selected area on the plot,
             % and update the GUI with the max and min values
             
@@ -503,7 +506,20 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             maxValue = max(max(data(~isinf(data))));
             minValue = min(min(data(data ~= 0)));
             limits = [minValue maxValue];
-        end 
+        end
+        
+        function newStruct = ScanStructToInternal(scanStruct)
+            % Converts a struct, as output by StageScanner to the way it is
+            % represented within this class (ImageScanResult)
+            newStruct.mData = scanStruct.scan;
+            newStruct.mDimNumber = scanStruct.dimNumber;
+            newStruct.mFirstAxis = scanStruct.getFirstAxis;
+            newStruct.mSecondAxis = scanStruct.getSecondAxis;
+            newStruct.mStageName = scanStruct.stageName;
+            newStruct.mAxesString = scanStruct.axesString;
+            newStruct.mLabelBot = scanStruct.botLabel;
+            newStruct.mLabelLeft = scanStruct.leftLabel;
+        end
     end
     
     %% Setters
@@ -596,11 +612,11 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                 if isfield(savedStruct, propName)
                     obj.(propName) = savedStruct.(propName);
                     hasChanged = true;
+                    break       % If even one has changed, that's enough
                 end
             end
             if hasChanged
-                obj.sendEventImageUpdated();
-                obj.imagePostProcessing;
+                obj.update(savedStruct);
             end
         end
         
@@ -655,8 +671,10 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                     && isfield(event.extraInfo, StageScanner.EVENT_SCAN_UPDATED)
                 
                 extra = event.extraInfo.(StageScanner.EVENT_SCAN_UPDATED);
-                % "extra" now points to an object of class EventExtraScanUpdated
-                obj.update(extra);
+                % "extra" now points to an object of class EventExtraScanUpdated,
+                % but we want it in the in-house format
+                extraInternal = obj.ScanStructToInternal(extra);
+                obj.update(extraInternal);
                 drawnow
                 return % To avoid drawing crosshairs twice
             end

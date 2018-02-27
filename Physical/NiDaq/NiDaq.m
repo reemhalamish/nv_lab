@@ -3,24 +3,29 @@ classdef NiDaq < EventSender
     %   Detailed explanation goes here
     
     properties
-        dummyMode;
-        % logical. if set to true nothing will actually be passed
+        dummyMode;  	% logical. if set to true nothing will actually be passed
+        dummyChannel    % vector of doubles. Saves value of write channels, for dummy mode
         
-        channelsToChannelNames
-        % 2D array. 
-        % first column - channels ('dev/...')
-        % second column - channel names ('laser green')
+        channelArray
+        % 2D array.         (Better make it a struct, when we get to it)
+        % 1st column - channels ('dev/...')
+        % 2nd column - channel names ('laser green')
+        % 3rd column - channel minimum value. by default it is 0.
+        % 4th column - channel maximum value. by default it is 1.
         
-        deviceName
-        % string. is used by the library functions
+        deviceName  % string. is used by the library functions
     end
     
-    properties(Constant = true, Hidden = true)
+    properties (Constant, Hidden)
        IDX_CHANNEL = 1;
        IDX_CHANNEL_NAME = 2;
+       IDX_CHANNEL_MIN = 3;
+       IDX_CHANNEL_MAX = 4;
        
        MAX_VOLTAGE = 10;
        MIN_VOLTAGE = -10;
+       DEFAULT_MIN_VOLTAGE = 0;
+       DEFAULT_MAX_VOLTAGE = 1;
        
        CHANNEL_100MHZ = '100MHz';
        CHANNEL_100kHZ = '100kHz';
@@ -35,7 +40,7 @@ classdef NiDaq < EventSender
         function obj = NiDaq(deviceName, dummyModeBoolean)
             obj@EventSender(NiDaq.NAME);
             addBaseObject(obj);  % so it can be reached by getObjByName()
-            obj.channelsToChannelNames = {};
+            obj.channelArray = {};
             
             % Internal channels that are being used by someone
             obj.registerChannel('100MHzTimebase', obj.CHANNEL_100MHZ)
@@ -57,11 +62,10 @@ classdef NiDaq < EventSender
             % the "niDaqStruct" HAS TO HAVE this property (or an error will be thrown):
             % "deviceName" - a string
             %
-            % the niDaqStruct can have a 'dummy' property which called
-            % "dummy" - which is a boolean. 
-            % if set to true, no actual physics will be
-            % involved. good for testing purposes. 
-            % if not exists, treated like a false
+            % niDaqStruct can have a 'dummy' logical property called
+            % "dummy". If set to true, no actual physics will be involved.
+            % Good for testing purposes.
+            % The default value (if it doesn't exist in struct) is false.
             %
             missingField = FactoryHelper.usualChecks(niDaqStruct, {'deviceName'});
             if ~isnan(missingField)
@@ -78,17 +82,33 @@ classdef NiDaq < EventSender
     end
     
     methods
-        function registerChannel(obj, newChannel, newChannelName)
-            if isempty(obj.channelsToChannelNames)
-                obj.channelsToChannelNames{end + 1, NiDaq.IDX_CHANNEL} = newChannel;
-                obj.channelsToChannelNames{end, NiDaq.IDX_CHANNEL_NAME} = newChannelName;
+        function registerChannel(obj, newChannel, newChannelName, minValueOptional, maxValueOptional)
+            % We accept also empty values for minValueOptional &
+            % maxValueOptional, which allows us to  tell the function to
+            % use default values for any of the optional variables
+            if exist('minValueOptional', 'var') && ~isempty(minValueOptional)
+                minValue = minValueOptional;
+            else
+                minValue = obj.DEFAULT_MIN_VOLTAGE;
+            end
+            if exist('maxValueOptional', 'var') && ~isempty(maxValueOptional)
+                maxValue = maxValueOptional;
+            else
+                maxValue = obj.DEFAULT_MAX_VOLTAGE;
+            end
+            
+            if isempty(obj.channelArray)
+                obj.channelArray{end + 1, NiDaq.IDX_CHANNEL} = newChannel;
+                obj.channelArray{end, NiDaq.IDX_CHANNEL_NAME} = newChannelName;
+                obj.channelArray{end, NiDaq.IDX_CHANNEL_MIN} = minValue;
+                obj.channelArray{end, NiDaq.IDX_CHANNEL_MAX} = maxValue;
                 return
             end
                 
             channelAlreadyInIndexes = ...
                 find(...
                     contains(...
-                        obj.channelsToChannelNames(1:end, NiDaq.IDX_CHANNEL), ...
+                        obj.channelArray(1:end, NiDaq.IDX_CHANNEL), ...
                         newChannel...
                     )...
                 );
@@ -98,109 +118,156 @@ classdef NiDaq < EventSender
                 channelCapturedName = obj.getChannelNameFromIndex(channelIndex);
                 error(errorMsg, newChannel, newChannelName, channelCapturedName);
             end
-            obj.channelsToChannelNames{end + 1, NiDaq.IDX_CHANNEL} = newChannel;
-            obj.channelsToChannelNames{end, NiDaq.IDX_CHANNEL_NAME} = newChannelName;
+            obj.channelArray{end + 1, NiDaq.IDX_CHANNEL} = newChannel;
+            obj.channelArray{end, NiDaq.IDX_CHANNEL_NAME} = newChannelName;
+            obj.channelArray{end, NiDaq.IDX_CHANNEL_MIN} = minValue;
+            obj.channelArray{end, NiDaq.IDX_CHANNEL_MAX} = maxValue;
+            
+            if obj.dummyMode    % If we are in dummy mode, we want to have default value for value;
+                obj.dummyChannel(length(obj.channelArray)) = -1;
+            end
         end % func registerChannel
         
         function voltageInt = readVoltage(obj, channelOrChannelName)
             % Reads the voltage at the given channel
             channelIndex = obj.getIndexFromChannelOrName(channelOrChannelName);
             channel = obj.getChannelFromIndex(channelIndex);
+            minVal = obj.getChannelMinimumFromIndex(channelIndex);
+            maxVal = obj.getChannelMaximumFromIndex(channelIndex);
+            
             if obj.dummyMode
-                voltageInt = 0.5;
-            else
-                DAQmx_Val_RSE = daq.ni.NIDAQmx.DAQmx_Val_RSE;
-                DAQmx_Val_Volts = daq.ni.NIDAQmx.DAQmx_Val_Volts;
-                DAQmx_Val_GroupByScanNumber = daq.ni.NIDAQmx.DAQmx_Val_GroupByScanNumber;
-                
-                task = obj.createTask();
-                
-                status = DAQmxCreateAIVoltageChan(task, sprintf('/%s/%s', obj.deviceName, channel), '', DAQmx_Val_RSE, 0, 1, DAQmx_Val_Volts, '');
-                obj.checkError(status);
-                
-                obj.startTask(task);
-                
-                readArray = zeros(1, 1);
-                [status, voltageInt]= DAQmxReadAnalogF64(task, 1, 1, DAQmx_Val_GroupByScanNumber, readArray, 1, int32(0));
-                obj.checkError(status);
-                
-                obj.endTask();
+                val = obj.dummyChannel(channelIndex);
+                if val == -1 % read channel
+                    voltageInt = 0.5;
+                else    % write channel -- we have value to return
+                    voltageInt = val;
+                end
+                return
             end
+            
+            % DAQ Constants
+            terminalConfig =  daq.ni.NIDAQmx.DAQmx_Val_RSE;
+            units =           daq.ni.NIDAQmx.DAQmx_Val_Volts;
+            fillmode =        daq.ni.NIDAQmx.DAQmx_Val_GroupByScanNumber;
+            
+            % Settings for virtual channel - reading from output channel
+            if contains(channel, '/ao')
+                channel = regexprep(channel, 'ao(\d+)', '_ao$1_vs_aognd');
+                terminalConfig = daq.ni.NIDAQmx.DAQmx_Val_Diff;
+            end
+            
+            % Create channel
+            task = obj.createTask();
+            physicalChannel = sprintf('/%s/%s', obj.deviceName, channel);
+            nameToAssignToChannel = '';
+            customScaleName = '';
+            status = DAQmxCreateAIVoltageChan(task, physicalChannel, nameToAssignToChannel, terminalConfig, minVal, maxVal, units, customScaleName);
+            obj.checkError(status);
+            
+            % Read from channel
+            obj.startTask(task);
+            
+            numSampsPerChan = 1;
+            timeout = 1;
+            readArray = zeros(1, 1);
+            arraySizeInSamps = 1;
+            sampsPerChanRead = 0;   % dummy variable
+            [status, voltageInt]= DAQmxReadAnalogF64(task, numSampsPerChan, timeout, fillmode, readArray, arraySizeInSamps, sampsPerChanRead);
+            obj.checkError(status);
+            
+            obj.endTask(task);
         end
         
         function writeVoltage(obj, channelOrChannelName, newVoltage)
             % Writes the given voltage at the given channel
             channelIndex = obj.getIndexFromChannelOrName(channelOrChannelName);
             channel = obj.getChannelFromIndex(channelIndex);
+            minVal = obj.getChannelMinimumFromIndex(channelIndex);
+            maxVal = obj.getChannelMaximumFromIndex(channelIndex);
+            
             if obj.dummyMode
-                % Do Nothing
-            else
-                DAQmx_Val_Volts = daq.ni.NIDAQmx.DAQmx_Val_Volts;
-                DAQmx_Val_GroupByScanNumber = daq.ni.NIDAQmx.DAQmx_Val_GroupByScanNumber;
-                
-                task = obj.createTask();
-                
-                status = DAQmxCreateAOVoltageChan(task, sprintf('/%s/%s', obj.deviceName, channel), 0, 1, DAQmx_Val_Volts);
-                obj.checkError(status);
-                
-                obj.startTask(task);
-                
-                status = DAQmxWriteAnalogF64(task, 1, 1, 10, DAQmx_Val_GroupByScanNumber, newVoltage, 0);
-                obj.checkError(status);
-                
-                obj.endTask();
+                obj.dummyChannel(channelIndex) = newVoltage;
+                return;
             end
+            
+            % DAQ constants
+            units =       daq.ni.NIDAQmx.DAQmx_Val_Volts;
+            dataLayout =  daq.ni.NIDAQmx.DAQmx_Val_GroupByScanNumber;
+            
+            % Create channel
+            task = obj.createTask();
+            
+            physicalChannel = sprintf('/%s/%s', obj.deviceName, channel);
+            status = DAQmxCreateAOVoltageChan(task, physicalChannel, minVal, maxVal, units);
+            obj.checkError(status);
+            
+            % Write to channel
+            obj.startTask(task);
+            
+            numSampsPerChan = 1;
+            autoStart = 1;
+            timeout = 10;
+            sampsPerChanWritten = 0;    % dummy variable (that is, has no meaning)
+            status = DAQmxWriteAnalogF64(task, numSampsPerChan, autoStart, timeout, dataLayout, newVoltage, sampsPerChanWritten);
+            obj.checkError(status);
+            
+            obj.endTask(task);
         end
         
         function digitalInt = readDigital(obj, channelOrChannelName)
             % Read the current digital status of the given channel
             channelIndex = obj.getIndexFromChannelOrName(channelOrChannelName);
             channel = obj.getChannelFromIndex(channelIndex);
+            
             if obj.dummyMode
                 digitalInt = true;
-            else
-                DAQmx_Val_ChanForAllLines = daq.ni.NIDAQmx.DAQmx_Val_ChanForAllLines;
-                DAQmx_Val_GroupByChannel = daq.ni.NIDAQmx.DAQmx_Val_GroupByChannel;
-                
-                task = obj.createTask();
-                
-                status = DAQmxCreateDOChan(task, sprintf('/%s/%s', obj.deviceName, channel), '', DAQmx_Val_ChanForAllLines);
-                obj.checkError(status);
-                
-                obj.startTask(task);
-                
-                % todo - check read function (probably it is wrong now)
-                [status, digitalInt] = DAQmxReadDigitalU32(task, 1, 1, DAQmx_Val_GroupByChannel, gate*2^line, 1);
-                
-                obj.checkError(status);
-                
-                obj.endTask(task);
+                return
             end
+            
+            DAQmx_Val_ChanForAllLines = daq.ni.NIDAQmx.DAQmx_Val_ChanForAllLines;
+            DAQmx_Val_GroupByChannel = daq.ni.NIDAQmx.DAQmx_Val_GroupByChannel;
+            
+            task = obj.createTask();
+            
+            status = DAQmxCreateDOChan(task, sprintf('/%s/%s', obj.deviceName, channel), '', DAQmx_Val_ChanForAllLines);
+            obj.checkError(status);
+            
+            obj.startTask(task);
+            
+            % todo - check read function (probably it is wrong now)
+            [status, digitalInt] = DAQmxReadDigitalU32(task, 1, 1, DAQmx_Val_GroupByChannel, gate*2^line, 1);
+            
+            obj.checkError(status);
+            
+            obj.endTask(task);
+            
         end
         
         function writeDigital(obj, channelOrChannelName, newLogicalValue)
             % Writes the given digital status at the given channel
             channelIndex = obj.getIndexFromChannelOrName(channelOrChannelName);
             channel = obj.getChannelFromIndex(channelIndex);
+            
             if obj.dummyMode
                 % Do nothing
-            else
-                DAQmx_Val_ChanForAllLines = daq.ni.NIDAQmx.DAQmx_Val_ChanForAllLines;
-                DAQmx_Val_GroupByChannel = daq.ni.NIDAQmx.DAQmx_Val_GroupByChannel;
-                
-                task = obj.createTask();
-                
-                status = DAQmxCreateDOChan(task, sprintf('/%s/%s', obj.deviceName, channel), '', DAQmx_Val_ChanForAllLines);
-                obj.checkError(status);
-                line = str2double(channel(end));
-                
-                obj.startTask(task);
-                               
-                status = DAQmxWriteDigitalU32(task, 1, 1, 10, DAQmx_Val_GroupByChannel, newLogicalValue*2^line, 1);
-                obj.checkError(status);
-                
-                obj.endTask(task);
+                return
             end
+            
+            DAQmx_Val_ChanForAllLines = daq.ni.NIDAQmx.DAQmx_Val_ChanForAllLines;
+            DAQmx_Val_GroupByChannel = daq.ni.NIDAQmx.DAQmx_Val_GroupByChannel;
+            
+            task = obj.createTask();
+            
+            status = DAQmxCreateDOChan(task, sprintf('/%s/%s', obj.deviceName, channel), '', DAQmx_Val_ChanForAllLines);
+            obj.checkError(status);
+            line = str2double(channel(end));
+            
+            obj.startTask(task);
+            
+            status = DAQmxWriteDigitalU32(task, 1, 1, 10, DAQmx_Val_GroupByChannel, newLogicalValue*2^line, 1);
+            obj.checkError(status);
+            
+            obj.endTask(task);
         end
         
         function task = CreateDAQEdgeCountingMeas(obj, nCounts, countChannelName, pixelsChannelName, ctrNumberOpt)
@@ -282,7 +349,8 @@ classdef NiDaq < EventSender
             arraySizeInSamps = nCounts;
             sampsPerChanRead = int32(0);
             
-            [status, readArray, nRead] = DAQmxReadCounterU32(task, numSampsPerChan, timeout, readArray, arraySizeInSamps, sampsPerChanRead);
+            [status, readArray, nRead] = DAQmxReadCounterU32(task, numSampsPerChan, ...
+                timeout, readArray, arraySizeInSamps, sampsPerChanRead);
             obj.checkError(status);
         end
         
@@ -338,27 +406,47 @@ classdef NiDaq < EventSender
         end
         
         function index = getIndexFromChannelOrName(obj, channelOrChannelName)
-            channelNamesIndexes = find(contains(obj.channelsToChannelNames(1:end, NiDaq.IDX_CHANNEL_NAME), channelOrChannelName));
+            channelNamesIndexes = find(contains(obj.channelArray(1:end, NiDaq.IDX_CHANNEL_NAME), channelOrChannelName));
             if ~isempty(channelNamesIndexes)
                 index = channelNamesIndexes(1);
                 return;
             end
             
-            channelIndexes = find(contains(obj.channelsToChannelNames(1:end, NiDaq.IDX_CHANNEL), channelOrChannelName));
+            channelIndexes = find(contains(obj.channelArray(1:end, NiDaq.IDX_CHANNEL), channelOrChannelName));
             if ~isempty(channelIndexes)
                 index = channelIndexes(1);
                 return;
             end
             
-            error('%s couln''t find channel nor channel name "%s". have you registered this channel?', obj.name, channelOrChannelName);
+            error('%s couldn''t find either channel or channel name "%s". Have you registered this channel?', obj.name, channelOrChannelName);
         end
         
         function channelName = getChannelNameFromIndex(obj, index)
-            channelName = obj.channelsToChannelNames{index, NiDaq.IDX_CHANNEL_NAME};
+            channelName = obj.channelArray{index, NiDaq.IDX_CHANNEL_NAME};
         end
         
         function channel = getChannelFromIndex(obj, index)
-            channel = obj.channelsToChannelNames{index, NiDaq.IDX_CHANNEL};
+            channel = obj.channelArray{index, NiDaq.IDX_CHANNEL};
+        end
+        
+        function min = getChannelMinimumFromIndex(obj, index)
+            min = obj.channelArray{index, NiDaq.IDX_CHANNEL_MIN};
+            if ~isnumeric(min)
+                min = str2double(min);
+            end
+            if isnan(min)
+                min = obj.DEFAULT_MIN_VOLTAGE;
+            end
+        end
+        
+        function max = getChannelMaximumFromIndex(obj, index)
+            max = obj.channelArray{index, NiDaq.IDX_CHANNEL_MAX};
+            if ~isnumeric(max)
+                max = str2double(max);
+            end
+            if isnan(max)
+                max = obj.DEFAULT_MAX_VOLTAGE;
+            end
         end
     end
 end

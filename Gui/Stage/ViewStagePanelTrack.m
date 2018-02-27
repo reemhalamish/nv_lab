@@ -58,6 +58,7 @@ classdef ViewStagePanelTrack < GuiComponent & EventListener
             
             gui = GuiControllerTrackablePosition;
             gui.start();
+            trackablePos.resetTrack;
             trackablePos.startTrack;
         end
         

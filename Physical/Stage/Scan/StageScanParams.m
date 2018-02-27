@@ -2,6 +2,11 @@ classdef StageScanParams < handle
     %STAGESCANPARAMS Summary of this class goes here
     %   Detailed explanation goes here
     
+    properties (Constant)
+        DEFAULT_POINT_NUM = 51;
+        DEFAULT_PIXEL_TIME = 0.015;
+    end
+    
     properties
         % all below are number-arrays with size 1x3
         from
@@ -29,9 +34,9 @@ classdef StageScanParams < handle
                 obj.from = zeros(1,length(ClassStage.SCAN_AXES));
                 obj.to = zeros(1,length(ClassStage.SCAN_AXES));
                 obj.fixedPos = zeros(1,length(ClassStage.SCAN_AXES));
-                obj.numPoints = 50 * ones(1,length(ClassStage.SCAN_AXES));
+                obj.numPoints = obj.DEFAULT_POINT_NUM * ones(1,length(ClassStage.SCAN_AXES));
                 obj.isFixed = false(1,length(ClassStage.SCAN_AXES));
-                obj.pixelTime = 0.015;
+                obj.pixelTime = obj.DEFAULT_PIXEL_TIME;
                 obj.continuous = false;
                 obj.fastScan = false;
                 obj.autoSave = true;
@@ -234,10 +239,19 @@ classdef StageScanParams < handle
     end
     
     methods(Static = true)
+        function propNames = varProps
+            % This should probably have been implemebted as a method of
+            % some superclass, if anybody knows how to
+            mc = metaclass(StageScanParams);
+            allProps = mc.PropertyList;
+            mProps = allProps(not([allProps.Constant]));
+            propNames = {mProps.Name};
+        end
+        
         function obj = fromStruct(inputStruct)
-            neededFields = properties(StageScanParams)';
+            neededFields = StageScanParams.varProps;
             
-            obj =  StageScanParams;
+            obj = StageScanParams;
             for fieldIndex = 1 : length(neededFields)
                 fieldName = neededFields{fieldIndex};
                 if isfield(inputStruct, fieldName)

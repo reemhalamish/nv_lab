@@ -102,12 +102,11 @@ classdef StageScanner < EventSender & EventListener & Savable
             spcm.setSPCMEnable(false);
             obj.mScan = kcpsScanMatrix;
 
-            % autosave - when sending this event there will be a save.
-            % so let's save with the correct scan parameters
-%             currentScanParams = stage.scanParams;    % save current as temp
-%             stage.scanParams = obj.mStageScanParams;  % revert to old ones
-            obj.sendEventScanFinished();  % to be catched by the saveLoad
-%             stage.scanParams = currentScanParams;  % and... bring them back
+            obj.sendEventScanFinished();
+            % (At least) two things should happen by this event:
+            % 1. ImageScanResult will update
+            % 2. SaveLoad will get the new scan, save it into local
+            %    struct, and (if needed) will autosave it.
             
             scanStoppedManually = ~obj.mCurrentlyScanning; % maybe someone has changed this boolean meanwhile
             if scanStoppedManually
@@ -240,7 +239,7 @@ classdef StageScanner < EventSender & EventListener & Savable
                 curPixelsAmountToScan = min(pixelsLeftToScan, maxScanSize);
                 vectorEndIndex = vectorStartIndex + curPixelsAmountToScan - 1;
                 nPoints = curPixelsAmountToScan + 2*(nFlat + nOverRun);
-                timeout = 10*nPoints*tPixel;
+                timeout = 2*nPoints*tPixel;
                 scanOk = false;
                 
                 % Prepare Scan
@@ -405,7 +404,7 @@ classdef StageScanner < EventSender & EventListener & Savable
             % the axisA vector, the axisB vector, or the axisC point
             [x, y, z] = obj.getXYZfor2dScanChunk(axisAPixelsPerLine, axisBLinesPerScan, axisADirectionIndex, axisBDirectionIndex, axisCPoint0); %#ok<ASGLU>
             nPixels = length(axisAPixelsPerLine);
-            timeout = 10*nPixels*tPixel;
+            timeout = 2*nPixels*tPixel;
             
             % prepare scan
             nFlat = 0;      % A flat section at the start of ramp. parameter not needed genrally, a stage can overwrite if needed. BACKWARD_COPITABILITY
@@ -453,6 +452,12 @@ classdef StageScanner < EventSender & EventListener & Savable
                         end
                     end % try catch
                 end % for trial = 1 : StageScanner.TRIALS_AMOUNT_ON_ERROR
+                
+                if ~exist('kcpsVector', 'var') || isempty(kcpsVector)
+                    % We failed at reading the line, so there is probably
+                    % no point in scanning next line
+                    obj.mCurrentlyScanning = false;     % will abort the scan
+                end
             end % lineIndex = 1 : length(axisBLinesPerScan)
             stage.AbortScan();
             spcm.clearScanRead();

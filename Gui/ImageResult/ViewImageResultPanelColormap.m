@@ -74,10 +74,8 @@ classdef ViewImageResultPanelColormap < GuiComponent
         %%%% Callbacks %%%%
         function popupTypesCallback(obj, ~, ~)
             colormapType = obj.popupTypes.Value;
-            colormapName = ImageScanResult.COLORMAP_OPTIONS{colormapType};
             
             imageScanResult = getObjByName(ImageScanResult.NAME);
-            colormap(imageScanResult.gAxes, colormapName)
             imageScanResult.colormapType = colormapType;
             imageScanResult.imagePostProcessing;    % which now updates added layer (including colormap)
         end

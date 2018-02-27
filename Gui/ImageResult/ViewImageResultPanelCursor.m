@@ -48,7 +48,6 @@ classdef ViewImageResultPanelCursor < GuiComponent
         function callbackRadioSelection(obj, ~, event)
             imageScanResult = getObjByName(ImageScanResult.NAME);
             action = event.NewValue.Tag;
-            imageScanResult.ClearCursorData;
             imageScanResult.updateDataCursor(action);
             if event.NewValue == obj.radioZoom
                 obj.backToMarker
