@@ -102,16 +102,16 @@ classdef StageScanner < EventSender & EventListener & Savable
             spcm.setSPCMEnable(false);
             obj.mScan = kcpsScanMatrix;
 
-            obj.sendEventScanFinished();
+            scanStoppedManually = ~obj.mCurrentlyScanning; % maybe someone has changed this boolean meanwhile
+            if scanStoppedManually
+                obj.sendEventScanStopped();
+            else
+                obj.sendEventScanFinished();
+            end
             % (At least) two things should happen by this event:
             % 1. ImageScanResult will update
             % 2. SaveLoad will get the new scan, save it into local
             %    struct, and (if needed) will autosave it.
-            
-            scanStoppedManually = ~obj.mCurrentlyScanning; % maybe someone has changed this boolean meanwhile
-            if scanStoppedManually
-                obj.sendEventScanStopped();
-            end
             
             stage.sendEventPositionChanged;
             obj.mCurrentlyScanning = false;
@@ -156,11 +156,11 @@ classdef StageScanner < EventSender & EventListener & Savable
         function kcpsValue = scanPoint(obj, stage, spcm, scanParams)
             % scan "0D"
             % input arg's:
-            %    stage - an object deriving from ClassStage
-            %    spcm - an object deriving from Spcm
-            %    scanParams - the scan parameters. an object deriving from StageScanParams
+            %    stage - object deriving from ClassStage
+            %    spcm - object deriving from Spcm
+            %    scanParams - object deriving from StageScanParams
             % output:
-            %    kcpsValue - double. The value read by the spcm
+            %    kcpsValue - double. Value read by the spcm
             
             % To be used by TrackablePosition. Should NOT be used for
             % actual scanning.
@@ -227,7 +227,7 @@ classdef StageScanner < EventSender & EventListener & Savable
             
             % ~~~~ checks on size of scan ~~~~
             if (nPixels > maxScanSize)
-                fprintf('Max number of points to scan is %d, %d were given for %s axis. Scanning in parts.\n', maxScanSize, nPixels, axisToScan);
+                fprintf('Max number of points to scan is %d, %d were requested for %s axis. Scanning in parts.\n', maxScanSize, nPixels, axisToScan);
             end
             
             % ~~~~ continue scanning until finishing all the scan ~~~~
@@ -382,7 +382,7 @@ classdef StageScanner < EventSender & EventListener & Savable
                 axisBLinesPerScan, ... vector of double
                 axisADirectionIndex, ... integer. Index in {1, 2, 3} for "xyz"
                 axisBDirectionIndex, ... integer. Index in {1, 2, 3} for "xyz"
-                axisCPoint0, ... scalar. the zero point in the 3rd axis
+                axisCPoint0, ... scalar. Zero point in the 3rd axis
                 isFastScan, ... logical
                 isFlipped, ... logical. Is the matrix flipped or not
                 matrixIndexLineStart, ... integer. Index at which to start inserting lines to the matrix
@@ -417,6 +417,7 @@ classdef StageScanner < EventSender & EventListener & Savable
             spcm.startScanRead();
             for lineIndex = matrixIndexLineStart : matrixIndexLineEnd
                 if ~obj.mCurrentlyScanning; break; end
+                success = false;
                 for trial = 1 : StageScanner.TRIALS_AMOUNT_ON_ERROR
                     try
                         wasScannedForward = stage.ScanNextLine();
@@ -431,6 +432,7 @@ classdef StageScanner < EventSender & EventListener & Savable
                             kcpsMatrix(lineIndex, matrixIndexPixelInLineStart: matrixIndexPixelInLineEnd) = kcpsVector;
                         end
                         obj.sendEventScanUpdated(kcpsMatrix);
+                        success = true;
                         break;
                     catch err
 %                         rethrow(err);  % Uncomment to debug
@@ -441,7 +443,7 @@ classdef StageScanner < EventSender & EventListener & Savable
                             return;
                         end
                         
-                        fprintf('Line %d failed at trial %d, attempting to rescan line.\n', i, trial); %#ok<IJCL>
+                        fprintf('Line %d failed at trial %d, attempting to rescan line.\n', lineIndex, trial);
                         
                         try
                             stage.PrepareRescanLine(); % Prepare to rescan the line
@@ -453,7 +455,7 @@ classdef StageScanner < EventSender & EventListener & Savable
                     end % try catch
                 end % for trial = 1 : StageScanner.TRIALS_AMOUNT_ON_ERROR
                 
-                if ~exist('kcpsVector', 'var') || isempty(kcpsVector)
+                if ~success
                     % We failed at reading the line, so there is probably
                     % no point in scanning next line
                     obj.mCurrentlyScanning = false;     % will abort the scan
@@ -726,11 +728,13 @@ classdef StageScanner < EventSender & EventListener & Savable
             % so we can create the output string
             string = sprintf('Scanning %s %s:', stage.name, upper(scanAxes));
             
+            indentation = 5;
             for i = 1:nFixed
                 ax = fixAxes(i);
                 position = stage.Pos(ax);
                 axisString = sprintf('%s position: %.3f', upper(ax), position);
-                string = sprintf('%s\n%s', string, axisString);
+                string = sprintf('%s\n%s', string, ...
+                    StringHelper.indent(axisString, indentation));
             end
             for i = 1:nScanned
                 ax = scanAxes(i);
@@ -739,10 +743,10 @@ classdef StageScanner < EventSender & EventListener & Savable
                 to = obj.mStageScanParams.to(index);
                 numPoints = obj.mStageScanParams.numPoints(index);
                 axisString = sprintf('%s: %d points from %.3f to %.3f', upper(ax), numPoints, from, to);
-                string = sprintf('%s\n%s', string, axisString);
+                string = sprintf('%s\n%s', string, ...
+                    StringHelper.indent(axisString, indentation));
             end
 
         end
     end
 end
-

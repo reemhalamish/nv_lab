@@ -6,7 +6,7 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
     properties (Constant, Access = protected)
         controllerModel = 'E-861';
         validAxes = 'xyz';
-        units = 'um';
+        units = ' um';
     end
     
     properties (Constant, Access = private)  % todo: is this the right place for it?
@@ -46,10 +46,13 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
     properties (Constant)
         NAME = 'Stage (fine) - PI LPS65'
         
-        NEEDED_FILEDS = {}
+        NEEDED_FILEDS = {'niDaqChannel'}
         
         STEP_MINIMUM_SIZE = 0.0005  % Check!
         STEP_DEFAULT_SIZE = 0.1     % Check!
+        
+        MINIMUM_SLOW_PIXEL_TIME = 15e-3;    % in seconds ( == 15ms )
+        MINIMUM_FAST_PIXEL_TIME = 5e-3;     % in seconds ( == 15ms )
     end
     
     methods (Static, Access = public) % Get instance constructor
@@ -90,8 +93,8 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             obj.forceStop = 0;
             obj.scanRunning = 0;
             obj.scanStruct = struct([]);
+            
             % Properties of fast ("macro") scan
-            % probably relegated to scanparams
             obj.macroNormalNumberOfPixels = -1;
             obj.macroNumberOfPixels = -1;
             obj.macroNormalScanVector = -1;
@@ -132,13 +135,13 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
                 
                 if numberOfConnectedDevices ~= 3
                     calllib(obj.libAlias, 'PI_CloseDaisyChain', obj.ID);
-                    error('Should be 3 devices, one for each axis!')
+                    error('There hould be 3 devices, one for each axis!')
                 end
             end
             
             % Connect to axes
-            for i=1:3
-                if(obj.axesID(i) < 0)
+            for i = 1:numberOfConnectedDevices
+                if obj.axesID(i) < 0
                     obj.axesID(i) = SendPICommandWithoutReturnCode(obj,'PI_ConnectDaisyChainDevice', obj.ID, i);
                     obj.CheckIDForError(obj.axesID(i), ['Could not connect to ' obj.axesName(i) ' axis controller!']);
                 end
@@ -155,7 +158,7 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             % Initializes the piezo stages.
             
             % Turns off joystick
-            JoystickControl(obj, 0);
+            JoystickControl(obj, false);
             
             % Set mode to mixed.
             for i=1:length(obj.validAxes)
@@ -169,9 +172,9 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             for i=1:length(obj.validAxes)
                 [~,~,~,axisUnits] = SendPICommand(obj, 'PI_qSPA', obj.axesID(i), obj.szAxes, hex2dec('7000601'), 0, '', 4);
                 if ~strcmpi(strtrim(axisUnits), obj.units)
-                    error('%s axis - Stage units are in %s, should be %s', upper(obj.axesName(i)), axisUnits, obj.units);
+                    error('%s axis - Stage units are in%s, should be%s', upper(obj.axesName(i)), axisUnits, obj.units);
                 else
-                    fprintf('%s axis - Units are in %s for position and %s/s for velocity.\n', upper(obj.axesName(i)), obj.units, obj.units);
+                    fprintf('%s axis - Units are in%s for position and%s/s for velocity.\n', upper(obj.axesName(i)), obj.units, obj.units);
                 end
             end
             
@@ -183,7 +186,7 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
                     error('Physical limits for %s axis are incorrect!\nShould be: %d to %d.\nReal value: %d to %d.\nMaybe units are incorrect?',...
                         obj.axesName(i), obj.negRangeLimit, obj.posRangeLimit, -negPhysicalLimitDistance, posPhysicalLimitDistance)
                 end
-                fprintf('%s axis - Physical limits are from %d %s to %d %s.\n', upper(obj.axesName(i)), obj.negRangeLimit(i), obj.units, obj.posRangeLimit(i), obj.units);
+                fprintf('%s axis - Physical limits are from %d%s to %d%s.\n', upper(obj.axesName(i)), obj.negRangeLimit(i), obj.units, obj.posRangeLimit(i), obj.units);
             end
             
             % Soft limit check.
@@ -202,7 +205,7 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             QueryPos(obj);
             QueryVel(obj);
             for i=1:length(obj.validAxes)
-                fprintf('%s axis - Position: %.4f %s, Velocity: %d %s/s.\n', upper(obj.axesName(i)), obj.curPos(i), obj.units, obj.curVel(i), obj.units);
+                fprintf('%s axis - Position: %.4f%s, Velocity: %d%s/s.\n', upper(obj.axesName(i)), obj.curPos(i), obj.units, obj.curVel(i), obj.units);
             end
             
             % Delete Macros
@@ -344,12 +347,14 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             if obj.macroScan % Macro Scan
                 %% Process Data
                 if (numberOfPixels > obj.maxScanSize(1))
-                    fprintf('Can support scan of up to %d pixel, %d were given. Please seperate into several smaller scans externally', obj.maxScanSize(1), numberOfPixels);
+                    fprintf('Can support scan of up to %d pixel, %d were requested. Please seperate into several smaller scans externally', obj.maxScanSize(1), numberOfPixels);
                     return;
                 end
-                if tPixel < 0.005
-                    fprintf('Minimum pixel time is 5ms, %.1f were given, changing to 8ms\n', 1000*tPixel);
-                    tPixel = 0.005;
+                minTPixel = obj.MINIMUM_FAST_PIXEL_TIME;
+                if tPixel < minTPixel
+                    fprintf('Minimum pixel time is %.1fms, %.1f were requested, changing to %.1fms\n', ...
+                        1000*minTPixel, 1000*tPixel, 1000*minTPixel);
+                    tPixel = minTPixel;
                 end
                 
                 scanVelocity = abs(pixelSize/tPixel);
@@ -409,9 +414,11 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
                 SetVelocity(obj, scanAxis, normalVelocity);
                 
             else % Slow Scan
-                if tPixel < 0.015
-                    fprintf('Minimum pixel time is 15ms, %.1f were given, changing to 15ms\n', 1000*tPixel);
-                    tPixel = 0.015;
+                minTPixel = obj.MINIMUM_SLOW_PIXEL_TIME;
+                if tPixel < minTPixel
+                    fprintf('Minimum pixel time is %.1fms, %.1f were requested, changing to %.1fms\n', ...
+                        1000*minTPixel, 1000*tPixel, 1000*minTPixel);
+                    tPixel = minTPixel;
                 end
                 tPixel = tPixel - 0.015; % The intrinsic delay is 15ms...
                 SetOnTargetWindow(obj, scanAxis, abs(pixelSize), 0.5);
@@ -462,14 +469,16 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             
             if obj.macroScan % Macro Scan
                 if (numberOfMacroPixels > obj.maxScanSize(2))
-                    fprintf('Can support scan of up to %d pixel for the macro axis, %d were given. Please seperate into several smaller scans externally',...
+                    fprintf('Can support scan of up to %d pixel for the macro axis, %d were requested. Please seperate into several smaller scans externally',...
                         obj.maxScanSize(2), numberOfMacroPixels);
                     return;
                 end
                 
-                if tPixel < 0.005
-                    fprintf('Minimum pixel time is 5ms, %.1f were given, changing to 8ms\n', 1000*tPixel);
-                    tPixel = 0.005;
+                minTPixel = obj.MINIMUM_FAST_PIXEL_TIME;
+                if tPixel < minTPixel
+                    fprintf('Minimum pixel time is %.1fms, %.1f were requested, changing to %.1fms\n', ...
+                        1000*minTPixel, 1000*tPixel, 1000*minTPixel);
+                    tPixel = minTPixel;
                 end
                 
                 scanVelocity = abs(macroPixelSize/tPixel);
@@ -537,9 +546,11 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
                 end
                 
             else % Slow Scan
-                if tPixel < 0.015
-                    fprintf('Minimum pixel time is 15ms, %.1f were given, changing to 15ms\n', 1000*tPixel);
-                    tPixel = 0.015;
+                minTPixel = obj.MINIMUM_SLOW_PIXEL_TIME;
+                if tPixel < minTPixel
+                    fprintf('Minimum pixel time is %.1fms, %.1f were requested, changing to %.1fms\n', ...
+                        1000*minTPixel, 1000*tPixel, 1000*minTPixel);
+                    tPixel = minTPixel;
                 end
                 tPixel = tPixel - 0.015; % The intrinsic delay is 15ms...
                 SetOnTargetWindow(obj, macroScanAxis, abs(macroPixelSize), 0.5);
@@ -783,25 +794,23 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
         
         function JoystickControl(obj, enable)
             % Changes the joystick state for all axes to the value of
-            % 'enable' - 1 to turn Joystick on, 0 to turn it off.
+            % 'enable' - true to turn Joystick on, false to turn it off.
             if enable % If need to enable, ask user to confirm, otherwise, just disable.
                 questionString = sprintf('WARNING!\nPlease make sure that there is a joystick connected to the controllers.\nEnabling the joystick with no joystick connected might result in uncontrolled movements.');
-                okString = 'Ok';
-                cancelString = 'Cancel';
-                confirm = questdlg(questionString, 'Enable Joystick', okString, cancelString, cancelString);
-                switch confirm
-                    case okString
-                        % Do Nothing
-                    case cancelString
-                        fprintf('Joystick NOT enabled!\n');
-                        return
-                    otherwise   % Probably empty, meaning user closed dialog box
-                        fprintf('Joystick NOT enabled!\n');
-                        return
+                title = 'Enable Joystick';
+                confirm = QuestionUserOkCancel(title, questionString);
+                if ~confirm
+                    fprintf('Joystick NOT enabled!\n');
+                    return
                 end
             end
+            
+            % Send command to controller: GCS manual p. 50
+            
+            enable = BooleanHelper.ifTrueElse(enable, 1, 0);
             for i = 1:length(obj.validAxes)
-                SendPICommand(obj, 'PI_JON', obj.axesID(i), 1, enable, 1);
+                controllerID = obj.axesID(i);
+                SendPICommand(obj, 'PI_JON', controllerID, 1, enable, 1);
             end
         end
         

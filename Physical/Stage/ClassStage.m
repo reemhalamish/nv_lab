@@ -7,12 +7,12 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         stepSize                % double
     end
     
-    properties(Abstract = true, Constant = true)
+    properties (Abstract, Constant)
         STEP_MINIMUM_SIZE   % double
         STEP_DEFAULT_SIZE   % double
     end
     
-    properties(Constant = true)
+    properties (Constant)
         SCAN_AXES = 'xyz';
         SCAN_AXES_SIZE = 3; % the length of SCAN_AXES
              
@@ -50,10 +50,18 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                     end
                     stageType = curStageStruct.type;
                     switch stageType
-                        case 'LPS-65'
-                            newStage = ClassPILPS65.GetInstance(); % Setup 1 LPS-65
-                        case 'ClassGalvo'
-                            newStage = ClassGalvo.GetInstance(); % Galvo mirrors for the Cryo setup - > Very old and might not be comptiable
+                        case 'LPS-65' % Setup 1 LPS-65
+                            try
+                                newStage = getObjByName(ClassPILPS65.NAME);
+                            catch
+                                newStage = ClassPILPS65.create(curStageStruct);
+                            end
+                        case 'ClassGalvo' % Galvo mirrors for the Cryo setup
+                            try
+                                newStage = getObjByName(ClassGalvo.NAME);
+                            catch
+                                newStage = ClassGalvo.create(curStageStruct);
+                            end
                         case 'ECC'
                             newStage = ClassECC.GetInstance(); % ECC100 stages used in setup 1 - > Very old and might not be comptiable
                         case 'ClassANC'
@@ -130,7 +138,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         end
         
         function string = GetLetterFromAxis(axis)
-            % returns a letter from an axis. supports vectorial axis
+            % Returns a letter from an axis. supports vectorial axis
             axis = ClassStage.getAxis(axis);
             string = ClassStage.SCAN_AXES(axis);
         end
@@ -361,15 +369,17 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         % tPixel - Scan time for each pixel.
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
-        [done, forwards] = ScanNextLine(obj)
+        [forwards, done] = ScanNextLine(obj)
         % Scans the next line for the 2D scan, to be used after
         % 'PrepareScanXX'.
+        % forwards is set to 1 when the scan is forward and is set to 0
+        % when it's backwards
+        % DONE IS CURRENTLY NOT IMPLEMENTED ANYWHERE!
         % done is set to 1 after the last line has been scanned.
         % No other commands should be used between 'PrepareScanXX' and
         % until 'ScanNextLine' has returned done, or until 'AbortScan'
         % has been called.
-        % forwards is set to 1 when the scan is forward and is set to 0
-        % when it's backwards
+
         
         PrepareRescanLine(obj)
         % Prepares the previous line for rescanning.
@@ -384,7 +394,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         
         JoystickControl(obj, enable)
         % Changes the joystick state for all axes to the value of
-        % 'enable' - 1 to turn Joystick on, 0 to turn it off.
+        % 'enable' - true to turn Joystick on, false to turn it off.
         
         FastScan(obj, enable)
         % Changes the scan between the fast & the slow modes.
@@ -473,7 +483,8 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                 obj.RelativeMove(axis, change);
                 obj.sendEventPositionChanged;
             catch matlabError
-                obj.sendError(matlabError.message);
+                rethrow(matlabError)
+                % obj.sendError(matlabError.message);
             end
         end
         
@@ -743,15 +754,25 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             % Return a readable string to be shown. if this object
             % doesn't need a readable string, make (string = NaN;) or
             % (string = '');
+            scanner = getObjByName(StageScanner.NAME);
+            if strcmp(scanner.mStageName, obj.name)
+                % The parameters are already recorded by the stage scanner,
+                % and we do not need them from here
+                string = NaN;
+                return
+            end
+            
             n = length(obj.availableAxes);
-            string = sprintf('%s position:',obj.name);
-
+            string = sprintf('%s position:', obj.name);
+            
+            indentation = 5;
             for i = 1:n
                 axLetter = obj.availableAxes(i);
                 axNum = obj.getAxis(axLetter);
                 position = obj.Pos(axNum);
                 axisString = sprintf('%s axis: %.3f', axLetter, position);
-                string = sprintf('%s\n%s', string, axisString);
+                string = sprintf('%s\n%s', string, ...
+                    StringHelper.indent(axisString, indentation));
             end
         end
     end

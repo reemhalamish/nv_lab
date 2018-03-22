@@ -6,7 +6,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
     properties (Constant, Access = protected)
         controllerModel = 'E-727';
         validAxes = 'xyz';
-        units = 'µm';
+        units = ' µm';
     end
     
     properties (Access = protected)
@@ -27,16 +27,18 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
         scanStruct
     end
     
-    properties(Constant = true)
+    properties (Constant)
         NAME = 'Stage (Fine) - PI P562'
         
         NEEDED_FIELDS = {'niDaqChannel'}
         
-        STEP_MINIMUM_SIZE = 0.0005
-        STEP_DEFAULT_SIZE = 0.1
+        STEP_MINIMUM_SIZE = 0.001
+        STEP_DEFAULT_SIZE = 0.02
+        
+        MINIMUM_PIXEL_TIME = 5e-3; % == 5ms
     end
     
-    properties(Abstract = true, Constant = true)
+    properties (Abstract, Constant)
     end
     
     methods (Static, Access = public) % Get instance constructor
@@ -70,7 +72,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             obj.negRangeLimit = [0 0 0]; % Units set to microns.
             obj.posSoftRangeLimit = obj.posRangeLimit;
             obj.negSoftRangeLimit = obj.negRangeLimit;
-            obj.defaultVel = 2000; % Default velocity is 2000 um/s.
+            obj.defaultVel = 200; % Default velocity is 200 um/s.
             obj.curPos = [0 0 0];
             obj.curVel = [0 0 0];
             obj.forceStop = 0;
@@ -149,10 +151,10 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             [~, negPhysicalLimitDistance] = SendPICommand(obj, 'PI_qTMN', obj.ID, szAxes, zerosVector);
             for i=1:length(obj.validAxes)
                 if ((negPhysicalLimitDistance(i) ~= obj.negRangeLimit(i)) || (posPhysicalLimitDistance(i) ~= obj.posRangeLimit(i)))
-                    error('Physical limits for %s axis are incorrect!\nShould be: %d to %d.\nReal value: %d to %d.\nMaybe units are incorrect?',...
+                    obj.sendError('Physical limits for %s axis are incorrect!\nShould be: %d to %d.\nReal value: %d to %d.\nMaybe units are incorrect?',...
                         upper(obj.validAxes(i)), obj.negRangeLimit(i), obj.posRangeLimit(i), negPhysicalLimitDistance(i), posPhysicalLimitDistance(i))
                 else
-                    fprintf('%s axis - Physical limits are from %d %s to %d %s.\n', upper(obj.validAxes(i)), obj.negRangeLimit(i), obj.units, obj.posRangeLimit(i), obj.units);
+                    fprintf('%s axis - Physical limits are from %d%s to %d%s.\n', upper(obj.validAxes(i)), obj.negRangeLimit(i), obj.units, obj.posRangeLimit(i), obj.units);
                 end
             end
         end
@@ -197,7 +199,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             WaitFor(obj, 'ControllerReady')
             [~, autoZeroed] = SendPICommand(obj, 'PI_qATZ', obj.ID, szAxes, zerosVector);
             if ~all(autoZeroed)
-                error('AutoZero failed for controller %s with ID %d: Reason unknown.', obj.controllerModel, obj.ID);
+                obj.sendError('AutoZero failed for controller %s with ID %d: Reason unknown.', obj.controllerModel, obj.ID);
             end
             MovePrivate(obj, axis, 100*ones(size(axis))); % Go back to the center
             WaitFor(obj, 'onTarget', axis)
@@ -213,22 +215,47 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             % tPixel - Scan time for each pixel (in seconds).
             % scanAxis - The axis to scan (x,y,z or 1 for x, 2 for y and 3
             % for z).
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
-            if tPixel < 0.005
-                fprintf('Minimum pixel time is 5ms, %.1fms were given, changing to 5ms\n', 1000*tPixel);
-                tPixel = 0.005;
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            minTPixel = obj.MINIMUM_PIXEL_TIME;
+            if tPixel < minTPixel
+                fprintf('Minimum pixel time is %.1fms, %.1fms were requested, changing to %.1fms\n', ...
+                    1000*minTPixel, 1000*tPixel, 1000*minTPixel);
+                tPixel = minTPixel;
             end
             
             % Get parameters
+            scanAxis = GetAxis(obj, scanAxis);
             if (nOverRun == 0); nOverRun = 1; end % In order to be centered around the pixel we need at least one extra point from each side.
+            if (nFlat == 0); nFlat = 2; end % Set nFlat to 2 in order to give the sample time to equalize before the scan
+            
             numberOfPixels = length(scanAxisVector); % This is the number of pixels
             pixelLengthInPoints = tPixel/50e-6; % The wave generator works in 50us points.
             pixelSizeInum = (scanAxisVector(end) - scanAxisVector(1))/(numberOfPixels-1); % Can be negative if scanning in reverse
             nOverRunInPoints = pixelLengthInPoints*nOverRun; % Always positive
             nOverRunInum = pixelSizeInum*nOverRun; % Can be negative if scanning in reverse
+            startPointInum = scanAxisVector(1)-nOverRunInum;
+            endPointInum = scanAxisVector(end)+nOverRunInum;
+            
+            maxPixelInum = max(endPointInum, startPointInum);    
+            minPixelInum = min(endPointInum, startPointInum);
+            if maxPixelInum > obj.posRangeLimit(scanAxis) || minPixelInum < obj.negRangeLimit(scanAxis)
+                %                 if numberOfPixels > 2
+                %                     warning('Scan will go outside the limits, removing first and last pixels...');
+                %                     scanAxisVector = scanAxisVector(2:end-1);
+                %                     maxPixelInum = max(scanAxisVector(end)+nOverRunInum, scanAxisVector(1)-nOverRunInum);
+                %                     minPixelInum = min(scanAxisVector(end)+nOverRunInum, scanAxisVector(1)-nOverRunInum);
+                %                     numberOfPixels = numberOfPixels-2;
+                %                 else
+                %                     obj.sendError('Scan will go outside the limits, and number of pixels is too small :o');
+                %                 end
+                delta = abs(nOverRunInum);
+                errMsg = sprintf(['Scan will go outside the limits!\n', ...
+                    'Because of technical reasons, you need to be at least %.2f um from the shown limits'], delta);
+                obj.sendError(errMsg);
+            end
+            
             nFlatInPoints = pixelLengthInPoints*nFlat;
             numberOfPixelsInPoints = pixelLengthInPoints*numberOfPixels;
-            scanAxis = GetAxis(obj, scanAxis);
             
             % Parameters according to the PI function, look at GCS manual
             % page 115 (PI_WAV_LIN)
@@ -237,13 +264,16 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             iNumberOfSpeedUpDownPointsOfWave = nOverRunInPoints; % This is taken twice in the GCS code, once from each side.
             iNumberOfWavePoints = numberOfPixelsInPoints + 2*iNumberOfSpeedUpDownPointsOfWave;
             iSegmentLength = iNumberOfWavePoints + 2*iOffsetOfFirstPointInWaveTable;
-            dOffsetOfWave = scanAxisVector(1) - nOverRunInum;
-            dAmplitudeOfWave = scanAxisVector(end) - scanAxisVector(1) + 2*nOverRunInum;
+            dOffsetOfWave = startPointInum;
+            dAmplitudeOfWave = endPointInum - startPointInum;
+            
+            % Move to starting position to reduce first scan hystersis
+            MovePrivate(obj, scanAxis, startPointInum); % This might produce an output, but nobody looks at it anyhow.
             
             % Parameters according to the PI function, look at GCS manual
             % page 34 & E725 page 78
-            piTriggerOutputIds = [1 1 1 1 1];
-            piTriggerParameterArray = [2 3 1 8 9];
+            piTriggerOutputIds = [1 1 1 1 1]; % Needed for every command
+            piTriggerParameterArray = [2 3 1 8 9]; % 2 is axis, 3 is mode selection, 1 is step size, 8 is start pos and 9 is end pos
             pdValueArray = [SwitchXYAxis(obj, scanAxis, 'integer'), 0, abs(pixelSizeInum),...
                 scanAxisVector(1) - pixelSizeInum/2, scanAxisVector(end) + 3*pixelSizeInum/4];
             iArraySize = length(piTriggerOutputIds);
@@ -265,6 +295,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
                 %             SendPICommand(obj, 'PI_WGC', obj.ID, SwitchXYAxis(obj, scanAxis, 'integer'), 35, 1); % Defines how many cycles should be made, 35 cycles is the default for the DDL function.
                 %             SendPICommand(obj, 'PI_WGO', obj.ID, SwitchXYAxis(obj, scanAxis, 'integer'), 65, 1); % 64+1: 64 is for DDL init & 1 is for start
                 %             WaitFor(obj, 'WaveGeneratorDone');
+                %             WaitFor(obj, 'onTarget', obj.validAxes);
                 %             SendPICommand(obj, 'PI_WGO', obj.ID, SwitchXYAxis(obj, scanAxis, 'integer'), 0, 1); % Disables the wave generator
                 
                 % Prepare for Scanning
@@ -287,6 +318,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             scanAxis = GetAxis(obj, scanAxis);
             SendPICommand(obj, 'PI_WGO', obj.ID, SwitchXYAxis(obj, scanAxis, 'integer'), 129, 1);% 128+1: 128 is for use DDL & 1 is for start
             WaitFor(obj, 'WaveGeneratorDone');
+            WaitFor(obj, 'onTarget', obj.validAxes);
         end
         
         function PrepareScanInTwoDimensions(obj, macroScanAxisVector, normalScanAxisVector, nFlat, nOverRun, tPixel, macroScanAxis, normalScanAxis)
@@ -381,7 +413,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             % forwards is set to 1 when the scan is forward and is set to 0
             % when it's backwards
             if ~obj.scanRunning
-                error('No scan detected.\nFunction can only be called after ''PrepareScanXX!''');
+                obj.sendError('No scan detected.\nFunction can only be called after ''PrepareScanXX!''');
             end
             % Scan
             MovePrivate(obj, obj.macroNormalScanAxis, obj.macroNormalScanVector(obj.macroIndex));
@@ -389,6 +421,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             forwards = 1;
             
             WaitFor(obj, 'WaveGeneratorDone');
+            WaitFor(obj, 'onTarget', obj.validAxes);
             obj.macroIndex = obj.macroIndex+1;
         end
             
@@ -399,7 +432,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
                 warning('No scan detected. Function can only be called after ''PrepareScanXX!''.\nThis will work if attempting to rescan a 1D scan, but macro will be rewritten.\n');
                 return
             elseif (obj.macroIndex == 1)
-                error('Scan did not start yet. Function can only be called after ''ScanNextLine!''');
+                obj.sendError('Scan did not start yet. Function can only be called after ''ScanNextLine!''');
             end
             
             % Decrease index
