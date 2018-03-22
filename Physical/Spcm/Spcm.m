@@ -3,13 +3,19 @@ classdef(Abstract) Spcm < EventSender
     %   the spcm is controlled by the NiDaq
     
     properties
+        availableProperties = struct;
     end
     
-    properties(Constant = true)
+    properties (Constant)
         NAME = 'spcm';
+        
+        HAS_LIFETIME = 'hasLifetime';
+        HAS_G2 = 'hasG2';
+        HAS_BINNING = 'hasBinning';
     end
-    properties(Constant = true, Hidden = true)
-        NEEDED_FIELDS = {'classname'};
+    properties (Constant, Hidden)
+        % This needs to be implemented, one way or another, in all SPCMs
+        SPCM_NEEDED_FIELDS = {'classname'};
     end
     
     methods(Abstract)
@@ -21,9 +27,6 @@ classdef(Abstract) Spcm < EventSender
         
         % clear the reading task
         clearTimeRead(obj)
-        
-        
-        
         
         % prepare to read from the spcm, when using a stage as a signal
         prepareReadByStage(obj, stageName, nPixels, timeout, fastScan)
@@ -51,7 +54,7 @@ classdef(Abstract) Spcm < EventSender
         function spcmObject = create(spcmTypeStruct)
             removeObjIfExists(Spcm.NAME);
             
-            missingField = FactoryHelper.usualChecks(spcmTypeStruct, Spcm.NEEDED_FIELDS);
+            missingField = FactoryHelper.usualChecks(spcmTypeStruct, Spcm.SPCM_NEEDED_FIELDS);
             if ~isnan(missingField)
                 error('Can''t initialize SPCM - needed field "%s" was not found in initialization struct!', missingField);
             end
@@ -68,6 +71,24 @@ classdef(Abstract) Spcm < EventSender
             end
             
             addBaseObject(spcmObject);
+        end
+    end
+    
+    methods % Available properties    
+        function properties = getAvailableProperties(obj)
+            properties = obj.avilableProperties;
+        end
+
+        function bool = hasLifetime(obj)
+            bool = isfield(obj.availableProperties,obj.HAS_LIFETIME);
+        end
+        
+        function bool = hasG2(obj)
+            bool = isfield(obj.availableProperties,obj.HAS_G2);
+        end
+        
+        function bool = hasBinning(obj)
+            bool = isfield(obj.availableProperties,obj.HAS_BINNING);
         end
     end
 end

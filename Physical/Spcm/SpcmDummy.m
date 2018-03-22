@@ -10,8 +10,10 @@ classdef SpcmDummy < Spcm
         calledStart % boolean. is used to check that the user actually called startRead() before calling read()
     end
     
-    properties(Constant = true)
+    properties (Constant)
         MAX_RANDOM_READ = 1000;
+        
+        NEEDED_FIELDS = Spcm.SPCM_NEEDED_FIELDS;
     end
     
     methods
@@ -34,7 +36,7 @@ classdef SpcmDummy < Spcm
             end
             pause(obj.integrationTime)
             kcps = randi([0 obj.MAX_RANDOM_READ],1,1);
-            std = sqrt(obj.integrationTime)*randi([0 obj.MAX_RANDOM_READ],1,1)/sqrt(12);  % looks legit
+            std = sqrt(obj.integrationTime) * randi([0 obj.MAX_RANDOM_READ],1,1)/sqrt(12);  % looks legit
         end
         
         function clearTimeRead(obj)
@@ -50,7 +52,7 @@ classdef SpcmDummy < Spcm
                 obj.sendError(sprintf('Can''t prepare for reading %s times, only positive integers allowed! igonring', nPixels));
             end
             obj.timesToRead = nPixels;
-            obj.integrationTime = timeout / (10 * nPixels);
+            obj.integrationTime = timeout / (2 * nPixels);
         end
         
         % actually start the process

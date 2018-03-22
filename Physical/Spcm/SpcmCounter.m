@@ -54,24 +54,44 @@ classdef SpcmCounter < EventSender
             spcm = getObjByName(Spcm.NAME);
             spcm.setSPCMEnable(true);
             spcm.prepareReadByTime(integrationTime/1000);
-            while obj.isOn
-                % creating data to be saved
-                [kcps,std] = spcm.readFromTime;
-                %%%% replace with obj.newRecord(time,kcps,std)
+            try
+                while obj.isOn
+                    % creating data to be saved
+                    [kcps, std] = spcm.readFromTime;
+                    %%%% replace with obj.newRecord(time,kcps,std)
                     time = obj.records(end).time + integrationTime/1000;
                     obj.records(end + 1) = struct('time', time, 'kcps', kcps, 'std', std);
-                %%%% (upto here)
-                obj.sendEventUpdated;
-                if integrationTime ~= obj.integrationTimeMillisec
-                    integrationTime = obj.integrationTimeMillisec;
+                    %%%% (upto here)
+                    obj.sendEventUpdated;
+                    if integrationTime ~= obj.integrationTimeMillisec
+                        integrationTime = obj.integrationTimeMillisec;
+                        spcm.clearTimeRead;
+                        spcm.prepareReadByTime(integrationTime/1000);
+                    end
+                end
+                
+                spcm.clearTimeRead;
+                spcm.setSPCMEnable(false);
+                
+                obj.sendEventStopped;
+            catch err
+                obj.stop;
+                
+                msg = err.message;
+                expression = '-200279'; % "The application is not able to keep up with the hardware acquisition."
+                if contains(msg, expression)
+                    % There was NiDaq reset, we can now safely resume
+                    err2warning(err);
+                    obj.run;
+                else
+                    % We wrap things up, and send error
                     spcm.clearTimeRead;
-                    spcm.prepareReadByTime(integrationTime/1000);
+                    spcm.setSPCMEnable(false);
+                    
+                    obj.sendEventStopped;
+                    rethrow(err);
                 end
             end
-            spcm.clearTimeRead;
-            spcm.setSPCMEnable(false);
-            
-            obj.sendEventStopped;
         end
         
         function stop(obj)
@@ -83,7 +103,7 @@ classdef SpcmCounter < EventSender
             obj.sendEventReset;
         end
         
-        function newRecord(obj,time,kpcs,std) %#ok<INUSD>
+        function newRecord(obj, time, kpcs, std) %#ok<INUSD>
             % creates new record in a struct of the type "record" =
             % record.{time,kcps,std}, with proper validation.
         end
