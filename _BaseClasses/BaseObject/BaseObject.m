@@ -81,13 +81,13 @@ classdef BaseObject < HiddenMethodsHandle & PropertiesDisplaySorted
             objName = baseObject.name;
             if allBaseObjects.wrapped.isKey(objName)
                 % so apparently an object with this name exist.
-                % probably it's an error, but maybe it's the same object
+                % It's probably an error, but maybe it's the same object
                 % being constructed twice (it can happen with diamond
-                % inheritance. for example if something inherit both
+                % inheritance. for example if something inherits both
                 % "Savable" and "EventSender", both inherit from
-                % "BaseObject". we need to check this
+                % "BaseObject". We need to check this
                 if allBaseObjects.wrapped(objName) == baseObject
-                    % dismiss - same object constructed twice. not an error
+                    % Dismiss - same object constructed twice. Not an error
                     return
                 end
                 EventStation.anonymousError('Another object named "%s" already exists!', objName)

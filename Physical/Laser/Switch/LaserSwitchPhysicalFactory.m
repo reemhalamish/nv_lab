@@ -4,7 +4,7 @@ classdef LaserSwitchPhysicalFactory
     
     properties (Constant)
         NEEDED_FIELDS = {'switchChannelName'}
-        OPTOINAL_FIELDS = {'isEnabled'}
+        OPTIONAL_FIELDS = {'isEnabled'}
     end
     
     methods (Static)
@@ -30,7 +30,7 @@ classdef LaserSwitchPhysicalFactory
                     error('Can''t create a %s-class fast switch for laser "%s" - unknown classname! Aborting.', struct.classname, name);
             end
             % check for optional field "isEnabled" and set it correctly
-            if isnan(FactoryHelper.usualChecks(struct, SwitchPgControlled.OPTOINAL_FIELDS))
+            if isnan(FactoryHelper.usualChecks(struct, SwitchPgControlled.OPTIONAL_FIELDS))
                 % usualChecks() returning nan means everything ok
                 switchPhysicalPart.isEnabled = struct.isEnabled;
             end

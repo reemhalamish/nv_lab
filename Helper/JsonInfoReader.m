@@ -5,7 +5,7 @@ classdef JsonInfoReader
     properties
     end
     
-    methods(Static)
+    methods (Static)
         function jsonStruct = getJson()
             %%%% get the json %%%%
             jsonTxt = fileread('C:\\lab\\setupInfo.json');

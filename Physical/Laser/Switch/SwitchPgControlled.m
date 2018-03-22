@@ -13,7 +13,7 @@ classdef SwitchPgControlled < EventSender & EventListener
     
     properties(Constant = true, Hidden = true)
         NEEDED_FIELDS = {'switchChannelName'}
-        OPTOINAL_FIELDS = {'isEnabled'}
+        OPTIONAL_FIELDS = {'isEnabled'}
     end
     
     methods

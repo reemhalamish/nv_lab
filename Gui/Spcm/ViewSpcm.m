@@ -128,11 +128,11 @@ classdef ViewSpcm < ViewVBox & EventListener
         
 
         %%%% Callbacks %%%%
-        function cbxUsingWrapCallback(obj,~,~)
+        function cbxUsingWrapCallback(obj, ~, ~)
             obj.recolor(obj.edtWrap,~obj.isUsingWrap)
             % obj.update;           todo: replot with relevant data
         end
-        function edtWrapCallback(obj,~,~)
+        function edtWrapCallback(obj, ~, ~)
             if ~ValidationHelper.isValuePositiveInteger(obj.edtWrap.String)
                 EventStation.anonymousWarning('Wrap needs to be a positive integer! Reverting.')
                 obj.edtWrap.String = obj.wrap;
@@ -140,24 +140,19 @@ classdef ViewSpcm < ViewVBox & EventListener
             obj.wrap = str2double(obj.edtWrap.String);
             % obj.update;           todo: replot with relevant data
         end
-        function btnStartCallback(~,~,~)
+        function btnStartCallback(~, ~, ~)
             spcmCount = getObjByName(SpcmCounter.NAME);
-            try
                 spcmCount.run;
-            catch err
-                spcmCount.stop;     % sets spcmCount.isOn = false
-                rethrow(err);
-            end
         end
-        function btnStopCallback(~,~,~)
+        function btnStopCallback(~, ~, ~)
             spcmCount = getObjByName(SpcmCounter.NAME);
             spcmCount.stop;
         end
-        function btnResetCallback(~,~,~)
+        function btnResetCallback(~, ~ ,~)
             spcmCount = getObjByName(SpcmCounter.NAME);
             spcmCount.reset;
         end
-        function edtIntegrationTimeCallback(obj,~,~) 
+        function edtIntegrationTimeCallback(obj, ~, ~) 
             spcmCount = getObjByName(SpcmCounter.NAME);
             integrationTime = str2double(obj.edtIntegrationTime.String);
             if ValidationHelper.isValuePositiveInteger(integrationTime)
@@ -202,6 +197,3 @@ classdef ViewSpcm < ViewVBox & EventListener
     end
     
 end
-
-
-

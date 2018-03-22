@@ -5,7 +5,7 @@ classdef (Sealed) ClassDummyStage  < ClassStage
         negRangeLimit = [-6500 -6500 -6500]; % Units set to microns.
         posSoftRangeLimit = [6500 6500 6500]; % Default is same as physical limit.
         negSoftRangeLimit = [-6500 -6500 -6500]; % Default is same as physical limit.
-        units = 'um';
+        units = ' um';
         defaultVel = 500 % Default velocity is 500 um/s.
         curPos = [0 0 0];
         curVel = [0 0 0];
@@ -468,7 +468,7 @@ classdef (Sealed) ClassDummyStage  < ClassStage
         
         function JoystickControl(obj, enable)
             % Changes the joystick state for all axes to the value of
-            % 'enable' - 1 to turn Joystick on, 0 to turn it off.
+            % 'enable' - true to turn Joystick on, false to turn it off.
         end
         
         function FastScan(obj, enable)

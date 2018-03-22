@@ -34,7 +34,7 @@ classdef ViewBooleanSwitch < EventListener & GuiComponent
                 'Callback', @obj.cbxEnabledCallback);
             obj.component = obj.cbxEnabled;
             obj.refresh();
-            obj.height = 40;
+            obj.height = 30;
             obj.width = 40;
             
         end

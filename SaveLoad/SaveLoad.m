@@ -273,7 +273,7 @@ classdef SaveLoad < Savable & EventSender
         end
         
         function outputStructToSave = postProcessLocalSaveStruct(obj, inputStructToSave) %#ok<INUSL>
-            % To be overritten by image/expriment.
+            % To be overritten by image/expriment, if needed
             outputStructToSave = inputStructToSave;
         end
         
@@ -281,7 +281,6 @@ classdef SaveLoad < Savable & EventSender
             % Saves the parameters of the experiment to the local struct
             structToSave = obj.saveAllObjects(Savable.TYPE_PARAMS);
             obj.mLocalSaveStruct = obj.postProcessLocalSaveStruct(structToSave);
-%             obj.mLocalSaveStruct = structToSave;
             obj.mLocalStructStatus = SaveLoad.STRUCT_STATUS_NOT_SAVED;
             if ischar(obj.mNotes) % We have notes, but they are unsaved, by definition
                 obj.notesStatus = obj.STRUCT_STATUS_NOT_SAVED;
@@ -313,7 +312,7 @@ classdef SaveLoad < Savable & EventSender
 
             myStruct = obj.mLocalSaveStruct;
             if ~isstruct(myStruct)
-                errorMsg = 'No local struct has been loaded\saved. Nothing to save! Consider calling obj.saveParamsToLocalStruct() or obj.loadFileToLocal()';
+                errorMsg = sprintf('No local struct has been loaded\\saved. Nothing to save!\nConsider calling obj.saveParamsToLocalStruct() or obj.loadFileToLocal()');
                 obj.sendError(errorMsg);
             end
             
@@ -404,7 +403,7 @@ classdef SaveLoad < Savable & EventSender
         
         function success = loadLocalToSystem(obj, subCategoryOptional)
             % Loads the local struct into the system
-            % subCategoryOptional - string. the subCat to load to
+            % subCategoryOptional - string. Subcategory to load to
             if ~isstruct(obj.mLocalSaveStruct)
                 warningMsg = 'No local struct has been loaded\saved. Nothing to save! Consider calling obj.saveParamsToLocalStruct() or obj.loadFileToLocal()';
                 obj.sendWarning(warningMsg);
@@ -674,8 +673,8 @@ classdef SaveLoad < Savable & EventSender
         function loadedStruct = tryLoadingStruct(obj, fileFullPath, shouldSendErrors)
             % Try to load a struct from a file
             %
-            % fileFullPath - string. the full path
-            % shouldSendErrors - boolean. If true, errors will be sent via
+            % fileFullPath - string. Full path of the file
+            % shouldSendErrors - logical. If true, errors will be sent via
             %                    obj.sendWarning()
             %
             % returns - the loaded struct if succeeded, NaN if failed

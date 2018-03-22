@@ -23,7 +23,7 @@ classdef PulseGenerator < EventSender
         NAME_PULSE_STREAMER = 'pulseStreamer'
     end
     
-    methods
+    methods (Access = private)
         function obj = PulseGenerator(struct)
             name = PulseGenerator.NAME;
             obj@EventSender(name);
@@ -32,8 +32,8 @@ classdef PulseGenerator < EventSender
             addBaseObject(obj);  % so it can be reached by getObjByName(PulseGenerator.NAME)
             
             obj.type = obj.generatorType(struct);
-
-            if isfield(struct, 'dummy')
+            
+            if isfield(struct, 'dummy') && struct.dummy
                 obj.pulseGeneratorPrivate = PulseGeneratorDummyClass.GetInstance;
             else
                 switch obj.type

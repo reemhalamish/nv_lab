@@ -47,7 +47,7 @@ classdef SerialControlled < matlab.mixin.SetGet
             catch error
                 if strcmp(error.identifier, 'MATLAB:serial:fopen:opfailed')
                     % If the device is open by MATLAB, we can still make it
-                    fclose(instrfind(obj.port));
+                    fclose(instrfind('Port', obj.port));
                     fopen(obj.s);
                 else
                     rethrow(error)
@@ -111,7 +111,7 @@ classdef SerialControlled < matlab.mixin.SetGet
             obj.sendCommand(command);
             string = obj.readAll;
             if exist('regex', 'var')
-                string = regexp(string, regex, 'tokens', once);    % returns cell of strings
+                string = regexp(string, regex, 'tokens', 'once');    % returns cell of strings
                 string = cell2mat(string);
             end
         end

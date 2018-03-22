@@ -146,4 +146,3 @@ classdef ViewImageResultPanelColormap < GuiComponent
     end
     
 end
-

@@ -44,7 +44,7 @@ classdef ViewImageResultHeader < ViewHBox & EventListener
                 obj.updateAxes;
             end
             
-            if event.isError && strcmp(event.sender, ImageScanResult.NAME)
+            if event.isError && strcmp(event.creator, ImageScanResult.NAME)
                 obj.updateAxes;
             end
         end

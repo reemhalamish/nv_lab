@@ -6,7 +6,7 @@ classdef (Sealed) ClassPIM501 < ClassPIMicos
     properties (Constant, Access = protected)
         controllerModel = 'C-863';
         validAxes = 'z';
-        units = 'um';
+        units = ' um';
     end
     
     properties (Access = protected)

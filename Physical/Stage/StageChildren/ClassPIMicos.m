@@ -58,10 +58,10 @@ classdef ClassPIMicos < ClassStage
             obj.LoadPiezoLibrary();
         end
         
-        function CheckIDForError(obj, ID, message) %#ok<INUSL>
+        function CheckIDForError(obj, ID, message)
             % Checks that the ID is larger than -1, if not displays message.
             if (ID < 0)
-                error(message);
+                obj.sendError(message);
             end
         end
         
@@ -163,9 +163,9 @@ classdef ClassPIMicos < ClassStage
                                     ChangeLoopMode(obj, 'Closed')
                                     fprintf('Servo should be on now, trying again...\n')
                                 case abortString
-                                    rethrow(error);
+                                    obj.sendError(error);
                                 otherwise
-                                    rethrow(error);
+                                    obj.sendError(error);
                             end
                         case 'PIMicos:Controller73' % Servo off error
                             fprintf('Controller error 73: Motion commands are not allowed when wave generator output is active; use WGO to disable generator output.\n');
@@ -181,9 +181,9 @@ classdef ClassPIMicos < ClassStage
                                     SendPICommand(obj, 'PI_WGO', obj.ID, [1 2 3], [0 0 0], 3); % Disables the wave generator
                                     fprintf('Servo should be on now, trying again...\n')
                                 case abortString
-                                    rethrow(error);
+                                    obj.sendError(error);
                                 otherwise
-                                    rethrow(error);
+                                    obj.sendError(error);
                             end
                         case 'PIMicos:Interface1008' % Controller busy with lengthy operation.
                             fprintf('Interface error -1008: Controller is busy with some lengthy operation (e.g. reference move, fast scan algorithm).\n');
@@ -195,16 +195,16 @@ classdef ClassPIMicos < ClassStage
                             confirm = questdlg(questionString, 'Unexpected error', retryString, abortString, abortString);
                             switch confirm
                                 case retryString
-                                    warning(error.identifier, '%s', error.message);
+                                    obj.sendWarning(error.identifier, '%s', error.message);
                                 case abortString
-                                    rethrow(error);
+                                    obj.sendError(error);
                                 otherwise
-                                    rethrow(error);
+                                    obj.sendError(error);
                             end
                     end
                     if (tries == 5)
                         fprintf('Error was unresolved after %d tries\n',tries);
-                        rethrow(error)
+                        obj.sendError(error)
                     end
                     triesString = BooleanHelper.ifTrueElse(tries == 1,'time','times');
                     fprintf('Tried %d %s, Trying again...\n', tries, triesString);
@@ -270,7 +270,7 @@ classdef ClassPIMicos < ClassStage
                 
                 device = BooleanHelper.ifTrueElse(errorNumber > 0,'Controller','Interface');
                 errorIdent = sprintf('PIMicos:%s%d', device, abs(errorNumber));
-                error(errorIdent,'The following error was received while attempting to communicate with controller %d:\n%s Error %d - %s\n',...
+                error(errorIdent, 'The following error was received while attempting to communicate with controller %d:\n%s Error %d - %s\n',...
                     axisID, device, errorNumber, errorMessage);
             end
         end
@@ -299,7 +299,7 @@ classdef ClassPIMicos < ClassStage
                     if contains(model, controllerModel)
                         DisconnectController(obj, i)
                         if obj.SendPICommandWithoutReturnCode('PI_IsConnected', i)
-                            warning('Could not disconnect from controller')
+                            obj.sendWarning('Could not disconnect from controller')
                         else
                             success = 1;
                             fprintf('The connection with the old controller is now closed\n');
@@ -318,8 +318,8 @@ classdef ClassPIMicos < ClassStage
         function USBDescription = FindController(obj, model)
             % This function will look for a USB controller with the given
             % model, if it is not found, it will attempt to force close
-            % previous connections. The USBDescription returned is what
-            % needed to connect to the stage using USB.
+            % previous connections. Returned USBDescription is needed to
+            % connect to the stage using USB.
             [USBNum, USBDescription, ~] = SendPICommandWithoutReturnCode(obj, 'PI_EnumerateUSB', blanks(128), 128, model);
             
             if USBNum < 1
@@ -327,10 +327,10 @@ classdef ClassPIMicos < ClassStage
                     fprintf('Reconnecting...\n');
                     USBDescription = FindController(obj, model);
                 else
-                    error('%s USB controller not found', model);
+                    obj.sendError('%s USB controller not found', model);
                 end
             elseif USBNum > 1
-                error('Multiple %s USB controllers were found:\n%s', model, USBDescription)
+                obj.sendError('Multiple %s USB controllers were found:\n%s', model, USBDescription)
             end
         end
         
@@ -343,7 +343,7 @@ classdef ClassPIMicos < ClassStage
             for i=1:length(axis)
                 axisIndex(i) = strfind(obj.validAxes, obj.axesName(axis(i)));
                 if isempty(axisIndex(i))
-                    error('Invalid axis')
+                    obj.sendError('Invalid axis')
                 end
             end
         end
@@ -371,7 +371,7 @@ classdef ClassPIMicos < ClassStage
                 else
                     string = 'axes are';
                 end
-                error('%s %s invalid for the %s controller.', upper(obj.axesName(axis)), string, obj.controllerModel);
+                obj.sendError('%s %s invalid for the %s controller.', upper(obj.axesName(axis)), string, obj.controllerModel);
             end
         end
         
@@ -397,9 +397,9 @@ classdef ClassPIMicos < ClassStage
                     case referenceString
                         Refernce(obj, axis)
                     case referenceCancelString
-                        error('Referencing canceled for controller %s: %s', obj.controllerModel, unreferncedAxesNames);
+                        obj.sendError('Referencing canceled for controller %s: %s', obj.controllerModel, unreferncedAxesNames);
                     otherwise
-                        error('Referencing failed for controller %s: %s - No user confirmation was given', obj.controllerModel, unreferncedAxesNames);
+                        obj.sendError('Referencing failed for controller %s: %s - No user confirmation was given', obj.controllerModel, unreferncedAxesNames);
                 end
             end
         end
@@ -425,7 +425,7 @@ classdef ClassPIMicos < ClassStage
             WaitFor(obj, 'ControllerReady')
             [~, refernced] = SendPICommand(obj, 'PI_qFRF', obj.ID,szAxes, zerosVector);
             if (~all(refernced))
-                error('Referencing failed for controller %s with ID %d: Reason unknown.', obj.controllerModel, obj.ID);
+                obj.sendError('Referencing failed for controller %s with ID %d: Reason unknown.', obj.controllerModel, obj.ID);
             end
         end
         
@@ -456,10 +456,10 @@ classdef ClassPIMicos < ClassStage
             for i=1:length(obj.validAxes)
                 [szAxes, zerosVector] = ConvertAxis(obj, obj.validAxes(i));
                 [~,~,~,axisUnits] = SendPICommand(obj, 'PI_qSPA', obj.ID, szAxes, hex2dec('7000601'), zerosVector, '', 4);
-                if ~strcmpi(strtrim(axisUnits), obj.units)
-                    error('%s axis - Stage units are in %s, should be %s', upper(obj.validAxes(i)), axisUnits, obj.units);
+                if ~strcmpi(strtrim(axisUnits), strtrim(obj.units))
+                    obj.sendError('%s axis - Stage units are in %s, should be%s', upper(obj.validAxes(i)), axisUnits, obj.units);
                 else
-                    fprintf('%s axis - Units are in %s for position and %s/s for velocity.\n', upper(obj.validAxes(i)), obj.units, obj.units);
+                    fprintf('%s axis - Units are in%s for position and%s/s for velocity.\n', upper(obj.validAxes(i)), obj.units, obj.units);
                 end
             end
             
@@ -472,7 +472,7 @@ classdef ClassPIMicos < ClassStage
             QueryPos(obj);
             QueryVel(obj);
             for i=1:length(obj.validAxes)
-                fprintf('%s axis - Position: %.4f %s, Velocity: %d %s/s.\n', upper(obj.validAxes(i)), obj.curPos(i), obj.units, obj.curVel(i), obj.units);
+                fprintf('%s axis - Position: %.4f%s, Velocity: %d%s/s.\n', upper(obj.validAxes(i)), obj.curPos(i), obj.units, obj.curVel(i), obj.units);
             end
         end
         
@@ -486,10 +486,10 @@ classdef ClassPIMicos < ClassStage
             [~, ~, posPhysicalLimitDistance, ~] = SendPICommand(obj, 'PI_qSPA', obj.ID, szAxes, zerosVector+23, zerosVector, '', 0);
             for i=1:length(obj.validAxes)
                 if ((negPhysicalLimitDistance(i) ~= -obj.negRangeLimit(i)) || (posPhysicalLimitDistance(i) ~= obj.posRangeLimit(i)))
-                    error('Physical limits for %s axis are incorrect!\nShould be: %d to %d.\nReal value: %d to %d.\nMaybe units are incorrect?',...
+                    obj.sendError('Physical limits for %s axis are incorrect!\nShould be: %d to %d.\nReal value: %d to %d.\nMaybe units are incorrect?',...
                         upper(obj.validAxes(i)), obj.negRangeLimit(i), obj.posRangeLimit(i), -negPhysicalLimitDistance(i), posPhysicalLimitDistance(i))
                 else
-                    fprintf('%s axis - Physical limits are from %d %s to %d %s.\n', upper(obj.validAxes(i)), obj.negRangeLimit(i), obj.units, obj.posRangeLimit(i), obj.units);
+                    fprintf('%s axis - Physical limits are from %d%s to %d%s.\n', upper(obj.validAxes(i)), obj.negRangeLimit(i), obj.units, obj.posRangeLimit(i), obj.units);
                 end
             end
             
@@ -498,10 +498,10 @@ classdef ClassPIMicos < ClassStage
             [~, ~, negSoftLimit, ~] = SendPICommand(obj, 'PI_qSPA', obj.ID, szAxes, zerosVector+48, zerosVector, '', 0);
             for i=1:length(obj.validAxes)
                 if ((negSoftLimit(i) ~= obj.negSoftRangeLimit(i)) || (posSoftLimit(i) ~= obj.posSoftRangeLimit(i)))
-                    error('Soft limits for %s axis are incorrect!\nShould be: %d to %d.\nReal value: %d to %d.\nMaybe units are incorrect?',...
+                    obj.sendError('Soft limits for %s axis are incorrect!\nShould be: %d to %d.\nReal value: %d to %d.\nMaybe units are incorrect?',...
                         upper(obj.validAxes(i)), obj.negSoftRangeLimit(i), obj.posSoftRangeLimit(i), negSoftLimit(i), posSoftLimit(i))
                 else
-                    fprintf('%s axis - Soft limits are from %.1f %s to %.1f %s.\n', upper(obj.validAxes(i)), obj.negSoftRangeLimit(i), obj.units, obj.posSoftRangeLimit(i), obj.units);
+                    fprintf('%s axis - Soft limits are from %.1f%s to %.1f%s.\n', upper(obj.validAxes(i)), obj.negSoftRangeLimit(i), obj.units, obj.posSoftRangeLimit(i), obj.units);
                 end
             end
         end
@@ -558,11 +558,11 @@ classdef ClassPIMicos < ClassStage
                         [~, running] = SendPICommand(obj, 'PI_IsGeneratorRunning', obj.ID, [], 1, 1);
                         wait = running;
                     otherwise
-                        error('Wrong Input %s', what);
+                        obj.sendError('Wrong Input %s', what);
                 end
                 
                 if (toc(timer) > timeout)
-                    warning('Warning, timed out while waiting for controller status: "%s"', what);
+                    obj.sendWarning('Warning, timed out while waiting for controller status: "%s"', what);
                     break
                 end
             end
@@ -580,7 +580,7 @@ classdef ClassPIMicos < ClassStage
             % scanAxis - The axis to scan (x,y,z or 1 for x, 2 for y and 3
             % for z).
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            warning('Scan not implemented for the %s controller.\n', obj.controllerModel);
+            obj.sendWarning('Scan not implemented for the %s controller.\n', obj.controllerModel);
         end
         
         function PrepareScanInTwoDimensions(obj, macroScanAxisVector, normalScanAxisVector, nFlat, nOverRun, tPixel, macroScanAxis, normalScanAxis)  %#ok<INUSD>
@@ -594,7 +594,7 @@ classdef ClassPIMicos < ClassStage
             % scanAxis1/2 - The axes to scan (x,y,z or 1 for x, 2 for y and
             % 3 for z).
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            warning('Scan not implemented for the %s controller.\n', obj.controllerModel);
+            obj.sendWarning('Scan not implemented for the %s controller.\n', obj.controllerModel);
         end
         
         function MovePrivate(obj, axis, pos)
@@ -615,7 +615,7 @@ classdef ClassPIMicos < ClassStage
             end
             
             if ~PointIsInRange(obj, axis, pos) % Check that point is in limits
-                error('Move Command is outside the soft limits');
+                obj.sendError('Move Command is outside the soft limits');
             end
             
             CheckRefernce(obj, axis)
@@ -634,7 +634,7 @@ classdef ClassPIMicos < ClassStage
             szAxes = ConvertAxis(obj, axis);
             SendPICommand(obj, 'PI_HLT', obj.ID, szAxes);
             AbortScan(obj)
-            warning('Stage Halted!');
+            obj.sendWarning('Stage Halted!');
         end
         
         function SetVelocityPrivate(obj, axis, vel)
@@ -755,7 +755,7 @@ classdef ClassPIMicos < ClassStage
                     obj.posSoftRangeLimit(axisIndex) = softLimit;
                 end
             else
-                error('Soft limit %.4f is outside of the hard limits %.4f - %.4f', softLimit, obj.negRangeLimit(axisIndex), obj.posRangeLimit(axisIndex))
+                obj.sendError('Soft limit %.4f is outside of the hard limits %.4f - %.4f', softLimit, obj.negRangeLimit(axisIndex), obj.posRangeLimit(axisIndex))
             end
         end
         
@@ -786,7 +786,7 @@ classdef ClassPIMicos < ClassStage
             % Checks that a scan is not currently running and whether
             % HaltStage was triggered.
             if obj.scanRunning
-                warning(obj.WARNING_PREVIOUS_SCAN_CANCELLED);
+                obj.sendWarning(obj.WARNING_PREVIOUS_SCAN_CANCELLED);
                 AbortScan(obj);
             end
             
@@ -799,10 +799,10 @@ classdef ClassPIMicos < ClassStage
                     case yesString
                         obj.forceStop = 0;
                     case noString
-                        warning('Movement aborted!')
+                        obj.sendWarning('Movement aborted!')
                         return;
                     otherwise
-                        warning('Movement aborted!')
+                        obj.sendWarning('Movement aborted!')
                         return;
                 end
             end
@@ -815,7 +815,7 @@ classdef ClassPIMicos < ClassStage
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
             if obj.scanRunning
-                warning(obj.WARNING_PREVIOUS_SCAN_CANCELLED);
+                obj.sendWarning(obj.WARNING_PREVIOUS_SCAN_CANCELLED);
                 AbortScan(obj);
             end
             CheckAxis(obj, axis)
@@ -846,7 +846,7 @@ classdef ClassPIMicos < ClassStage
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
             if obj.scanRunning
-                warning('2D Scan is in progress, previous scan canceled');
+                obj.sendWarning('2D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
             CheckAxis(obj, axis)
@@ -864,7 +864,7 @@ classdef ClassPIMicos < ClassStage
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if obj.scanRunning
-                warning('2D Scan is in progress, previous scan canceled');
+                obj.sendWarning('2D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
             Move(obj, ['y' 'z'], [y z]);
@@ -883,7 +883,7 @@ classdef ClassPIMicos < ClassStage
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if obj.scanRunning
-                warning('2D Scan is in progress, previous scan canceled');
+                obj.sendWarning('2D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
             Move(obj, ['x' 'z'], [x z]);
@@ -902,7 +902,7 @@ classdef ClassPIMicos < ClassStage
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if obj.scanRunning
-                warning('2D Scan is in progress, previous scan canceled');
+                obj.sendWarning('2D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
             Move(obj, ['x' 'y'], [x y]);
@@ -932,7 +932,7 @@ classdef ClassPIMicos < ClassStage
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if obj.scanRunning
-                warning('2D Scan is in progress, previous scan canceled');
+                obj.sendWarning('2D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
             Move(obj, 'z', z);
@@ -953,7 +953,7 @@ classdef ClassPIMicos < ClassStage
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if obj.scanRunning
-                warning('2D Scan is in progress, previous scan canceled');
+                obj.sendWarning('2D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
             Move(obj, 'y', y);
@@ -974,7 +974,7 @@ classdef ClassPIMicos < ClassStage
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if obj.scanRunning
-                warning('2D Scan is in progress, previous scan canceled');
+                obj.sendWarning('2D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
             Move(obj, 'z', z);
@@ -995,7 +995,7 @@ classdef ClassPIMicos < ClassStage
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if obj.scanRunning
-                warning('2D Scan is in progress, previous scan canceled');
+                obj.sendWarning('2D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
             Move(obj, 'x', x);
@@ -1016,7 +1016,7 @@ classdef ClassPIMicos < ClassStage
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if obj.scanRunning
-                warning('2D Scan is in progress, previous scan canceled');
+                obj.sendWarning('2D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
             Move(obj, 'y', y);
@@ -1037,7 +1037,7 @@ classdef ClassPIMicos < ClassStage
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if obj.scanRunning
-                warning('2D Scan is in progress, previous scan canceled');
+                obj.sendWarning('2D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
             Move(obj, 'x', x);
@@ -1052,14 +1052,14 @@ classdef ClassPIMicos < ClassStage
             % until 'AbortScan' has been called.
             % forwards is set to 1 when the scan is forward and is set to 0
             % when it's backwards
-            warning('Scan not implemented for the %s controller.\n', obj.controllerModel);
+            obj.sendWarning('Scan not implemented for the %s controller.\n', obj.controllerModel);
             forwards = 1;
         end
         
         function PrepareRescanLine(obj)
             % Prepares the previous line for rescanning.
             % Scanning is done with "ScanNextLine"
-            warning('Scan not implemented for the %s controller.\n', obj.controllerModel);
+            obj.sendWarning('Scan not implemented for the %s controller.\n', obj.controllerModel);
         end
         
         function AbortScan(obj) %#ok<MANU>
@@ -1069,7 +1069,7 @@ classdef ClassPIMicos < ClassStage
         function maxScanSize = ReturnMaxScanSize(obj, nDimensions) %#ok<INUSD>
             % Returns the maximum number of points allowed for an
             % 'nDimensions' scan.
-            warning('Scan not implemented for the %s controller.\n', obj.controllerModel);
+            obj.sendWarning('Scan not implemented for the %s controller.\n', obj.controllerModel);
             maxScanSize = 0;
         end
         
@@ -1083,20 +1083,20 @@ classdef ClassPIMicos < ClassStage
         function JoystickControl(obj, enable) %#ok<INUSD>
             % Changes the joystick state for all axes to the value of
             % 'enable' - 1 to turn Joystick on, 0 to turn it off.
-            warning('No joystick support for the %s controller.\n', obj.controllerModel);
+            obj.sendWarning('No joystick support for the %s controller.\n', obj.controllerModel);
         end
         
         function binaryButtonState = ReturnJoystickButtonState(obj)
             % Returns the state of the buttons in 3 bit decimal format.
             % 1 for first button, 2 for second and 4 for the 3rd.
-            warning('No joystick support for the %s controller.\n', obj.controllerModel);
+            obj.sendWarning('No joystick support for the %s controller.\n', obj.controllerModel);
             binaryButtonState = 0;
         end
         
         function FastScan(obj, enable) %#ok<INUSD>
             % Changes the scan between fast & slow mode
             % 'enable' - 1 for fast scan, 0 for slow scan.
-            warning('Scan not implemented for the %s controller.\n', obj.controllerModel);
+            obj.sendWarning('Scan not implemented for the %s controller.\n', obj.controllerModel);
         end
         
         function ChangeLoopMode(obj, mode)
@@ -1111,7 +1111,7 @@ classdef ClassPIMicos < ClassStage
                 case 'Closed'
                     SendPICommand(obj, 'PI_SVO', obj.ID, szAxes, zerosVector+1);
                 otherwise
-                    error('Unknown mode %s', mode);
+                    obj.sendError('Unknown mode %s', mode);
             end
         end
         
@@ -1119,7 +1119,7 @@ classdef ClassPIMicos < ClassStage
             % Enables the tilt correction according to the angles.
             if ~strcmp(obj.validAxes, obj.axesName)
                 string = BooleanHelper.ifTrueElse(length(obj.validAxes) == 1, 'axis', 'axes');
-                warning('Controller %s has only %s %s, and can''t do tilt correction.', obj.controllerModel, obj.validAxes, string);
+                obj.sendWarning('Controller %s has only %s %s, and can''t do tilt correction.', obj.controllerModel, obj.validAxes, string);
                 success = 0;
                 return;
             end
@@ -1132,7 +1132,7 @@ classdef ClassPIMicos < ClassStage
             % Angles should be in degrees, valid angles are between -5 and 5
             % degrees.
             if (thetaXZ < -5 || thetaXZ > 5) || (thetaYZ < -5 || thetaYZ > 5)
-                warning(sprintf('Angles are outside the limits (-5 to 5 degrees).\nAngles were not set.')); %#ok<SPWRN>
+                obj.sendWarning(sprintf('Angles are outside the limits (-5 to 5 degrees).\nAngles were not set.')); 
                 success = 0;
                 return
             end

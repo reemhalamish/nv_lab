@@ -1,6 +1,5 @@
 classdef ViewVBox < GuiComponent
-    %VIEWHBOX Summary of this class goes here
-    %   Detailed explanation goes here
+    %VIEWVBOX GUI component with built-in VBox component
     
     properties
     end
@@ -8,17 +7,17 @@ classdef ViewVBox < GuiComponent
     methods
         function obj = ViewVBox(parent, controller, padding, spacing)
             if ~exist('padding', 'var')
-                padding = 0;
+                padding = 0;    % Space from box to other components
             end
             if ~exist('spacing', 'var')
-                spacing = 5;
+                spacing = 5;    % Space between components in the box
             end
             
             obj@GuiComponent(parent, controller);
             obj.component = uix.VBox('Parent', parent.component, 'Padding', padding, 'Spacing', spacing);
         end
         
-        function out = setHeights(obj, heights)
+        function setHeights(obj, heights)
             set(obj.component, 'Heights', heights);
         end
     end

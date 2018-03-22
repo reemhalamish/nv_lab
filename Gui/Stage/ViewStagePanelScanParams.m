@@ -279,13 +279,13 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
                 axis = obj.stageAxes(i);
                 axisIndex = ClassStage.getAxis(axis);
                 
-                % notice the difference:
-                % i - the index for the views
-                % axisIndex - the index in scan params
+                % Notice the difference:
+                % i - index for the views
+                % axisIndex - index in scan params
                 %
-                % for example, in a stage supporting only 'zy' scans,
-                % in the first iteration will be: i --> 1 , axisIndex --> 3
-                % in second iteration will be:    i --> 2 , axisIndex --> 2
+                % For example, in a stage supporting only 'zy' scans,
+                % in the first iteration:   i --> 1 , axisIndex --> 3
+                % in the second iteration:  i --> 2 , axisIndex --> 2
                 
                 obj.edtFrom(i).String = scanParams.from(axisIndex);
                 obj.edtTo(i).String = scanParams.to(axisIndex);

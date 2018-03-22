@@ -72,6 +72,9 @@ classdef ViewStagePanelTiltCorrection < GuiComponent & EventListener
         function refresh(obj)
             % todo update from stage
             stage = getObjByName(obj.stageName);
+            if ~stage.tiltAvailable
+                return  % Nothing to do here
+            end
             [tiltEnabled, thetaXZ, thetaYZ] = stage.GetTiltStatus();
             obj.cbxEnable.Value = tiltEnabled;
             obj.edtThetaX.String = StringHelper.formatNumber(thetaXZ);

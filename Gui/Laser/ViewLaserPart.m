@@ -16,6 +16,9 @@ classdef ViewLaserPart < ViewHBox & EventListener
     
     properties (Constant)
         SIGNIFICANT_DIGITS = 2
+        
+        WIDTHS = [70, 50, 180]
+        ROW_HEIGHT = 30
     end
     
     methods
@@ -53,13 +56,12 @@ classdef ViewLaserPart < ViewHBox & EventListener
             obj.sliderPower = uicontrol(obj.PROP_SLIDER{:}, 'Parent', partRow, ...
                 'Min', obj.minValue, 'Max', obj.maxValue);
             
-            widths = [70, 50, 150];
-            set(partRow, 'Widths', widths);
+            set(partRow, 'Widths', obj.WIDTHS);
             
             
             %%%% UI components set values  %%%%
-            obj.width = sum(widths) + 20;
-            obj.height = 30;            
+            obj.width = sum(obj.WIDTHS) + 20;
+            obj.height = obj.ROW_HEIGHT;            
             
             
             % Set functionality for "setEnabled" and "setValue" %%%%
@@ -85,13 +87,11 @@ classdef ViewLaserPart < ViewHBox & EventListener
         function edtPowerPercentageCallback(obj, ~, ~)
             newValue = obj.edtPowerPercentage.String;
             newValue = regexp(newValue, '^-?\d+(\.\d+)?', 'match', 'once');  % leave only digits (maybe with decimal point or proceeded by a minus sign)
-            newValue = round(str2double(newValue), obj.SIGNIFICANT_DIGITS);
-            obj.requestNewValue(newValue);
+            obj.requestNewValue(str2double(newValue));
         end
         
         function sliderPowerCallback(obj, ~, ~)
             newValue = get(obj.sliderPower, 'Value');
-            newValue = round(newValue, obj.SIGNIFICANT_DIGITS);
             obj.requestNewValue(newValue);
         end
         
@@ -136,7 +136,9 @@ classdef ViewLaserPart < ViewHBox & EventListener
     %% These methods actually request stuff from the physics. Carefull!
     methods (Access = protected)
         function requestNewValue(obj, newValue)
-            obj.laserPart.value = newValue;
+            % newValue - double. Already in proper units
+            obj.laserPart.value = round(newValue, obj.SIGNIFICANT_DIGITS);
+            
             % If the physics got our change - it will send an event to notify us
             % If not, it will send an error Event to notify us
             pause(0.05)         % todo: do it better (uiwait)
@@ -150,10 +152,11 @@ classdef ViewLaserPart < ViewHBox & EventListener
         end
     end
     
-    %% Overriding methods!
+    %% Overridden from EventListener
     methods
         function onEvent(obj, event) %#ok<INUSD>
-            % We don't need the event details. we can ask the details directly from the laser!
+            % We don't need the event details -- we can ask for what we
+            % need directly from the laser!
             obj.refresh();
         end
     end

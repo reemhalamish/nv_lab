@@ -154,8 +154,9 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
         draw(obj)
         % Plots relevant data from trackable history on axes, when
         % EVENT_DATA_UPDATED is sent from the tracker
-        
-        
+    end
+       
+    methods (Abstract, Access = protected)
         % Callbacks for all of the defined UIControls
         cbxContinuousCallback(obj)
         btnStartStopCallback(obj)
@@ -163,7 +164,6 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
         btnStopCallback(obj)
         btnResetCallback(obj)
         btnSaveCallback(obj)
-        
     end
     
 %     % Copy this to child classes, for overriding

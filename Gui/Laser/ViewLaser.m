@@ -20,9 +20,8 @@ classdef ViewLaser < GuiComponent
             obj@GuiComponent(parent, controller);
             
             %%%% UI components init %%%%
-            % boxPanel = uix.BoxPanel('Parent', parent.component, 'Title', sprintf('Laser Control - %s', laserGate.name));
             boxPanel = ViewExpandablePanel(parent, controller, sprintf('Laser Control - %s', laserGate.name));
-            laserControlBox = uix.VBox('Parent', boxPanel.component, 'Spacing', 5, 'Padding', 5);
+            laserControlBox = uix.VBox('Parent', boxPanel.component, 'Spacing', 3, 'Padding', 5);
             obj.component = laserControlBox;
             
             hboxCbx = ViewHBox(obj, controller);
@@ -32,8 +31,9 @@ classdef ViewLaser < GuiComponent
             
             if sourceAvailBool
                 if laserGate.source.canSetEnabled && ~laserGate.source.canSetValue
+                    % Maybe we only need an on/off switch
                     % 1st condition: otherwise there is no point in switch
-                    % 2nd condition: otherwise, the cbx is contained in ViewLaserPart
+                    % 2nd condition: otherwise, the checkbox is contained in ViewLaserPart
                     cbxSourceOn = ViewBooleanSwitch(hboxCbx, controller, laserGate.source, 'Source on?');
                     heights = max([cbxSourceOn.height cbxSourceOn.height]);
                     width = cbxFastOn.width + cbxSourceOn.width;
