@@ -32,7 +32,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         cursorType              % integer. Index for value in CURSOR_OPTIONS
     end
     
-    properties(Constant)
+    properties (Constant)
         NAME = 'imageScanResult'
         IMAGE_FILE_SUFFIX = 'png'
         
@@ -72,10 +72,19 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                 obj.mDimNumber = newStruct.mDimNumber;
                 obj.mFirstAxis = newStruct.mFirstAxis;
                 obj.mSecondAxis = newStruct.mSecondAxis;
-                obj.mStageName = newStruct.mStageName;
-                obj.mAxesString = newStruct.mAxesString;
                 obj.mLabelBot = newStruct.mLabelBot;
                 obj.mLabelLeft = newStruct.mLabelLeft;
+                
+                % In previous version we did not save mStageName and
+                % mAxesString. For compatability, we need:
+                try
+                    obj.mStageName = newStruct.mStageName;
+                    obj.mAxesString = newStruct.mAxesString;
+                catch
+                    % We are loading an old version, so maybe we can get
+                    % missing parameters from current system
+                    
+                end
             elseif ~obj.isDataAvailable
                 % No data is available, neither externally nor internally.
                 return
@@ -126,9 +135,12 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                     set(obj.cursor,'UpdateFcn',@obj.cursorMarkerDisplay);
                 end
                 obj.drawCrosshairs(axis(obj.gAxes),pos)
-            catch
+            catch err
+                obj.sendWarning('Unable to set crosshairs');
+                err2warning(err)
             end
             
+            obj.ClearCursorData;    % left outside of updateDataCursor(obj), so that zoom bar is not deleted
             obj.updateDataCursor;
             
         end
@@ -155,8 +167,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             end
             
             % Disable button press
-            img = imhandles(obj.gAxes);
-            set(img, 'ButtonDownFcn', '');
+            set([obj.gAxes; obj.gAxes.Children], 'ButtonDownFcn', '');
         end
         
         function drawRectangle(obj, pos)
@@ -202,7 +213,6 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                 return
             end
             
-            obj.ClearCursorData;
             if ~exist('action', 'var')
                 actionIndex = 1;    % Marker is default
             else
@@ -216,8 +226,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                     obj.updataDataByZoom;
                 case 3      % Move the stage to selected location
                     set(obj.cursor, 'Enable', 'off')
-                    img = imhandles(obj.gAxes);
-                    set(img, 'ButtonDownFcn', @obj.setLocationFromCursor);
+                    set([obj.gAxes; obj.gAxes.Children], 'ButtonDownFcn', @obj.setLocationFromCursor);
             end
         end
         
@@ -361,6 +370,12 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                 set(obj.crosshairs.yLineHandle, 'XData', [pos(1) pos(1)]);
                 set(obj.crosshairs.yLineHandle, 'YData', yLimits);
                 
+                % If 1D, don't draw horizontal line and change color to black
+                if dim == 1
+                    delete(obj.crosshairs.xLineHandle);
+                    set(obj.crosshairs.yLineHandle, 'Color', 'k') 
+                end
+                
             else % Outside
                 if isfield(obj.crosshairs, 'xLineHandle')
                     delete(obj.crosshairs.xLineHandle);
@@ -368,46 +383,64 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                 if isfield(obj.crosshairs,'yLineHandle')
                     delete(obj.crosshairs.yLineHandle);
                 end
+                if isfield(obj.crosshairs, 'arrowHandle')
+                    if (dim == 1 && ~isa(obj.crosshairs.arrowHandle,'matlab.graphics.primitive.Line')) ...
+                            || (dim == 2 && ~isa(obj.crosshairs.arrowHandle,'matlab.graphics.chart.primitive.Quiver'))
+                        delete(obj.crosshairs.arrowHandle);
+                    end
+                end
                 if ~isfield(obj.crosshairs, 'arrowHandle') || ~ishandle(obj.crosshairs.arrowHandle)
-                    obj.crosshairs.arrowHandle = quiver(obj.gAxes, 0, 0, 0, 0, 'Color', 'b', ...
+                    if dim == 1
+                        obj.crosshairs.arrowHandle = line(obj.gAxes, ...
+                        [0 0], [0 0], 'Color', 'k', 'LineWidth', 1, 'HitTest', 'Off', 'MarkerSize', 10);
+                    else
+                        obj.crosshairs.arrowHandle = quiver(obj.gAxes, 0, 0, 0, 0, 'Color', 'b', ...
                         'LineWidth', 1, 'MaxHeadSize', 10, 'HitTest', 'Off');
+                    end
                 end
                 
                 hold(obj.gAxes,'off'); % Allow picture to change when needed
                 
                 % Draw arrow according to position
-                row = quadrant(1);
-                switch row
-                    case 0 % left column
-                        set(obj.crosshairs.arrowHandle, 'XData', xLimits(1)+(xLimits(2)-xLimits(1))/10);
-                        set(obj.crosshairs.arrowHandle, 'UData', (xLimits(1)-xLimits(2))/10);
-                    case 1 % middle column
-                        set(obj.crosshairs.arrowHandle, 'XData', pos(1));
-                        set(obj.crosshairs.arrowHandle, 'UData', 0);
-                    case 2 % right column
-                        set(obj.crosshairs.arrowHandle, 'XData', xLimits(2)+(xLimits(1)-xLimits(2))/10);
-                        set(obj.crosshairs.arrowHandle, 'UData', (xLimits(2)-xLimits(1))/10);
-                end
-                
-                column = quadrant(2);
-                switch column
-                    case 0 % in bottom row
-                        set(obj.crosshairs.arrowHandle, 'YData', yLimits(1)+(yLimits(2)-yLimits(1))/10);
-                        set(obj.crosshairs.arrowHandle, 'VData', (yLimits(1)-yLimits(2))/10);
-                    case 1 % middle row
-                        set(obj.crosshairs.arrowHandle, 'YData', pos(2));
-                        set(obj.crosshairs.arrowHandle, 'VData', 0);
-                    case 2 % top row
-                        set(obj.crosshairs.arrowHandle, 'YData', yLimits(2)+(yLimits(1)-yLimits(2))/10);
-                        set(obj.crosshairs.arrowHandle, 'VData', (yLimits(2)-yLimits(1))/10);
+                if dim == 1
+                    switch quadrant(1)
+                        case 0 % left column
+                            set(obj.crosshairs.arrowHandle, 'XData', [xLimits(1), xLimits(1)]);
+                            set(obj.crosshairs.arrowHandle, 'YData', [pos(2), pos(2)]);
+                            set(obj.crosshairs.arrowHandle, 'Marker', '<')
+                        case 2 % right column
+                            set(obj.crosshairs.arrowHandle, 'XData', [xLimits(2), xLimits(2)]);
+                            set(obj.crosshairs.arrowHandle, 'YData', [pos(2), pos(2)]);
+                            set(obj.crosshairs.arrowHandle, 'Marker', '>')
+                    end
+                else
+                    row = quadrant(1);
+                    switch row
+                        case 0 % left column
+                            set(obj.crosshairs.arrowHandle, 'XData', xLimits(1)+(xLimits(2)-xLimits(1))/10);
+                            set(obj.crosshairs.arrowHandle, 'UData', (xLimits(1)-xLimits(2))/10);
+                        case 1 % middle column
+                            set(obj.crosshairs.arrowHandle, 'XData', pos(1));
+                            set(obj.crosshairs.arrowHandle, 'UData', 0);
+                        case 2 % right column
+                            set(obj.crosshairs.arrowHandle, 'XData', xLimits(2)+(xLimits(1)-xLimits(2))/10);
+                            set(obj.crosshairs.arrowHandle, 'UData', (xLimits(2)-xLimits(1))/10);
+                    end
+                    
+                    column = quadrant(2);
+                    switch column
+                        case 0 % in bottom row
+                            set(obj.crosshairs.arrowHandle, 'YData', yLimits(1)+(yLimits(2)-yLimits(1))/10);
+                            set(obj.crosshairs.arrowHandle, 'VData', (yLimits(1)-yLimits(2))/10);
+                        case 1 % middle row
+                            set(obj.crosshairs.arrowHandle, 'YData', pos(2));
+                            set(obj.crosshairs.arrowHandle, 'VData', 0);
+                        case 2 % top row
+                            set(obj.crosshairs.arrowHandle, 'YData', yLimits(2)+(yLimits(1)-yLimits(2))/10);
+                            set(obj.crosshairs.arrowHandle, 'VData', (yLimits(2)-yLimits(1))/10);
+                    end
                 end
             end
-            
-            % If 1D, don't draw horizontal line
-            if dim == 1 && isfield(obj.crosshairs,'xLineHandle') && ishandle(obj.crosshairs.xLineHandle)
-                delete(obj.crosshairs.xLineHandle);
-            end
-            
         end
         
         function setLocationFromCursor(obj, ~, ~)
@@ -465,6 +498,19 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             end
         end
         
+        function [stageName, axesString] = compatibilityHelper1(obj, struct) %#ok<INUSL>
+            % because of changes in saved struct, we need to [try to]
+            % recover these variables
+            scanner = getObjByName(StageScanner.NAME);
+            stageName = scanner.mStageName;
+            switch struct.mDimNumber
+                case 1
+                    axesString = struct.mLabelBot(1);
+                case 2
+                    axesString = [struct.mLabelBot(1), struct.mLabelLeft(1)];
+            end
+        end
+        
         %% Saving
         function fullpath = savePlottingImage(obj, folder, filename)
             % Create a new invisible figure, and than save it with a same
@@ -503,6 +549,11 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         
         function limits = calcColormapLimits(data)
             % Calculate auto-limits from data.
+            if all(isinf(data(:))) || all(data(:) == 0)
+                limits = [0 0];     % No information.
+                return
+            end
+            
             maxValue = max(max(data(~isinf(data))));
             minValue = min(min(data(data ~= 0)));
             limits = [minValue maxValue];
@@ -568,7 +619,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
     end
     
     %% overriding from Savable
-    methods(Access = protected)
+    methods (Access = protected)
         function outStruct = saveStateAsStruct(obj, category, type) %#ok<*MANU>
             % Saves the state as struct. if you want to save stuff, make
             % (outStruct = struct;) and put stuff inside. If you dont
