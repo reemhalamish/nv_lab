@@ -35,44 +35,48 @@ classdef ViewDoubleAom < ViewVBox & EventListener
             
             %%%% init variables %%%%
             nameToListen = {doubleAom.aomOne.name, doubleAom.aomTwo.name, doubleAom.swapSwitch.name};
+            padding = 0;
+            spacing = 3;
             
             %%%% Constructors %%%%
             obj@EventListener(nameToListen);
-            obj@ViewVBox(parent, controller);
+            obj@ViewVBox(parent, controller, padding, spacing);
             
             %%%% the laser physics object %%%%
             obj.mLaserPartName = doubleAom.name;
             
             
             % UI components init
-            widths = [70, 50, 150];
-            rowHeight = 30;
+            widths = ViewLaserPart.WIDTHS;  % a bit of extra width before start of line, for graphical purposes
+            rowHeight = ViewLaserPart.ROW_HEIGHT;
             
             partRow1 = uix.HBox('Parent', obj.component, 'Spacing', 5, ...
-                'UserData', obj.CHANNEL_ONE);
+                    'UserData', obj.CHANNEL_ONE);
                 obj.radioChoose1 = uicontrol(obj.PROP_RADIO{:}, 'Parent', partRow1, ...
-                    'String', 'AOM 1', ...
-                    'Callback', @obj.radioChooseCallback);
+                        'String', 'AOM 1', ...
+                        'Callback', @obj.radioChooseCallback);
                 obj.edtPowerPercentage1 = uicontrol(obj.PROP_EDIT{:}, 'Parent', partRow1, ...
-                    'Callback', @obj.edtPowerPercentageCallback);
+                        'Callback', @obj.edtPowerPercentageCallback);
                 obj.sliderPower1 = uicontrol(obj.PROP_SLIDER{:}, 'Parent', partRow1, ...
-                    'Callback', @obj.sliderPowerCallback);
+                        'Callback', @obj.sliderPowerCallback, ...
+                        'Min', doubleAom.minValue, 'Max', doubleAom.maxValue);
                 partRow1.Widths = widths;
                 
             partRow2 = uix.HBox('Parent', obj.component, 'Spacing', 5, ...
-                'UserData', obj.CHANNEL_TWO);
+                    'UserData', obj.CHANNEL_TWO);
                 obj.radioChoose2 = uicontrol(obj.PROP_RADIO{:}, 'Parent', partRow2, ...
-                    'String', 'AOM 2', ...
-                    'Callback', @obj.radioChooseCallback);
+                        'String', 'AOM 2', ...
+                        'Callback', @obj.radioChooseCallback);
                 obj.edtPowerPercentage2 = uicontrol(obj.PROP_EDIT{:}, 'Parent', partRow2, ...
-                    'Callback', @obj.edtPowerPercentageCallback);
+                        'Callback', @obj.edtPowerPercentageCallback);
                 obj.sliderPower2 = uicontrol(obj.PROP_SLIDER{:}, 'Parent', partRow2, ...
-                    'Callback', @obj.sliderPowerCallback);
+                        'Callback', @obj.sliderPowerCallback, ...
+                        'Min', doubleAom.minValue, 'Max', doubleAom.maxValue);
                 partRow2.Widths = widths;
             
             %%%% UI components set values  %%%%
-            obj.width = sum(widths) + 20;
-            obj.height = 2*rowHeight + 20;            
+            obj.width = -1;
+            obj.height = 2*rowHeight + spacing + 2*padding;
             
             obj.refresh();
         end
@@ -83,13 +87,14 @@ classdef ViewDoubleAom < ViewVBox & EventListener
         function edtPowerPercentageCallback(obj, src, ~)
             aom = obj.getChannelFromHandle(src);
             newValue = src.String;
-            newValue = str2double(regexp(newValue, '^-?\d+', 'match', 'once'));   % Leave only digits (maybe proceeded by a minus sign)
-            aom.value = round(newValue, obj.DECIMAL_DIGITS);            % Now round it, before sending it onwards
+            newValue = str2double(regexp(newValue, '^-?\d+\.?\d*', 'match', 'once'));
+            % ^ Leave only number (of form ###.### maybe proceeded by a minus sign)
+            aom.value = round(newValue, obj.DECIMAL_DIGITS);    % Now round it, before sending it onwards
         end
         
         function sliderPowerCallback(obj, src, ~)
             aom = obj.getChannelFromHandle(src);
-            newValue = src.Value * aom.maxValue;                % Assuming minValue = 0;
+            newValue = src.Value;
             aom.value = round(newValue, obj.DECIMAL_DIGITS);	% Now round it, before sending it onwards
         end
         
@@ -119,19 +124,21 @@ classdef ViewDoubleAom < ViewVBox & EventListener
     methods (Access = protected)
         function refresh(obj)
             lPart = obj.laserPart;
-            aomOneValue = lPart.aomOne.value;
-            obj.edtPowerPercentage1.String = strcat(num2str(aomOneValue),'%');
-            obj.sliderPower1.Value = aomOneValue/100;
+            mValues = lPart.values;
             
-            aomTwoValue = lPart.aomTwo.value;
-            obj.edtPowerPercentage2.String = strcat(num2str(aomTwoValue),'%');
-            obj.sliderPower2.Value = aomTwoValue/100;
+            aomOneValue = mValues(1);
+            obj.edtPowerPercentage1.String = strcat(num2str(aomOneValue), NiDaq.UNITS);
+            obj.sliderPower1.Value = aomOneValue;
+            
+            aomTwoValue = mValues(2);
+            obj.edtPowerPercentage2.String = strcat(num2str(aomTwoValue), NiDaq.UNITS);
+            obj.sliderPower2.Value = aomTwoValue;
 
             obj.radioSelection(lPart.activeChannel)
         end
         
 		function laserPartObject = laserPart(obj)
-			% get the laser part
+			% Get the laser part
 			laserPartObject = getObjByName(obj.mLaserPartName);
         end
         
@@ -143,7 +150,6 @@ classdef ViewDoubleAom < ViewVBox & EventListener
                 case obj.CHANNEL_TWO
                     channel = obj.laserPart.aomTwo;
             end
-            
         end
     end  % Access = protected
     

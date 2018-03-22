@@ -15,7 +15,6 @@ classdef LaserSourceDummy < LaserPartAbstract
         % constructor
         function obj = LaserSourceDummy(name)
             obj@LaserPartAbstract(name);
-            obj.initLaserPart();
         end
     end
     

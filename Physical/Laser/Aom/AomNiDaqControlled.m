@@ -5,7 +5,9 @@ classdef AomNiDaqControlled < LaserPartAbstract & NiDaqControlled
         niDaqChannel;
 
         canSetEnabled = false;
-        canSetValue = true;  
+        canSetValue = true;
+        
+        valueInternal
     end
     
     properties (Constant)
@@ -16,10 +18,9 @@ classdef AomNiDaqControlled < LaserPartAbstract & NiDaqControlled
     methods
         % constructor
         function obj = AomNiDaqControlled(name, niDaqChannel, minVal, maxVal)            
-            obj@LaserPartAbstract(name);
+            obj@LaserPartAbstract(name, minVal, maxVal, NiDaq.UNITS);
             obj@NiDaqControlled(name, niDaqChannel, minVal, maxVal);
             obj.niDaqChannel = niDaqChannel;
-            obj.initLaserPart();
         end
     end
     
@@ -27,6 +28,8 @@ classdef AomNiDaqControlled < LaserPartAbstract & NiDaqControlled
         function setValueRealWorld(obj, newValue)
             niDaq = getObjByName(NiDaq.NAME);
             niDaq.writeVoltage(obj.name, newValue);
+            
+            obj.valueInternal = newValue;   % backup, for NiDaq reset
         end
         
         function value = getValueRealWorld(obj)
@@ -39,7 +42,7 @@ classdef AomNiDaqControlled < LaserPartAbstract & NiDaqControlled
         function onNiDaqReset(obj, niDaq) %#ok<INUSD>
             % This function jumps when the NiDaq resets
             % Each component can decide what to do
-            obj.setValue(obj.value);
+            obj.value = obj.valueInternal;
         end
     end
     

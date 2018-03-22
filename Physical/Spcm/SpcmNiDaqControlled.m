@@ -3,7 +3,8 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
     %   inherit NiDaqControlled, also inherit Spcm
     
     properties (Access = protected)
-        isEnabled       % logical
+        % Backup, for NiDaq reset
+        isEnabled   % logical
         
         % For scanning
         nScanCounts
@@ -23,8 +24,8 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
         niDaqCountChannelName
     end
     
-    properties(Constant = true, Hidden = true)
-        NEEDED_FIELDS = {'nidaq_channel_gate', 'nidaq_channel_counts'};
+    properties (Constant, Hidden)
+        NEEDED_FIELDS = [Spcm.SPCM_NEEDED_FIELDS, {'nidaq_channel_gate', 'nidaq_channel_counts'}];
         OPTIONAL_FIELDS = {'nidaq_channel_min_val', 'nidaq_channel_max_val'};
     end
     
@@ -173,14 +174,14 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
   
     methods(Static = true)
         function spcmObj = create(spcmName, spcmStruct)
-            missingField = FactoryHelper.usualChecks(spcmStruct, SpcmNiDaqControlled.NEEDED_FIELDS_SPCM_DAQ);
+            missingField = FactoryHelper.usualChecks(spcmStruct, SpcmNiDaqControlled.NEEDED_FIELDS);
             if ~isnan(missingField)
                 error('Can''t initialize NiDaq-controlled SPCM - required field "%s" was not found in initialization struct!', missingField);
             end
             
             % We want to get either values set in json, or empty variables
             % (which will be handled by NiDaqControlled constructor):
-            spcmStruct = FactoryHelper.supplementStruct(spcmStruct, AomNiDaqControlled.OPTIONAL_FIELDS);
+            spcmStruct = FactoryHelper.supplementStruct(spcmStruct, SpcmNiDaqControlled.OPTIONAL_FIELDS);
             
             counts = spcmStruct.nidaq_channel_counts;
             gate = spcmStruct.nidaq_channel_gate;

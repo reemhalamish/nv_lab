@@ -48,7 +48,12 @@ classdef StringHelper
             stringWithZeros = sprintf('%f', roundedNum);
             string = regexprep(stringWithZeros, '\.*0+$', '');     % remove 0's @end (+decimal point, if unneeded)
             
-            if strcmp(string, '-0'); string='0'; end
+            if strcmp(string, '-0'); string = '0'; end
+        end
+        
+        function newString = indent(string, n)
+            % Creates indentation by n spaces
+            newString = sprintf('%*s%s', n, '', string);
         end
     end
 end

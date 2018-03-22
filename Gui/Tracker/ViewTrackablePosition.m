@@ -6,13 +6,15 @@ classdef ViewTrackablePosition < ViewTrackable
         trackableName = Tracker.TRACKABLE_POSITION_NAME;
         
         stageAxes       % string. The axes of the stage this trackable uses
+        laserPartNames	% cell. names of laser parts that can set their value (power)
         tvStageName     % text-view. Shows the name of the current stage
         tvCurPos        % text-view. Shows the current position of the stage
     end
     
     properties
-        edtInitStepSize % 3x1 edit-input. Initial step size
-        edtMinStepSize  % 3x1 edit-input. Minimum step size
+        % n is the length of stageAxes
+        edtInitStepSize % nx1 edit-input. Initial step size
+        edtMinStepSize  % nx1 edit-input. Minimum step size
         edtNumStep      % edit-input. Maximum number of steps before giving up
         edtPixelTime    % edit-input. Time for reading at each point.
         edtLaserPower   % edit-input. Power of green laser
@@ -35,17 +37,25 @@ classdef ViewTrackablePosition < ViewTrackable
             obj.legend1 = obj.newLegend(obj.vAxes1,{'x','y','z'});
             
             trackablePos = getExpByName(obj.trackableName);
+            
             stage = getObjByName(trackablePos.mStageName);
             obj.stageAxes = stage.availableAxes; 
             axesLen = length(obj.stageAxes);
-            
             oneForEachAxis = ones(1, axesLen); % might change, depending on the stage
+            
+            laser = getObjByName(trackablePos.mLaserName);
+            obj.laserPartNames = laser.getContollableParts;
+            laserPartsLen = length(obj.laserPartNames);
+            laserParts = cell(1, laserPartsLen);
+            for i = 1:laserPartsLen
+                laserParts{i} = getObjByName(obj.laserPartNames{i});
+            end
             
             %%%% Fill input parameter panel %%%%
             longLabelWidth = 120;
             shortLabelWidth = 80;
             lineHeight = 30;
-            heights = [lineHeight*ones(1,6) -1];
+            heights = [lineHeight*ones(1,5), lineHeight*ones(1,laserPartsLen), -1];
             
             hboxInput = uix.HBox('Parent', obj.panelInput, 'Spacing', 5, 'Padding', 5);
             
@@ -60,8 +70,15 @@ classdef ViewTrackablePosition < ViewTrackable
                 'String', 'Initial Step Size');
             uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels, ...
                 'String', 'Min. Step Size');
-            uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels, ...
-                'String', 'Laser Power')
+            for i = 1:laserPartsLen
+                label = uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels);
+                switch class(laserParts{i})
+                    case {'LaserSourceOnefiveKatana05', 'LaserSourceDummy'}
+                        label.String = 'Laser Source';
+                    case {'AomDoubleNiDaqControlled', 'AomDummy', 'AomNiDaqControlled'}
+                        label.String = 'Laser AOM';
+                end
+            end
             uix.Empty('Parent', vboxLabels);
             vboxLabels.Heights = heights;
             
@@ -90,13 +107,19 @@ classdef ViewTrackablePosition < ViewTrackable
                 hboxInitStepSize.Widths = -oneForEachAxis;
                 hboxMinStepSize.Widths = -oneForEachAxis;
                 
-            hboxLaserPower = uix.HBox('Parent', vboxValues, 'Spacing', 5, 'Padding', 0);
-                obj.edtLaserPower = uicontrol(obj.PROP_EDIT{:}, ...
-                    'Parent', hboxLaserPower, ...
+            hboxLaserPower = gobjects(1, laserPartsLen);
+            obj.edtLaserPower = gobjects(1, laserPartsLen);
+            for i = 1:laserPartsLen
+                hboxLaserPower(i) = uix.HBox('Parent', vboxValues, ...
+                    'Spacing', 5, 'Padding', 0, ...
+                    'UserData', obj.laserPartNames{i});
+                obj.edtLaserPower(i) = uicontrol(obj.PROP_EDIT{:}, ...
+                    'Parent', hboxLaserPower(i), ...
                     'Callback', @obj.edtLaserPowerCallback);
-                uicontrol(obj.PROP_TEXT_NO_BG{:}, 'Parent', hboxLaserPower, ...
-                    'String', '%');
-                hboxLaserPower.Widths = [-1 10];
+                uicontrol(obj.PROP_TEXT_NO_BG{:}, 'Parent', hboxLaserPower(i), ...
+                    'String', laserParts{i}.units);
+                hboxLaserPower(i).Widths = [-1 10];
+            end
             uix.Empty('Parent', vboxValues);
 
             vboxValues.Heights = heights;
@@ -105,7 +128,6 @@ classdef ViewTrackablePosition < ViewTrackable
             
             %%%% Fill tracked parameter panel %%%%
             gridTracked = uix.Grid('Parent', obj.panelTracked, 'Spacing', 5, 'Padding', 5);
-            obj.tvCurPos = gobjects(1, axesLen);
             for i = 1:axesLen
                 uicontrol(obj.PROP_LABEL{:}, 'Parent', gridTracked, 'String', upper(obj.stageAxes(i)));
             end
@@ -121,7 +143,6 @@ classdef ViewTrackablePosition < ViewTrackable
         function refresh(obj)
             trackablePos = getExpByName(obj.trackableName);
             stage = getObjByName(trackablePos.mStageName);
-            laserGate = getObjByName(trackablePos.mLaserName);
             
             % If tracking is currently performed, Start/Stop should be "Stop"
             % and reset should be disabled
@@ -131,7 +152,6 @@ classdef ViewTrackablePosition < ViewTrackable
             obj.cbxContinuous.Value = trackablePos.isRunningContinuously;
             obj.edtNumStep.String = trackablePos.nMaxIterations;
             obj.edtPixelTime.String = trackablePos.pixelTime;
-            obj.edtLaserPower.String = laserGate.value;
             
             currentPos = stage.Pos(obj.stageAxes);
             axesLen = length(obj.stageAxes);
@@ -139,6 +159,13 @@ classdef ViewTrackablePosition < ViewTrackable
                 obj.tvCurPos(i).String = StringHelper.formatNumber(currentPos(i));
                 obj.edtInitStepSize(i).String = trackablePos.initialStepSize(i);
                 obj.edtMinStepSize(i).String = trackablePos.minimumStepSize(i);
+            end
+            
+            laserPartsLen = length(obj.laserPartNames);
+            for i = 1:laserPartsLen
+                part = getObjByName(obj.laserPartNames{i});
+                val = StringHelper.formatNumber(part.value);
+                obj.edtLaserPower(i).String = val;
             end
         end
         
@@ -150,6 +177,8 @@ classdef ViewTrackablePosition < ViewTrackable
             
             % On display
             obj.tvStageName.String = trackablePos.mStageName;
+            % todo: we need to check the available axes, and enable/disable
+            % everything that has to do with changed axes
             obj.refresh;
         end
         
@@ -176,7 +205,7 @@ classdef ViewTrackablePosition < ViewTrackable
     end
     
     %% Callbacks
-    methods
+    methods (Access = protected)
         % From parent class
         function btnStartCallback(obj, ~, ~)
             trackablePos = getExpByName(obj.trackableName);
@@ -253,22 +282,29 @@ classdef ViewTrackablePosition < ViewTrackable
             end
             trackablePos.pixelTime = str2double(obj.edtPixelTime.String);
         end
-        function edtLaserPowerCallback(obj, ~, ~)
-            trackablePos = getExpByName(obj.trackableName);
-            laserGate = getObjByName(trackablePos.mLaserName);
-            
+        function edtLaserPowerCallback(obj, edtHandle, ~)
+            val = str2double(edtHandle.String);
             decimalDigits = 1;
-            val = str2double(obj.edtLaserPower.String);
             [string, numeric] = StringHelper.formatNumber(val, decimalDigits);
+            
+            laserPart = obj.getLaerPart(edtHandle);
             try
-                laserGate.value = numeric;
+                laserPart.value = numeric;
             catch err
                 % Laser did not accept the value. Reverting.
-                numeric = laserGate.value;
+                numeric = laserPart.value;
                 string = StringHelper.formatNumber(numeric, decimalDigits);
                 EventStation.anonymousWarning(err.message);
             end
-            obj.edtLaserPower.String = string;
+            edtHandle.String = string;
+        end
+    end
+    
+    methods (Static, Access = protected)
+        % Helper function for laser parts
+        function laserPart = getLaerPart(handle)
+            partName = handle.Parent.UserData;
+            laserPart = getObjByName(partName);
         end
     end
     

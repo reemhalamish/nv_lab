@@ -8,6 +8,7 @@ classdef AomDoubleNiDaqControlled < LaserPartAbstract
     
     properties (Dependent)
         activeChannel
+        values
     end
     
     properties (Hidden)
@@ -23,7 +24,7 @@ classdef AomDoubleNiDaqControlled < LaserPartAbstract
     
     methods
         function obj = AomDoubleNiDaqControlled(laserName, pgChannelName, channelOne, channelTwo, minVal, maxVal)
-            obj@LaserPartAbstract(laserName);
+            obj@LaserPartAbstract(laserName, minVal, maxVal, NiDaq.UNITS);
             
             swapperName = sprintf('%s swapper', laserName);
             NameOne = sprintf('%s channel #1', laserName);
@@ -32,8 +33,6 @@ classdef AomDoubleNiDaqControlled < LaserPartAbstract
             obj.swapSwitch = SwitchPgControlled(swapperName, pgChannelName);
             obj.aomOne = AomNiDaqControlled(NameOne, channelOne, minVal, maxVal);
             obj.aomTwo = AomNiDaqControlled(NameTwo, channelTwo, minVal, maxVal);
-            
-            obj.initLaserPart;
         end     % constructor
     end
        
@@ -51,9 +50,14 @@ classdef AomDoubleNiDaqControlled < LaserPartAbstract
             end
             obj.swapSwitch.isEnabled = trueforOneFalseForTwo;
         end
-        
         function channel = get.activeChannel(obj)
             channel = BooleanHelper.ifTrueElse(obj.swapSwitch.isEnabled, 1, 2);
+        end
+        
+        function mValues = get.values(obj)
+            value1 = obj.aomOne.value;
+            value2 = obj.aomTwo.value;
+            mValues = [value1, value2];
         end
     end
     

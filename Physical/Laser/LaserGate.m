@@ -14,8 +14,7 @@ classdef LaserGate < Savable % Needs to be EventSender
         aomSwitch
     end
     
-    properties (Dependent) % Only this is available for external functions
-        value
+    properties (Dependent)
         isOn
     end
     
@@ -54,20 +53,15 @@ classdef LaserGate < Savable % Needs to be EventSender
         % Default methods. Assume value in percents.
         % Child objects can override it, if needed
         
-        function set.value(obj, newVal)
-            % Value is given in percentage
-            tfSource = obj.isSourceAvail && obj.source.canSetValue;
-            tfAom = obj.isAomAvail && obj.aom.canSetValue;
-            if ~tfAom && ~tfSource
-                errMsg = sprintf('Cannot set %s as value for %s', newVal, obj.name);
-                EventStation.anonymousError(errMsg);
-            elseif tfAom
-                part = obj.aom;
-            elseif tfSource
-                part = obj.source;
-                % there is no other option
+        function partNamesCell = getContollableParts(obj)
+            partNamesCell = {};
+
+            if obj.isAomAvail && obj.aom.canSetValue
+                partNamesCell{end+1} = obj.aom.name;
             end
-            part.value = obj.percent2absolute(part, newVal);
+            if obj.isSourceAvail && obj.source.canSetValue
+                partNamesCell{end+1} = obj.source.name;
+            end
         end
         
         function set.isOn(obj, newVal)
@@ -75,7 +69,7 @@ classdef LaserGate < Savable % Needs to be EventSender
                         
             % Maybe it isn't possible
             tfAom = obj.isAomAvail;
-            tfSource = isSourceAvail && obj.source.canSetEnabled;
+            tfSource = obj.isSourceAvail && obj.source.canSetEnabled;
             if ~tfAom && ~tfSource
                 errMsg = sprintf('On/off state of %s can''t be set!', obj.name);
                 EventStation.anonymousError(errMsg);
@@ -100,37 +94,13 @@ classdef LaserGate < Savable % Needs to be EventSender
             end
         end
         
-        %%%%
-        function value = get.value(obj)
-            % Value is given in percentage
-            if obj.isAomAvail()
-                part = obj.aom;
-            elseif obj.isSourceAvail()
-                part = obj.source;
-            else
-                value = 100;
-                return
-            end
-            value = obj.absolute2percent(part, part.value);
-        end
-        
         function isOn = get.isOn(obj)
-            isOn = obj.aomSwitch.isEnabled && obj.source.isEnabled;
+            % source is off only if it is available & set to be off
+            aomSwitchIsOn = obj.aomSwitch.isEnabled;
+            sourceIsOn = ~(obj.isSourceAvail && ~obj.source.isEnabled);
+            isOn = aomSwitchIsOn && sourceIsOn;
         end
         
-    end
-    
-    %%
-    methods (Static)
-        function absValue = percent2absolute(part, percentValue)
-            assert(isprop(part, 'maxValue'))
-            absValue = percentValue * part.maxValue / 100;      % We assume, for simplicity, that minimum value is 0
-        end
-        
-        function percentValue = absolute2percent(part, absValue)
-            assert(isprop(part, 'maxValue'))
-            percentValue = absValue * 100 / part.maxValue;      % We assume, for simplicity, that minimum value is 0
-        end
     end
     
     %% overriding from Savable
@@ -153,8 +123,14 @@ classdef LaserGate < Savable % Needs to be EventSender
             outStruct = struct;
             outStruct.switch = obj.aomSwitch.isEnabled;
             if obj.isAomAvail()
-                outStruct.aom_isEnabled = obj.aom.isEnabled;
-                outStruct.aom_curValue = obj.aom.value;
+                mAom = obj.aom;
+                if isa(mAom, 'AomDoubleNiDaqControlled')
+                    outStruct.aom_activeChannel = mAom.activeChannel;
+                    outStruct.aom_values = mAom.values;
+                else
+                    outStruct.aom_isEnabled = mAom.isEnabled;
+                    outStruct.aom_curValue = mAom.value;
+                end
             end
             if obj.isSourceAvail()
                 outStruct.source_isEnabled = obj.source.isEnabled;
@@ -187,13 +163,21 @@ classdef LaserGate < Savable % Needs to be EventSender
             end
             
             if obj.isAomAvail
-                if isfield(savedStruct, 'aom_isEnabled') && obj.aom.canSetEnabled
-                    obj.aom.isEnabled = savedStruct.aom_isEnabled;
-                end
-                if isfield(savedStruct, 'aom_curValue') && obj.aom.canSetValue()
-                    obj.aom.value = savedStruct.aom_curValue;
+                mAom = obj.aom;
+                if isa(mAom, 'AomDoubleNiDaqControlled')
+                    mAom.activeChannel = savedStruct.aom_activeChannel;
+                    mAom.aomOne.value = savedStruct.aom_values(1);
+                    mAom.aomTwo.value = savedStruct.aom_values(2);
+                else
+                    if isfield(savedStruct, 'aom_isEnabled') && obj.aom.canSetEnabled
+                        obj.aom.isEnabled = savedStruct.aom_isEnabled;
+                    end
+                    if isfield(savedStruct, 'aom_curValue') && obj.aom.canSetValue
+                        obj.aom.value = savedStruct.aom_curValue;
+                    end
                 end
             end
+            
             if obj.isSourceAvail()
                 if isfield(savedStruct, 'source_isEnabled') && obj.source.canSetEnabled
                     obj.source.isEnabled = savedStruct.source_isEnabled;
@@ -205,12 +189,55 @@ classdef LaserGate < Savable % Needs to be EventSender
         end
         
         function string = returnReadableString(obj, savedStruct) %#ok<INUSD>
-            isOnString = BooleanHelper.boolToOnOff(obj.isOn);
-            string = sprintf('%s - value %d%% (%s)', obj.name, int16(obj.value), isOnString);
+            indentation = 10;
+            
+            isOnString = BooleanHelper.boolToOnOff(obj.aomSwitch.isEnabled);
+            string = sprintf('%s -- switch: %s', obj.name, isOnString);
+
+            if obj.isSourceAvail
+                if obj.source.canSetValue
+                    valString = StringHelper.formatNumber(obj.source.value, 2);
+                    valString = sprintf('%s%s ', valString, obj.source.units);
+                else
+                    valString = '';
+                end
+                isOnString = BooleanHelper.boolToOnOff(obj.source.isEnabled);
+                
+                sourceString = sprintf('source: %s(%s)', valString, isOnString);
+                string = sprintf('%s\n%s', string, ...
+                    StringHelper.indent(sourceString, indentation));
+            end
+            if obj.isAomAvail
+                if isa(obj.aom, 'AomDoubleNiDaqControlled')
+                % Get everything we need
+                activeChannel = obj.aom.activeChannel;
+                inactiveChannel = 3 - activeChannel;    % (1 -> 2) & (2 -> 1)
+                mValues = obj.aom.values;
+                
+                % Create string for each AOM
+                activeChannelVal = StringHelper.formatNumber(mValues(activeChannel));
+                activeChannelString = sprintf('active AOM: %d, value: %s%s', activeChannel, activeChannelVal, NiDaq.UNITS);
+                
+                inactiveChannelVal = StringHelper.formatNumber(mValues(inactiveChannel));
+                inactiveChannelString = sprintf('inactive AOM: %d, value: %s%s', inactiveChannel, inactiveChannelVal, NiDaq.UNITS);
+                
+                % Append at the end of the original string
+                string = sprintf('%s\n%s\n%s', ...
+                    string, ...
+                    StringHelper.indent(activeChannelString, indentation), ...
+                    StringHelper.indent(inactiveChannelString, indentation));
+                elseif obj.aom.canSetValue
+                    valString = StringHelper.formatNumber(obj.aom.value, 2);
+                    aomString = sprintf('AOM: %s%s', valString, obj.aom.units);
+                    string = sprintf('%s\n%s', string, ...
+                        StringHelper.indent(aomString, indentation));
+                end
+            end
         end
     end
     
-    methods(Static)
+    %% Create all Laser Gates
+    methods (Static)
         function cellOfLasers = getLasers()
             % Creates all the lasers from the json.
             
@@ -244,4 +271,3 @@ classdef LaserGate < Savable % Needs to be EventSender
         end
     end
 end
-

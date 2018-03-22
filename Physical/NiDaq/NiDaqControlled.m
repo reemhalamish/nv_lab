@@ -19,21 +19,28 @@ classdef (Abstract) NiDaqControlled < EventListener
     
     methods(Access = protected)
         function obj = NiDaqControlled(niDaqChannelName, niDaqChannel, minVal, maxVal)
-            % niDaqChannelName - string. the name that the daq will call this component
-            % niDaqChannel - string. the channel to register to.
+            % niDaqChannelName - string. Name that the daq will call this component
+            % niDaqChannel - string. Number of channel to register to.
+            % minVal, maxVal - double. Minimum & maximum values for the channel
             % SUPPORTS CELL (NON-SCALAR) INPUT!
             obj@EventListener(NiDaq.NAME);
             niDaq = getObjByName(NiDaq.NAME);
             
-            lengths = [length(niDaqChannelName), length(niDaqChannel), length(minVal), length(maxVal)];
-            isCell = iscell(niDaqChannelName) && iscell(niDaqChannel) && iscell(minVal) && iscell(maxVal);
+            lengths = [length(niDaqChannelName), length(niDaqChannel)];
+            isCell = iscell(niDaqChannelName) && iscell(niDaqChannel);
             
             if isCell
-                if all(lengths == lengths(1))   % they are all the same length
-                    EventStation.anonymousError('can''t initiate NiDaqControlled object - cell-size mismatch')
+                if any(lengths ~= lengths(1))   % they are all the same length
+                    EventStation.anonymousError('Can''t initiate NiDaqControlled object -- cell-size mismatch')
                 end
                 
-                for i=1:length(niDaqChannelName)
+                % minVal or maxVal might be missing or empty, and we need to create
+                % them for proper channel registration
+                S = size(niDaqChannelName);
+                if ~iscell(minVal);     minVal = cell(S);   end
+                if ~iscell(maxVal);     maxVal = cell(S);   end
+                
+                for i = 1:length(niDaqChannelName)
                     niDaq.registerChannel(niDaqChannel{i}, niDaqChannelName{i}, minVal{i}, maxVal{i});
                 end
             else  % scalar
@@ -41,13 +48,21 @@ classdef (Abstract) NiDaqControlled < EventListener
             end
         end
     end
-    
+
+    %% onEvent
+    % The function onEvent() was divided into multiple functions, so
+    % that child classes won't override onEvent.
+    % This way, we can override onEvent() HERE in this class, and make
+    % it work the way we expect it
+
     methods(Abstract)
-        % The function onEvent() was divided into multiple functions, so
-        % that child classes won't override onEvent. 
-        % This way, we can override onEvent() HERE in this class, and make
-        % it work the way we expect it
         onNiDaqReset(obj, niDaq)
+        % This function jumps when the NiDaq resets
+        % Each component can decide what to do
+        %
+        % Note: implementing this function should also include saving the
+        % value(s) written to the NiDaq, so that here we could recover from
+        % reset.
     end
   
     methods
@@ -63,8 +78,8 @@ classdef (Abstract) NiDaqControlled < EventListener
     end
     
     %% overridden from EventListener
-    methods(Sealed = true)
-        % this method is selaed. child classes can implement other methods
+    methods (Sealed)
+        % This method is sealed -- child classes can implement other methods
         % to achieve the same effect:
         %   @ onNiDaqReset - where sender is NiDaq and event is EVENT_NIDAQ_RESET
         %   @ onNiDaqEvent - where sender is NiDaq and event is anything but EVENT_NIDAQ_RESET

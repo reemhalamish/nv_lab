@@ -15,7 +15,6 @@ classdef AomDummy < LaserPartAbstract
         % constructor
         function obj = AomDummy(name)
             obj@LaserPartAbstract(name);
-            obj.initLaserPart();
         end
     end
     

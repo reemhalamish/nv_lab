@@ -25,14 +25,7 @@ classdef LaserSourceOnefiveKatana05 < LaserPartAbstract & SerialControlled
         function obj = LaserSourceOnefiveKatana05(name, port)
             obj@LaserPartAbstract(name);
             obj@SerialControlled(port);
-            obj.initLaserPart();
-        end
-        
-        function initLaserPart(obj)
-            obj.minValue = 0;
-            obj.maxValue = 10;
-            obj.units = 'mA';
-            
+
             obj.set(...
                 'BaudRate', 38400, ...
                 'DataBits', 8, ...

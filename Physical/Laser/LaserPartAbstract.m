@@ -6,10 +6,8 @@ classdef (Abstract) LaserPartAbstract < EventSender
     %   Child classes must:
     %   @ assign value to property canSetEnabled
     %   @ assign value to property canSetValue
-    %   @ call method initLaserPart() after calling all the inheritance constructors
     %
     %   If needed, Child class should override:
-    %   @ initLaserPart
     %   @ setValueRealWorld
     %   @ getValueRealWorld
     %   @ setEnabledRealWorld
@@ -19,19 +17,6 @@ classdef (Abstract) LaserPartAbstract < EventSender
     %-------------------------------------------------------
     %     
     %     %% Overridden from LaserPartAbstract
-    %         methods
-    %             function initLaserPart(obj)
-    %                 % Default initiation. Could be overridden by subclasses
-    %                 obj.isEnabled = false;
-    % 
-    %                 obj.minValue = obj.DEFAULT_MIN_VALUE;
-    %                 obj.maxValue = obj.DEFAULT_MAX_VALUE;
-    %                 obj.units = obj.DEFAULT_UNITS;
-    % 
-    %                 obj.value = obj.minValue;
-    %             end
-    %         end
-    %
     %         %%%% These functions call physical objects. Tread with caution! %%%%
     %         methods (Access = protected)
     %             function setValueRealWorld(obj, newValue)
@@ -78,16 +63,26 @@ classdef (Abstract) LaserPartAbstract < EventSender
     
     methods
         %% constructor
-        function obj = LaserPartAbstract(name)
+        function obj = LaserPartAbstract(name, minValueOptional, maxValueOptional, unitsOptional)
             obj@EventSender(name);
             addBaseObject(obj);     % so it can be reached by BaseObject.getByName()
-        end
-        
-        function initLaserPart(obj)
-            % Default initiation. Could be overridden by subclasses
-            obj.minValue = obj.DEFAULT_MIN_VALUE;
-            obj.maxValue = obj.DEFAULT_MAX_VALUE;
-            obj.units = obj.DEFAULT_UNITS;
+            
+            %
+            if exist('minValueOptional', 'var') && ~isempty(minValueOptional)
+                obj.minValue = minValueOptional;
+            else
+                obj.minValue = obj.DEFAULT_MIN_VALUE;
+            end
+            if exist('maxValueOptional', 'var') && ~isempty(maxValueOptional)
+                obj.maxValue = maxValueOptional;
+            else
+                obj.maxValue = obj.DEFAULT_MAX_VALUE;
+            end
+            if exist('unitsOptional', 'var') && ~isempty(unitsOptional)
+                obj.units = unitsOptional;
+            else
+                obj.units = obj.DEFAULT_UNITS;
+            end
         end
         
         function on(obj)
