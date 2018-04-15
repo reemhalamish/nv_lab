@@ -121,7 +121,7 @@ classdef (Sealed) ClassDummyStage  < ClassStage
             axis = obj.GetAxis(axis);
             
             if ~PointIsInRange(obj, axis, pos) % Check that point is in limits
-                error('Move Command is outside the soft limits');
+                obj.sendError('Move Command is outside the soft limits');
             end
             
             obj.curPos(axis) = pos;
@@ -411,7 +411,7 @@ classdef (Sealed) ClassDummyStage  < ClassStage
             % forwards is set to 1 when the scan is forward and is set to 0
             % when it's backwards
             if (obj.macroIndex == -1)
-                error('No scan detected.\nFunction can only be called after ''PrepareScanXX!''');
+                obj.sendError('No scan detected.\nFunction can only be called after ''PrepareScanXX!''');
             end
             
             Move(obj, obj.macroNormalScanAxis, obj.macroNormalScanVector(obj.macroIndex));
@@ -437,10 +437,10 @@ classdef (Sealed) ClassDummyStage  < ClassStage
             % Prepares the previous line for rescanning.
             % Scanning is done with "ScanNextLine"
             if (obj.macroIndex == -1)
-                warning('No scan detected. Function can only be called after ''PrepareScanXX!''.\nThis will work if attempting to rescan a 1D scan, but macro will be rewritten.\n');
+                obj.sendWarning('No scan detected. Function can only be called after ''PrepareScanXX!''.\nThis will work if attempting to rescan a 1D scan, but macro will be rewritten.\n');
                 return
             elseif (obj.macroIndex == 1)
-                error('Scan did not start yet. Function can only be called after ''ScanNextLine!''');
+                obj.sendError('Scan has not started yet. Function can only be called after ''ScanNextLine!''');
             end
             
             % Decrease index

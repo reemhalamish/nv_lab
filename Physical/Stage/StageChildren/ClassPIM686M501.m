@@ -145,7 +145,7 @@ classdef (Sealed) ClassPIM686M501 < ClassStage
             elseif all(axis ~= 3) % No Z Axis.
                 vel = obj.stageCoarseXY.Vel(axis);
             else % Mixture.
-                if axis(end) ~= 3; error('Last axis is not Z, unsupported'); end;
+                if axis(end) ~= 3; obj.sendError('Last axis is not Z, unsupported'); end
                 velZ = obj.stageCoarseZ.Vel(axis(axis==3));
                 velXY = obj.stageCoarseXY.Vel(axis(axis~=3));
                 vel = [velXY, velZ];
@@ -269,7 +269,7 @@ classdef (Sealed) ClassPIM686M501 < ClassStage
             obj.warningScanUnimplemented();
         end
         
-        function [tiltEnabled, thetaXZ, thetaYZ] = GetTiltStatus(obj)
+        function [tiltEnabled, thetaXZ, thetaYZ] = GetTiltStatus(obj) %#ok<MANU>
             % Return the status of the tilt control.
             tiltEnabled = 0;
             thetaXZ = 0;

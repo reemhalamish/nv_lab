@@ -15,7 +15,7 @@ classdef LaserSourcePhysicalFactory
             
             missingField = FactoryHelper.usualChecks(struct, LaserSourcePhysicalFactory.NEEDED_FIELDS);
             if ~isnan(missingField)
-                error(...
+                EventStation.anonymousError(...
                     'Trying to create a source for laser "%s", encountered missing field - "%s". Aborting',...
                     name, missingField);
             end
@@ -24,12 +24,14 @@ classdef LaserSourcePhysicalFactory
             
             switch(lower(struct.classname))
                 case 'dummy'
-                    laserPhysicalPart = LaserSourceDummy(partName);
+                    laserPhysicalPart = LaserSourceDummy.create(partName, struct);
                     return
                 case 'onefive katana 05'
                     laserPhysicalPart = LaserSourceOnefiveKatana05.create(partName, struct);
                 otherwise
-                    error('Can''t create a %s-class laser part for laser "%s" - unknown classname! Aborting.', struct.classname, name);
+                    EventStation.anonymousError(...
+                        'Can''t create a %s-class laser part for laser "%s" - unknown classname! Aborting.', ...
+                        struct.classname, name);
             end
         end
                     

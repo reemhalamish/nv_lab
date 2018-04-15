@@ -44,7 +44,7 @@ classdef SwitchPgControlled < EventSender & EventListener
                 obj.sendEvent(struct('isEnabled', newValue));
                 % ^ let everyone know about the success! :)
             else
-                error('Can''t set "isEnabled" to something other than (true \ false \ 1 \ 0). aborting');
+                EventStation.anonymousError('Can''t set "isEnabled" to anything other than (true \ false \ 1 \ 0). Aborting');
             end
         end
     end

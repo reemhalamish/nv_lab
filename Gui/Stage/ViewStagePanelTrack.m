@@ -57,7 +57,12 @@ classdef ViewStagePanelTrack < GuiComponent & EventListener
             end
             
             gui = GuiControllerTrackablePosition;
-            gui.start();
+            try
+                gui.start();
+            catch err
+                EventStation.anonymousWarning('Tracker window could not open. Continuing tracking nonetheless.');
+                err2warning(err);
+            end
             trackablePos.resetTrack;
             trackablePos.startTrack;
         end

@@ -105,7 +105,7 @@ classdef LaserGate < Savable % Needs to be EventSender
     
     %% overriding from Savable
     methods(Access = protected)
-        function outStruct = saveStateAsStruct(obj, category, type) %#ok<*MANU>
+        function outStruct = saveStateAsStruct(obj, category, type)
             % Saves the state as struct. Overriden from Savable
             
             outStruct = NaN;
@@ -259,8 +259,9 @@ classdef LaserGate < Savable % Needs to be EventSender
             
             missingField = FactoryHelper.usualChecks(laserStruct, LaserGate.NEEDED_FIELDS);
             if ~isnan(missingField)
-                warning('Can''t initialize Laser - needed field "%s" was not found in initialization struct!', missingField);
-                error(laserStruct);
+                EventStation.anonymousError(...
+                    'Can''t initialize Laser - needed field "%s" was not found in initialization struct!', ...
+                    missingField);
             end
             
             laserName = laserStruct.nickname;

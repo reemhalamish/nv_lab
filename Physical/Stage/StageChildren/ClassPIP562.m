@@ -151,10 +151,13 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             [~, negPhysicalLimitDistance] = SendPICommand(obj, 'PI_qTMN', obj.ID, szAxes, zerosVector);
             for i=1:length(obj.validAxes)
                 if ((negPhysicalLimitDistance(i) ~= obj.negRangeLimit(i)) || (posPhysicalLimitDistance(i) ~= obj.posRangeLimit(i)))
-                    obj.sendError('Physical limits for %s axis are incorrect!\nShould be: %d to %d.\nReal value: %d to %d.\nMaybe units are incorrect?',...
-                        upper(obj.validAxes(i)), obj.negRangeLimit(i), obj.posRangeLimit(i), negPhysicalLimitDistance(i), posPhysicalLimitDistance(i))
+                    obj.sendError(sprintf(['Physical limits for %s axis are incorrect!\nShould be: %d to %d.\n', ...
+                        'Real value: %d to %d.\nMaybe units are incorrect?'], ...
+                        upper(obj.validAxes(i)), obj.negRangeLimit(i), obj.posRangeLimit(i), ...
+                        negPhysicalLimitDistance(i), posPhysicalLimitDistance(i)))
                 else
-                    fprintf('%s axis - Physical limits are from %d%s to %d%s.\n', upper(obj.validAxes(i)), obj.negRangeLimit(i), obj.units, obj.posRangeLimit(i), obj.units);
+                    fprintf('%s axis - Physical limits are from %d%s to %d%s.\n', ...
+                        upper(obj.validAxes(i)), obj.negRangeLimit(i), obj.units, obj.posRangeLimit(i), obj.units);
                 end
             end
         end
@@ -199,7 +202,8 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             WaitFor(obj, 'ControllerReady')
             [~, autoZeroed] = SendPICommand(obj, 'PI_qATZ', obj.ID, szAxes, zerosVector);
             if ~all(autoZeroed)
-                obj.sendError('AutoZero failed for controller %s with ID %d: Reason unknown.', obj.controllerModel, obj.ID);
+                obj.sendError(sprintf('AutoZero failed for controller %s with ID %d: Reason unknown.', ...
+                    obj.controllerModel, obj.ID));
             end
             MovePrivate(obj, axis, 100*ones(size(axis))); % Go back to the center
             WaitFor(obj, 'onTarget', axis)

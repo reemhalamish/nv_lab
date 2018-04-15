@@ -17,11 +17,11 @@ classdef TimedDisplay < handle
     end
     
     methods
-        function obj = TimedDisplay(gObj,delayHideTimeOptional,blinkTimeOptional)
+        function obj = TimedDisplay(gObj, delayHideTimeOptional, blinkTimeOptional)
             obj@handle;
             
             if ~isgraphics(gObj)
-                error('Can''t hide and show non-graphic objects');
+                EventStation.anonymousError('Can''t hide and show non-graphic objects');
             end
             obj.grahpicObj = gObj;
             

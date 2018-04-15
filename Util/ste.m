@@ -1,17 +1,18 @@
-function [ s ] = ste( data , dim )
+function s = ste( varargin )
 %STE returns the standard error of the data
+% Works exactly like VAR or STD, but equals std(x)/sqrt(n), where n is the
+% number of elements in the selected axis
 
-sz = size(data);
-if ~exist('dim','var')
-    dim = find(sz>1, 1, 'first');
+if nargin > 2
+    dim = varargin{3};
+else
+    dim = find(size(x) ~= 1, 1);
     if isempty(dim)
-        s = 0;
-        return
+        dim = 1;
     end
 end
-    m = mean(data,dim);
-    n = sz(dim);
-    resid = (data - m)/n;
-    s = sqrt(sum(resid.^2));
+n = size(x, dim);
+v = var(varargin{:});
+s = sqrt(v/n);
 end
 

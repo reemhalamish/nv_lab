@@ -147,7 +147,7 @@ classdef EventStation < handle
                     listenerForAll.onEvent(event);
                 end
             end
-            
+
             out = true;
         end
     end

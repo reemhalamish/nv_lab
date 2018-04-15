@@ -189,7 +189,9 @@ classdef SpcmTimeTaggerControlledNiDaqEnabled < Spcm & NiDaqControlled
         function spcmObj = create(spcmName, spcmStruct)
             missingField = FactoryHelper.usualChecks(spcmStruct, SpcmNiDaqControlled.NEEDED_FIELDS_SPCM_NIDAQ_TIMETAGGER);
             if ~isnan(missingField)
-                error('Can''t initialize NiDaq-controlled SPCM - required field "%s" was not found in initialization struct!', missingField);
+                EventStation.anonymousError(...
+                    'Can''t initialize NiDaq-controlled SPCM - required field "%s" was not found in initialization struct!', ...
+                    missingField);
             end
             counts = spcmStruct.timeTagger_channel_counts;
             gate = spcmStruct.nidaq_channel_gate;

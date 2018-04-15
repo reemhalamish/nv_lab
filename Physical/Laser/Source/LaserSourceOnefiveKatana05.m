@@ -86,7 +86,7 @@ classdef LaserSourceOnefiveKatana05 < LaserPartAbstract & SerialControlled
         end
         
         function val = getValueRealWorld(obj)
-            regex = 'lp=(\d\.\d+)\n'; % a number of the form #.### followed by new-line
+            regex = 'lp=(\d+\.\d+)\n'; % a number of the form ##.### followed by new-line
             val = str2double(obj.query(obj.COMMAND_POWER_QUERY, regex));
         end
         
@@ -99,7 +99,7 @@ classdef LaserSourceOnefiveKatana05 < LaserPartAbstract & SerialControlled
                 case '1'
                     val = true;
                 otherwise
-                    error('Problem in regex!!')
+                    obj.sendError('Problem in regex!!')
             end
             
             % Clear memory. Needed because of Katana bug
@@ -110,12 +110,12 @@ classdef LaserSourceOnefiveKatana05 < LaserPartAbstract & SerialControlled
     end
     
     %% Factory
-    methods(Static)
+    methods (Static)
         function obj = create(name, jsonStruct)
             missingField = FactoryHelper.usualChecks(jsonStruct, LaserSourceOnefiveKatana05.NEEDED_FIELDS);
             if ~isnan(missingField)
-                error(['While trying to create an AOM part for laser "%s",', ...
-                    'could not find "%s" field. Aborting'], ...
+                EventStation.anonymousError(...
+                    'While trying to create an AOM part for laser "%s", could not find "%s" field. Aborting', ...
                     name, missingField);
             end
             

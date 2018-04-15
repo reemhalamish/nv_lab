@@ -496,7 +496,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             % degrees.
             try
                 if ~obj.tiltAvailable
-                    error('This stage doesn''t support tilt!');
+                    obj.sendError('This stage doesn''t support tilt!');
                 end
                 
                 if ~ValidationHelper.isInBorders(thetaXZ, obj.TILT_MIN_LIM_DEG, obj.TILT_MAX_LIM_DEG)

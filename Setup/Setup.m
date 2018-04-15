@@ -29,12 +29,14 @@ classdef Setup < handle
             obj@handle();          
             
             %%%% Get the json %%%%
-            jsonStruct = JsonInfoReader.getJson();          
+            jsonStruct = JsonInfoReader.getJson();
             
             %%%% Check missing fields %%%%
             missingField = FactoryHelper.usualChecks(jsonStruct, Setup.NEEDED_FIELDS);
             if ~isnan(missingField)
-                error('Can''t find the reserved word "%s" in the main section of the file "setupInfo.json"', missingField);
+                EventStation.anonymousError(...
+                    'Can''t find the reserved word "%s" in the main section of the file "setupInfo.json"', ...
+                    missingField);
             end
                         
             %%%% init important objects %%%%
@@ -48,7 +50,6 @@ classdef Setup < handle
             LaserGate.getLasers;	% the first call to getLasers() also inits them
 			ClassStage.getStages;	% the first call to getStages() also inits them
             Tracker.init;
-            
 			
         end
     end

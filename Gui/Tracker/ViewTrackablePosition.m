@@ -22,7 +22,7 @@ classdef ViewTrackablePosition < ViewTrackable
     
     properties (Constant)
         BOTTOM_LABEL1 = 'time [sec]';
-        LEFT_LABEL1 = sprintf('%s(position) %s', StringHelper.DELTA, StringHelper.MICRON);
+        LEFT_LABEL1 = sprintf('%s(position) [%s]', StringHelper.DELTA, StringHelper.MICRON);
         BOTTOM_LABEL2 = 'time [sec]';
         LEFT_LABEL2 = 'kpcs'
     end

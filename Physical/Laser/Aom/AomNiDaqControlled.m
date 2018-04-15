@@ -17,8 +17,8 @@ classdef AomNiDaqControlled < LaserPartAbstract & NiDaqControlled
     
     methods
         % constructor
-        function obj = AomNiDaqControlled(name, niDaqChannel, minVal, maxVal)            
-            obj@LaserPartAbstract(name, minVal, maxVal, NiDaq.UNITS);
+        function obj = AomNiDaqControlled(name, niDaqChannel, minVal, maxVal)
+            obj@LaserPartAbstract(name, minVal, maxVal, NiDaq.UNITS)
             obj@NiDaqControlled(name, niDaqChannel, minVal, maxVal);
             obj.niDaqChannel = niDaqChannel;
         end
@@ -50,7 +50,7 @@ classdef AomNiDaqControlled < LaserPartAbstract & NiDaqControlled
         function obj = create(name, jsonStruct)
             missingField = FactoryHelper.usualChecks(jsonStruct, AomNiDaqControlled.NEEDED_FIELDS);
             if ~isnan(missingField)
-                error(['While trying to create an AOM part for laser "%s",', ...
+                EventStation.anonymousError(['While trying to create an AOM part for laser "%s",', ...
                     'could not find "%s" field. Aborting'], ...
                     name, missingField);
             end

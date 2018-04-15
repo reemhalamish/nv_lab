@@ -3,6 +3,9 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
     % An abstract class for GUI components of trackables, which is
     % also a listener to events from the tracker
     
+    % Child objects must implement refresh() and draw() functions, for
+    % their views as well as for the common views.
+    
     properties
         vAxes1  % graphical axes. Usually, displays the same as the axes of Experiment
         vAxes2  % graphical axes. Usually, history of the tracked parameter

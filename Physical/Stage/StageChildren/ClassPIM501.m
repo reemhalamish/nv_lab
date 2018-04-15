@@ -91,7 +91,9 @@ classdef (Sealed) ClassPIM501 < ClassPIMicos
             WaitFor(obj, 'ControllerReady', axis)
             [~, refernced] = SendPICommand(obj, 'PI_qFRF', obj.ID,szAxes, zerosVector);
             if (~all(refernced))
-                error('Referencing failed for controller %s with ID %d: Reason unknown.', obj.controllerModel, obj.ID);
+                errorMsg = sprintf('Referencing failed for controller %s with ID %d: Reason unknown.', ...
+                    obj.controllerModel, obj.ID);
+                obj.sendError(errorMsg);
             end
         end
     end

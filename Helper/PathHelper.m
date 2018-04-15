@@ -11,7 +11,7 @@ classdef PathHelper
             nvLabFolderName = 'NV Lab';
             nvLabFolderPath = PathHelper.recuresiveFindFolder(googleDriveFolder, nvLabFolderName);
             
-            if ~ischar(nvLabFolderPath); error('Can''t find NV Lab folder!!'); end
+            if ~ischar(nvLabFolderPath); EventStation.anonymousError('Can''t find NV Lab folder!!'); end
         end
         
         function devOrProdString = SetupMode

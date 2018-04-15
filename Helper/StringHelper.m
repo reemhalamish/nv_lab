@@ -3,7 +3,7 @@ classdef StringHelper
     
     properties (Constant)
         % Useful html codes, to be used in GUI with sprintf
-        MICRON = sprintf('[\x03bcm]');
+        MICRON = sprintf('\x03bcm');
         DELTA = sprintf('\x0394');
         LEFT_ARROW = sprintf('\x2190');
         RIGHT_ARROW = sprintf('\x2192');

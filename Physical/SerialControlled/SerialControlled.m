@@ -68,7 +68,7 @@ classdef SerialControlled < matlab.mixin.SetGet
     methods
         function sendCommand(obj, command)
             if ~ischar(command)
-                error('Command should be a string! Cannot send command to device.')
+                EventStation.anonymousError('Command should be a string! Can''t send command to device.')
             end
             
             if ~obj.keepConnected; obj.open; end

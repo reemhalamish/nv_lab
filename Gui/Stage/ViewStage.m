@@ -43,8 +43,8 @@ classdef ViewStage < ViewVBox
                 vMovement = ViewStagePanelMovementControl(hboxBottom, controller, stage);
                 vboxBottomRight = ViewVBox(hboxBottom, controller, 0, 0);
                     vTilt = ViewStagePanelTiltCorrection(vboxBottomRight, controller, stage);
-                    vTrackPosition = ViewStagePanelTrack(vboxBottomRight, controller, stage); %#ok<NASGU>
-                    vboxBottomRight.setHeights([vTilt.height -1])
+                    vTrackPosition = ViewStagePanelTrack(vboxBottomRight, controller, stage);
+                    vboxBottomRight.setHeights([vTilt.height, vTrackPosition.height])
                     bottom = {vMovement, vboxBottomRight};
                 hboxBottom.setWidths([vMovement.width, -1]);
                 

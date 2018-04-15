@@ -16,7 +16,7 @@ classdef LaserSwitchPhysicalFactory
             
             missingField = FactoryHelper.usualChecks(struct, LaserSwitchPhysicalFactory.NEEDED_FIELDS);
             if ~isnan(missingField)
-                error(...
+                EventStation.anonymousError(...
                     'Trying to create a fast switch for laser "%s", encountered missing field - "%s". Aborting',...
                     name, missingField);
             end
@@ -27,7 +27,9 @@ classdef LaserSwitchPhysicalFactory
                 case {'pulsegenerator', 'pulsestreamer', 'pulseblaster'}
                     switchPhysicalPart = SwitchPgControlled(partName, struct.switchChannelName);
                 otherwise
-                    error('Can''t create a %s-class fast switch for laser "%s" - unknown classname! Aborting.', struct.classname, name);
+                    EventStation.anonymousError(...
+                        'Can''t create a %s-class fast switch for laser "%s" - unknown classname! Aborting.', ...
+                        struct.classname, name);
             end
             % check for optional field "isEnabled" and set it correctly
             if isnan(FactoryHelper.usualChecks(struct, SwitchPgControlled.OPTIONAL_FIELDS))

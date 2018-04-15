@@ -135,7 +135,7 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
                 
                 if numberOfConnectedDevices ~= 3
                     calllib(obj.libAlias, 'PI_CloseDaisyChain', obj.ID);
-                    error('There hould be 3 devices, one for each axis!')
+                    obj.sendError('There hould be 3 devices, one for each axis!')
                 end
             end
             
@@ -172,7 +172,7 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             for i=1:length(obj.validAxes)
                 [~,~,~,axisUnits] = SendPICommand(obj, 'PI_qSPA', obj.axesID(i), obj.szAxes, hex2dec('7000601'), 0, '', 4);
                 if ~strcmpi(strtrim(axisUnits), obj.units)
-                    error('%s axis - Stage units are in%s, should be%s', upper(obj.axesName(i)), axisUnits, obj.units);
+                    obj.sendError('%s axis - Stage units are in%s, should be%s', upper(obj.axesName(i)), axisUnits, obj.units);
                 else
                     fprintf('%s axis - Units are in%s for position and%s/s for velocity.\n', upper(obj.axesName(i)), obj.units, obj.units);
                 end
@@ -183,8 +183,9 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
                 [~,~,posPhysicalLimitDistance,~] = SendPICommand(obj, 'PI_qSPA', obj.axesID(i), obj.szAxes, 47, 0, '', 0);
                 [~,~,negPhysicalLimitDistance,~] = SendPICommand(obj, 'PI_qSPA', obj.axesID(i), obj.szAxes, 23, 0, '', 0);
                 if ((negPhysicalLimitDistance ~= -obj.negRangeLimit(i)) || (posPhysicalLimitDistance ~= obj.posRangeLimit(i)))
-                    error('Physical limits for %s axis are incorrect!\nShould be: %d to %d.\nReal value: %d to %d.\nMaybe units are incorrect?',...
-                        obj.axesName(i), obj.negRangeLimit, obj.posRangeLimit, -negPhysicalLimitDistance, posPhysicalLimitDistance)
+                    errorMsg = sprintf('Physical limits for %s axis are incorrect!\nShould be: %d to %d.\nReal value: %d to %d.\nMaybe units are incorrect?',...
+                        obj.axesName(i), obj.negRangeLimit, obj.posRangeLimit, -negPhysicalLimitDistance, posPhysicalLimitDistance);
+                    obj.sendError(errorMsg);
                 end
                 fprintf('%s axis - Physical limits are from %d%s to %d%s.\n', upper(obj.axesName(i)), obj.negRangeLimit(i), obj.units, obj.posRangeLimit(i), obj.units);
             end
@@ -230,7 +231,8 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
                 case 'Nanostepping'
                     SendPICommand(obj,'PI_SPA', axisID, obj.szAxes, hex2dec('7001A00'), 0, '');
                 otherwise
-                    error('Unknown mode %s', mode)
+                    errorMsg = sprintf('Unknown mode %s', mode);
+                    obj.sendError(errorMsg);
             end
             ChangeLoopMode(obj, axis, 'Closed');
         end
@@ -294,7 +296,8 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
                         ready = SendPICommand(obj, 'PI_IsControllerReady', axisID, 0);
                         wait = ~ready;
                     otherwise
-                        error('Wrong Input %s', what);
+                        errorMsg = sprintf('Wrong Input %s', what);
+                        obj.sendError(errorMsg);
                 end
                 
                 if (toc(timer) > timeout)
@@ -597,7 +600,7 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             end
             
             if ~PointIsInRange(obj, axis, pos) % Check that point is in limits
-                error('Move Command is outside the soft limits');
+                obj.sendError('Move Command is outside the soft limits');
             end
             
             CheckRefernce(obj, axis)
@@ -661,7 +664,10 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
                 WaitFor(obj, axis(i), 'ControllerReady')
                 [~, refernced] = SendPICommand(obj, 'PI_qFRF', axisID(i), obj.szAxes, 0);
                 if (~refernced)
-                    error('Referencing failed for controller %s with ID %d (%s axis): Reason unknown.', obj.controllerModel, axisID(i), obj.axesName(axis(i)));
+                    errorMsg = sprintf(...
+                        'Referencing failed for controller %s with ID %d (%s axis): Reason unknown.', ...
+                        obj.controllerModel, axisID(i), obj.axesName(axis(i)));
+                    obj.sendError(errorMsg);
                 end
             end
         end
@@ -692,7 +698,7 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             % forwards is set to 1 when the scan is forward and is set to 0
             % when it's backwards
             if ~obj.scanRunning
-                error('No scan detected.\nFunction can only be called after ''PrepareScanXX!''');
+                obj.sendError('No scan detected.\nFunction can only be called after ''PrepareScanXX!''');
             end
             macroScanAxisID = obj.axesID(obj.macroScanAxis);
             
@@ -739,10 +745,10 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             % Prepares the previous line for rescanning.
             % Scanning is done with "ScanNextLine"
             if ~obj.scanRunning
-                warning('No scan detected. Function can only be called after ''PrepareScanXX!''.\nThis will work if attempting to rescan a 1D scan, but macro will be rewritten.\n');
+                obj.sendWarning('No scan detected. Function can only be called after ''PrepareScanXX!''.\nThis will work if attempting to rescan a 1D scan, but macro will be rewritten.\n');
                 return
             elseif (obj.macroIndex == 1)
-                error('Scan did not start yet. Function can only be called after ''ScanNextLine!''');
+                obj.sendError('Scan did not start yet. Function can only be called after ''ScanNextLine!''');
             end
             
             % Decrease index
@@ -853,7 +859,8 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
                     case 'Closed'
                         SendPICommand(obj,'PI_SVO', axisID, obj.szAxes, 1);
                     otherwise
-                        error('Unknown mode %s', mode);
+                        errorMsg = sprintf('Unknown mode %s', mode);
+                        obj.sendError(errorMsg);
                 end
             else
                 mode = varargin{1};

@@ -44,7 +44,7 @@ classdef GuiComponent < handle
             end
             
             if nargin < 2
-                error('Can''t construct object without parent and the main controller arguments!')
+                EventStation.anonymousError('Can''t construct object without parent and the main controller arguments!')
             end
             obj.parent = parent;
             controller.addView(obj);

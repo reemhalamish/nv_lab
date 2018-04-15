@@ -176,7 +176,9 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
         function spcmObj = create(spcmName, spcmStruct)
             missingField = FactoryHelper.usualChecks(spcmStruct, SpcmNiDaqControlled.NEEDED_FIELDS);
             if ~isnan(missingField)
-                error('Can''t initialize NiDaq-controlled SPCM - required field "%s" was not found in initialization struct!', missingField);
+                EventStation.anonymousError(...
+                    'Can''t initialize NiDaq-controlled SPCM - required field "%s" was not found in initialization struct!', ...
+                    missingField);
             end
             
             % We want to get either values set in json, or empty variables

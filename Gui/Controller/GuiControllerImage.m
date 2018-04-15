@@ -27,7 +27,7 @@ classdef GuiControllerImage < GuiController
             % Callback. Things to run when need to close the GUI.
             try
                 imageScanResult = getObjByName(ImageScanResult.NAME);
-                imageScanResult.checkGraphicAxes;       % Tell it that vaxes are no longer available (without being EventSender)
+                imageScanResult.checkGraphicAxes;       % Tell it that vAxes are no longer available (without being EventSender)
             catch
                 % Could not find ImageScanResult, so nothing needs updating.
             end

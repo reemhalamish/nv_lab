@@ -9,7 +9,7 @@ classdef (Abstract) Savable < BaseObject
     
     %     %% overriding from Savable
     %     methods(Access = protected)
-    %         function outStruct = saveStateAsStruct(obj, category, type) %#ok<*MANU>
+    %         function outStruct = saveStateAsStruct(obj, category, type) %#ok<MANU>
     %             % Saves the state as struct. if you want to save stuff, make
     %             % (outStruct = struct;) and put stuff inside. If you dont
     %             % want to save, make (outStruct = NaN;)
@@ -22,7 +22,7 @@ classdef (Abstract) Savable < BaseObject
     %             outStruct = NaN;
     %         end
     %
-    %         function loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<*INUSD>
+    %         function loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<INUSD>
     %             % loads the state from a struct.
     %             % to support older versoins, always check for a value in the
     %             % struct before using it. view example in the first line.
@@ -71,7 +71,7 @@ classdef (Abstract) Savable < BaseObject
     end
     
     methods(Access = protected, Abstract = true)
-        saveStateAsStruct(obj, category, type) %#ok<*MANU>
+        saveStateAsStruct(obj, category, type)
         % Saves the state as struct.
         % Override this function to save.
         % To save, you should return a new struct with your properties.
@@ -83,7 +83,7 @@ classdef (Abstract) Savable < BaseObject
         % type - string. Whether the objects saves at the beginning
         %                       of the run (parameter) or at its end (result)
         %
-        loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<*INUSD>
+        loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<INUSD>
         % loads the state from a struct previousely saved.
         % override this function to load
         % category - a string, some savable objects will load stuff

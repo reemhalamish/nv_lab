@@ -5,7 +5,7 @@ classdef HiddenMethodsHandle < handle
     properties
     end
     
-    methods(Hidden)
+    methods (Hidden)
         function obj = HiddenMethodsHandle
             obj@handle;
         end

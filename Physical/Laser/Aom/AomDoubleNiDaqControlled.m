@@ -90,8 +90,8 @@ classdef AomDoubleNiDaqControlled < LaserPartAbstract
         function obj = create(laserName, jsonStruct)
             missingField = FactoryHelper.usualChecks(jsonStruct, AomDoubleNiDaqControlled.NEEDED_FIELDS);
             if ~isnan(missingField)
-                errorMsg = 'Error while creating a Double AOM object (name: "%s"), missing field! (field missing: "%s")';
-                error(errorMsg, laserName, missingField);
+                EventStation.anonymousError('Error while creating a Double AOM object (name: "%s"), missing field! (field missing: "%s")', ...
+                    laserName, missingField);
             end
             % We want to get either values set in json, or empty variables
             % (which will be handled by NiDaqControlled constructor):

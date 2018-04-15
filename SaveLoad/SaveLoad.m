@@ -746,7 +746,7 @@ classdef SaveLoad < Savable & EventSender
     
     %% overriden from Savable
     methods(Access = protected)
-        function outStruct = saveStateAsStruct(obj, mCategory, ~) %#ok<*MANU>
+        function outStruct = saveStateAsStruct(obj, mCategory, ~)
             % saves the state as struct.
             if strcmp(mCategory, obj.mCategory)
                 outStruct = struct('mNotes', obj.mNotes);
@@ -755,7 +755,7 @@ classdef SaveLoad < Savable & EventSender
             end
         end
         
-        function loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<*INUSD>
+        function loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<INUSD>
             % loads the state from a struct previousely saved.
             % if the category fits, always load, no matter what is the sub-category
             if ~strcmp(obj.mCategory, category); return; end
@@ -766,7 +766,7 @@ classdef SaveLoad < Savable & EventSender
             end
         end
         
-        function string = returnReadableString(obj, savedStruct)
+        function string = returnReadableString(obj, savedStruct) %#ok<INUSD>
             string = NaN;
         end
     end
