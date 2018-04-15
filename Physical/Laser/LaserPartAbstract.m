@@ -63,26 +63,25 @@ classdef (Abstract) LaserPartAbstract < EventSender
     
     methods
         %% constructor
-        function obj = LaserPartAbstract(name, minValueOptional, maxValueOptional, unitsOptional)
+        function obj = LaserPartAbstract(name, minVal, maxVal, units)
+            % Creates an abstract laser part.
+            % 
+            % Requires at least one parameter, 'name', for the part.
+            % 
+            % min - double. Minimum value the part can accept. Default value is 0.
+            % max - double. Maximum value the part can accept. Default value is 100.
+            % units - string. Units of the value. Default units are '%'.
             obj@EventSender(name);
             addBaseObject(obj);     % so it can be reached by BaseObject.getByName()
             
-            %
-            if exist('minValueOptional', 'var') && ~isempty(minValueOptional)
-                obj.minValue = minValueOptional;
-            else
-                obj.minValue = obj.DEFAULT_MIN_VALUE;
-            end
-            if exist('maxValueOptional', 'var') && ~isempty(maxValueOptional)
-                obj.maxValue = maxValueOptional;
-            else
-                obj.maxValue = obj.DEFAULT_MAX_VALUE;
-            end
-            if exist('unitsOptional', 'var') && ~isempty(unitsOptional)
-                obj.units = unitsOptional;
-            else
-                obj.units = obj.DEFAULT_UNITS;
-            end
+            if exist('minVal', 'var') && ~isempty(minVal); obj.minValue = minVal;
+            else; obj.minValue = obj.DEFAULT_MIN_VALUE; end
+            
+            if exist('maxVal', 'var') && ~isempty(maxVal); obj.maxValue = maxVal;
+            else; obj.maxValue = obj.DEFAULT_MAX_VALUE; end
+            
+            if exist('units', 'var') && ~isempty(units); obj.units = units;
+            else; obj.units = obj.DEFAULT_UNITS; end
         end
         
         function on(obj)

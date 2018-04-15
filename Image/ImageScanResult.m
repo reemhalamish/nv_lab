@@ -41,7 +41,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
 
         % Figuer Options
         PLOT_STYLE_OPTIONS = {'Normal', 'Equal', 'Square'};
-        COLORMAP_OPTIONS = {'Pink', 'Jet', 'HSV', 'Hot', 'Cool', ...
+        COLORMAP_OPTIONS = {'Pink', 'Parula', 'HSV', 'Hot', 'Cool', ...
             'Spring', 'Summer', 'Autumn', 'Winter', ...
             'Gray', 'Bone', 'Copper', 'Lines'};
         CURSOR_OPTIONS = {'Marker', 'Zoom', 'Location'};
@@ -140,13 +140,13 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                 err2warning(err)
             end
             
-            obj.ClearCursorData;    % left outside of updateDataCursor(obj), so that zoom bar is not deleted
+            obj.clearCursorData;    % left outside of updateDataCursor(obj), so that zoom bar is not deleted
             obj.updateDataCursor;
             
         end
         
         %%%% Data Cursor methods %%%%
-        function ClearCursorData(obj)
+        function clearCursorData(obj)
             % Clear the cursor data between passing from one cursor type to
             % another. To avoid collision.
             
@@ -223,6 +223,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                     set(obj.cursor, 'Enable', 'on')
                     obj.cursor.UpdateFcn = @obj.cursorMarkerDisplay;
                 case 2      % Create a rectangle on the selected area, and update the GUI scanParams's min and max values accordingly
+                    obj.clearCursorData;
                     obj.updataDataByZoom;
                 case 3      % Move the stage to selected location
                     set(obj.cursor, 'Enable', 'off')
@@ -466,14 +467,8 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             tf = ~isempty(obj.mData);
         end
         
-        function checkGraphicAxes(obj)
-            if exist('obj.gAxes', 'var') && ~(isgraphics(obj.gAxes) && isvalid(obj.gAxes))
-                obj.gAxes = [];
-                obj.cursor = [];
-            end
-        end
-        
         function addGraphicAxes(obj, gAxes)
+            % "Setter" for the axes, when they are created in the GUI
             if ~(isgraphics(gAxes) && isvalid(gAxes))
                 obj.sendWarning('Graphic Axes were not created. Plotting is unavailable');
                 return
@@ -484,11 +479,29 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             obj.cursor = datacursormode(fig);
             set(obj.cursor,'UpdateFcn',@obj.cursorMarkerDisplay);
         end
+
+        function checkGraphicAxes(obj)
+            if exist('obj.gAxes', 'var') && ~(isgraphics(obj.gAxes) && isvalid(obj.gAxes))
+                % gAxes are no longer available, so we discard them
+                obj.gAxes = [];
+                obj.cursor = [];
+            end
+        end
         
-        function fig = copyToFigure(obj)
-            fig = figure;
-            axes = obj.gAxes;
-            copyobj([axes,colorbar(axes)],fig);
+        function fig = copyToFigure(obj, isVisible)
+            % isVisible - logical. Should we create the figure as visible,
+            % to begin with
+            if ~exist('isVisible', 'var') || isVisible
+                fig = figure;
+            else
+                fig = figure('Visible', 'off');
+            end
+
+            newAxes = copyobj(obj.gAxes, fig);
+            if obj.mDimNumber == 2
+                c = colorbar(newAxes);
+                xlabel(c, 'kcps')
+            end
             
             try
                 notes = SaveLoad.getInstance(Savable.CATEGORY_IMAGE).mNotes;
@@ -499,7 +512,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         end
         
         function [stageName, axesString] = compatibilityHelper1(obj, struct) %#ok<INUSL>
-            % because of changes in saved struct, we need to [try to]
+            % Because of changes in saved struct, we need to [try to]
             % recover these variables
             scanner = getObjByName(StageScanner.NAME);
             stageName = scanner.mStageName;
@@ -525,15 +538,14 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             
             if isempty(obj.mData) || isempty(obj.mData); return; end
             
-            figureInvis = AxesHelper.copyAxes(obj.gAxes);
+            isVisible = false;
+            figureInvis = obj.copyToFigure(isVisible);
             
             filename = PathHelper.removeDotSuffix(filename);
             filename = [filename '.' ImageScanResult.IMAGE_FILE_SUFFIX];
             fullpath = PathHelper.joinToFullPath(folder, filename);
             
             % Save jpg image
-            notes = SaveLoad.getInstance(Savable.CATEGORY_IMAGE).mNotes;
-            title(notes); %set the notes as the plot's title
             saveas(figureInvis, fullpath);
             
             % close the figure
@@ -543,8 +555,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
     
     methods (Static)
         function init
-            removeObjIfExists(ImageScanResult.NAME); 
-            addBaseObject(ImageScanResult);
+            replaceBaseObject(ImageScanResult);  % in base object map
         end
         
         function limits = calcColormapLimits(data)
@@ -608,8 +619,8 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         end
         
         function tf = get.colormapAuto(obj)
-            % the second condition in this if is odd, but we need it, for
-            % now. todo: check what's going on here
+            % the second condition in this 'if' statement is odd, but we
+            % need it, for now. todo: check what's going on here
             if islogical(obj.colormapAuto) || obj.colormapAuto == 1
                 tf = obj.colormapAuto;
             else
@@ -620,7 +631,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
     
     %% overriding from Savable
     methods (Access = protected)
-        function outStruct = saveStateAsStruct(obj, category, type) %#ok<*MANU>
+        function outStruct = saveStateAsStruct(obj, category, type)
             % Saves the state as struct. if you want to save stuff, make
             % (outStruct = struct;) and put stuff inside. If you dont
             % want to save, make (outStruct = NaN;)

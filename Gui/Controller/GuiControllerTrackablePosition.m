@@ -47,7 +47,8 @@ classdef GuiControllerTrackablePosition < GuiController
         function onClose(obj)
             % Callback. Things to run when need to close the GUI.
             % Child classes can override this method
-            
+           
+            delete(obj.views{:}) % Oddly, this does not happen without this line
         end
 
     end

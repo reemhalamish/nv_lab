@@ -25,7 +25,6 @@ classdef ViewImageResultImage < GuiComponent
             % Set colormap and colorbar
             cMap = imageScanResult.COLORMAP_OPTIONS{imageScanResult.colormapType};
             colormap(obj.vAxes, cMap);
-            colorbar(obj.vAxes);
             
             % Creating floating axes() so that default calls to axes (such
             % as image() surf() etc.) won't reach this view but rather the

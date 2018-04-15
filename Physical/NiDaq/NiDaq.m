@@ -38,9 +38,12 @@ classdef NiDaq < EventSender
     end
     
     methods(Access = protected)
-        function obj = NiDaq(deviceName, dummyModeBoolean)
+        function obj = NiDaq(deviceName, dummyMode)
             obj@EventSender(NiDaq.NAME);
-            addBaseObject(obj);  % so it can be reached by getObjByName()
+            obj.init(deviceName, dummyMode)
+        end
+        
+        function init(obj, deviceName, dummyModeBoolean)
             obj.channelArray = {};
             
             % Internal channels that are being used by someone
@@ -52,16 +55,15 @@ classdef NiDaq < EventSender
             if ~dummyModeBoolean
                 LoadNIDAQmx;
             end
-            
         end
     end
   
-    methods(Static)
-        function obj = create(niDaqStruct) %#ok<*INUSD>
-            % this method is used to load the NiDAQ as new
+    methods (Static)
+        function create(niDaqStruct)
+            % This method is used to load the NiDAQ as new
             %
-            % the "niDaqStruct" HAS TO HAVE this property (or an error will be thrown):
-            % "deviceName" - a string
+            % niDaqStruct HAS TO HAVE a property named "deviceName" (as a
+            % string), or an error will be thrown.
             %
             % niDaqStruct can have a 'dummy' logical property called
             % "dummy". If set to true, no actual physics will be involved.
@@ -70,15 +72,25 @@ classdef NiDaq < EventSender
             %
             missingField = FactoryHelper.usualChecks(niDaqStruct, {'deviceName'});
             if ~isnan(missingField)
-                error('Can''t find the reserved word "%s" in the NiDaq struct', missingField);
+                EventStation.anonymousError(...
+                    'Can''t find the reserved word "%s" in the NiDaq struct', ...
+                    missingField);
             end
             if isfield(niDaqStruct, 'dummy')
                 dummy = niDaqStruct.dummy;
             else
                 dummy = false;
             end
-            removeObjIfExists(NiDaq.NAME); 
-            obj = NiDaq(niDaqStruct.deviceName,dummy);
+            
+            try
+                % Initialize object if it exists
+                obj = getObjByName(NiDaq.NAME);
+                init(obj, niDaqStruct.deviceName, dummy);
+            catch
+                % Create it otherwise
+                obj = NiDaq(niDaqStruct.deviceName, dummy);
+                addBaseObject(obj); % so it can be reached by getObjByName()
+            end
         end
     end
     
@@ -289,10 +301,16 @@ classdef NiDaq < EventSender
             % We might want to read continuously, so we need a seperate
             % function for creating the channel
             % channel - channel ID (e.g. 'PFI5')
-            task = obj.createTask();
+
             if obj.dummyMode
+                % When using dummy NiDaq, we use the "task" variable to
+                % send the channel number to the daq
+                channelIndex = obj.getIndexFromChannelOrName(channel);
+                task = channelIndex;
                 return;
             end
+
+            task = obj.createTask();
             
             strLines = sprintf('/%s/%s', obj.deviceName, channel);
             strNameToAssignToLines = '';
@@ -313,20 +331,30 @@ classdef NiDaq < EventSender
             channelIndex = obj.getIndexFromChannelOrName(channelOrChannelName);
             channel = obj.getChannelFromIndex(channelIndex);
             task = obj.prepareDigitalOutputTask(channel);
+            line = str2double(channel(end));    % channel is of the form 'portM/lineN', where M and N are integers
             
             obj.startTask(task);
-            line = str2double(channel(end));
+            obj.writeDigitalOnce(task, newLogicalValue, line);
+            obj.endTask(task);
+        end
+        
+        function writeDigitalOnce(obj, task, value, line)
+            if obj.dummyMode
+                % When using dummy NiDaq, we use the "task" variable to
+                % send the channel number to the daq
+                channelIndex = task;
+                obj.dummyChannel(channelIndex) = value;
+                return
+            end
             
             numSampsPerChan = 1;
             bAutoStart = 1;
             timeout = 10;
             bDataLayout = daq.ni.NIDAQmx.DAQmx_Val_GroupByChannel;
-            writeArray = newLogicalValue*2^line;
+            writeArray = value*2^line;
             sampsPerChanWritten = 1;
             status = DAQmxWriteDigitalU32(task, numSampsPerChan, bAutoStart, timeout, bDataLayout, writeArray, sampsPerChanWritten);
             obj.checkError(status);
-            
-            obj.endTask(task);
         end
         
         
@@ -493,7 +521,9 @@ classdef NiDaq < EventSender
                 return;
             end
             
-            error('%s couldn''t find either channel or channel name "%s". Have you registered this channel?', obj.name, channelOrChannelName);
+            EventStation.anonymousError(...
+                '%s couldn''t find either channel or channel name "%s". Have you registered this channel?', ...
+                obj.name, channelOrChannelName);
         end
         
         function channelName = getChannelNameFromIndex(obj, index)

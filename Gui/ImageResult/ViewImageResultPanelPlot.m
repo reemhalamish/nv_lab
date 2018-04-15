@@ -46,7 +46,8 @@ classdef ViewImageResultPanelPlot < GuiComponent
         %%%% Callbacks %%%%        
         function btnOpenInFigureCallback(obj, ~, ~) %#ok<INUSD>
             imageScanResult = getObjByName(ImageScanResult.NAME);
-            imageScanResult.copyToFigure;
+            isVisible = true;
+            imageScanResult.copyToFigure(isVisible);
         end
         
         function popupStyleCallback(obj, ~, ~)

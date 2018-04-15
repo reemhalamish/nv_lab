@@ -4,8 +4,9 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
         NAME = 'Stage (Fine) - Galvo'
         VALID_AXES = 'xy';
         
-        NEEDED_FIELDS_STAGE = {'readPositionChannel', 'readInternalCommandChannel', ...
-            'readErrorChannel', 'writePositionChannel'}
+        NEEDED_FIELDS_STAGE = {'readPositionChannel', 'writePositionChannel'}
+            % There are possibly also 'readInternalCommandChannel' &
+            % 'readErrorChannel', but they don't seem to be needed anywhere
         NEEDED_FIELDS_EXTRA = {'pulseChannel'}
         OPTIONAL_FIELDS = {'minValue', 'maxValue'}
         
@@ -18,15 +19,15 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
         
         ITERATIONS_NUM = 100;   % Think about it: why 100 averages?
         
-        outputVoltageScalingFactor = [0.9931 0.9966];	%when reading voltage from the galvo, the output volage is smaller by this scaling factor (error range for this const is 0.00005)
-        outputVoltageOffset = [-0.001735 0.001708];     %when reading zero voltage, the output volage value is this const (error rage for this const is 6.125e-5 volt)
+        outputVoltageScalingFactor = [0.9931 0.9966];	% When reading voltage from the galvo, the output volage is smaller by this scaling factor (error range for this const is 0.00005)
+        outputVoltageOffset = [-0.001735 0.001708];     % When reading zero voltage, the output volage value is this const (error rage for this const is 6.125e-5 volt)
     end
     
     properties
         D = 2.8; % distance between optics to sample (might change)
         
-        voltToAngleScaling = 1; %for galvo GVS012 the scaling in the input is 1v per 1degree
-        angleToVoltScaling = 2; %for galvo GVS012 the scaling in the output is 0.5v per 1degree
+        voltToAngleScaling = 1; % for galvo GVS012 the scaling in the input is 1v per 1degree
+        angleToVoltScaling = 2; % for galvo GVS012 the scaling in the output is 0.5v per 1degree
         
         mechanicalAngleToOpticAngle = 2;
         lens1 = 70;         % focal length of the 1st lens (in mm).
@@ -45,10 +46,11 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
         curVel = [0 0];     % Current velocity
         
         commDelay = 5e-3;	% 5ms delay needed between consecutive commands sent to the controllers.
+%         readInternalCommandChannel
+%         readErrorChannel
         readPositionChannel
-        readInternalCommandChannel
-        readErrorChannel
         writePositionChannel
+        pulseChannel
         maxScanSize = 9999;
         
         macroNumberOfPixels = -1;       % number of lines
@@ -65,9 +67,6 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
         macroScan
         macroStartPoint
         macroEndPoint
-        tiltCorrectionEnable
-        tiltThetaXZ
-        tiltThetaYZ
     end
     
     methods (Static) % Get instance constructor
@@ -93,8 +92,8 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
             
             % For readability
             readPositionChannel = stageStruct.readPositionChannel;
-            readInternalCommandChannel = stageStruct.readInternalCommandChannel;
-            readErrorChannel = stageStruct.readErrorChannel;
+%             readInternalCommandChannel = stageStruct.readInternalCommandChannel;
+%             readErrorChannel = stageStruct.readErrorChannel;
             writePositionChannel = stageStruct.writePositionChannel;
             pulseChannel = stageStruct.pulseChannel;
             minValue = stageStruct.minValue;
@@ -102,15 +101,14 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
             
             % Actual object creation
             removeObjIfExists(ClassGalvo.NAME);
-            obj = ClassGalvo(readPositionChannel, readInternalCommandChannel, ...
-                readErrorChannel, writePositionChannel, pulseChannel, minValue, maxValue);
+            obj = ClassGalvo(readPositionChannel, writePositionChannel, ...
+                pulseChannel, minValue, maxValue);
         end
     end
     
-    methods
+    methods (Access = private)
         % Private default constructor
-        function obj = ClassGalvo(readPositionChannel, readInternalCommandChannel, ...
-                readErrorChannel, writePositionChannel, pulseChannel, minVal, maxVal)
+        function obj = ClassGalvo(readPositionChannel, writePositionChannel, pulseChannel, minVal, maxVal)
             % ClassStage
             name = ClassGalvo.NAME;
             availAxis = ClassGalvo.VALID_AXES;
@@ -122,8 +120,7 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
                     ClassGalvo.NEEDED_FIELDS_STAGE ,'UniformOutput', false);
                 channelNames = [stageNamesCells{:}, ClassGalvo.NEEDED_FIELDS_EXTRA{:}];
                 % Channel IDs
-                channels = [readPositionChannel; readInternalCommandChannel; ...
-                readErrorChannel; writePositionChannel; pulseChannel]';
+                channels = [readPositionChannel; writePositionChannel; pulseChannel]';
                 % Minimum and maximum values
                 % This part is a bit crooked, but we need it for conforming
                 % with the overall architecture
@@ -143,14 +140,16 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
             obj.curPos = [0 0];
             obj.curVel = [0 0];
             
+            obj.availableProperties.(obj.HAS_SLOW_SCAN) = true;
+            
             % and for NiDaqControlled
             obj.readPositionChannel = readPositionChannel;
-            obj.readInternalCommandChannel = readInternalCommandChannel;
-            obj.readErrorChannel = readErrorChannel;
             obj.writePositionChannel = writePositionChannel;
+            obj.pulseChannel = pulseChannel;
         end
+    end
         
-        
+    methods
         function Connect(obj) %connect to the controller
         end
         
@@ -178,11 +177,11 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
             obj.sendError('Movement in the Z direction is unavailable');
         end
         
-        function PrepareScanX(obj, x, y, z, nFlat, nOverRun, tPixel)
+        function PrepareScanX(obj, x, y, ~, nFlat, nOverRun, tPixel)
             % Defines a macro scan for x axis.
             % Call ScanX to start the scan.
             % x - A vector with the points to scan, points should have
-            % equal distance between them.
+            %       equal distance between them.
             % y/z - The starting points for the other axes.
             % nFlat - Not used.
             % nOverRun - ignored.
@@ -192,15 +191,14 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
                 warning('1D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
-            Move(obj, 'z', z);
             PrepareScanInTwoDimensions(obj, x, y, nFlat, nOverRun, tPixel, 'x', 'y');
         end
         
-        function PrepareScanY(obj, x, y, z, nFlat, nOverRun, tPixel)
+        function PrepareScanY(obj, x, y, ~, nFlat, nOverRun, tPixel)
             % Defines a macro scan for y axis.
             % Call ScanY to start the scan.
             % y - A vector with the points to scan, points should have
-            % equal distance between them.
+            %       equal distance between them.
             % x/z - The starting points for the other axes.
             % nFlat - Not used.
             % nOverRun - ignored.
@@ -210,42 +208,42 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
                 warning('1D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
-            Move(obj, 'z', z);
             PrepareScanInTwoDimensions(obj, y, x, nFlat, nOverRun, tPixel, 'y', 'x');
         end
         
-        function ScanX(obj, x, y, z, nFlat, nOverRun, tPixel)
+        function ScanX(obj, x, y, z, nFlat, nOverRun, tPixel) %#ok<INUSD>
             %%%%%%%%%%%%%% ONE DIMENSIONAL X SCAN MACRO %%%%%%%%%%%%%%
             % Does a macro scan for x axis, should be called after
             % PrepareScanX.
             % Input should be the same for both functions.
+            %
             % x - A vector with the points to scan, points should have
-            % equal distance between them.
+            %       equal distance between them.
             % y/z - The starting points for the other axes.
             % nFlat - Not used.
             % nOveRun - How many extra points should be taken from each.
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if (obj.macroIndex == -1)
-                error('No scan detected.\nFunction can only be called after ''PrepareScanX!''');
+                obj.sendError('No scan detected.\nFunction can only be called after ''PrepareScanX!''');
             end
             ScanNextLine(obj);
         end
         
-        function ScanY(obj, x, y, z, nFlat, nOverRun, tPixel) %#ok<*INUSD>
+        function ScanY(obj, x, y, z, nFlat, nOverRun, tPixel) %#ok<INUSD>
             %%%%%%%%%%%%%% ONE DIMENSIONAL Y SCAN MACRO %%%%%%%%%%%%%%
             % Does a macro scan for y axis, should be called after
             % PrepareScanY.
             % Input should be the same for both functions.
             % y - A vector with the points to scan, points should have
-            % equal distance between them.
+            %       equal distance between them.
             % x/z - The starting points for the other axes.
             % nFlat - Not used.
             % nOveRun - How many extra points should be taken from each.
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if (obj.macroIndex == -1)
-                error('No scan detected.\nFunction can only be called after ''PrepareScanY!''');
+                obj.sendError('No scan detected.\nFunction can only be called after ''PrepareScanY!''');
             end
             ScanNextLine(obj);
         end
@@ -285,13 +283,14 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
             Move(obj, obj.macroScanAxis, startPoint);
         end
         
-        function PrepareScanXY(obj, x, y, z, nFlat, nOverRun, tPixel)
+        function PrepareScanXY(obj, x, y, ~, nFlat, nOverRun, tPixel)
             %%%%%%%%%%%%%% TWO DIMENSIONAL XY SCAN MACRO %%%%%%%%%%%%%%
             % Prepare a macro scan for xy axes!
             % Scanning is done by calling 'ScanNextLine'.
             % Aborting via 'AbortScan'.
+            %
             % x/y - Vectors with the points to scan, points should have
-            % equal distance between them.
+            %       equal distance between them.
             % z - The starting points for the other axis.
             % nFlat - Not used.
             % nOveRun - ignored.
@@ -301,17 +300,17 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
                 warning('2D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
-            Move(obj, 'z', z);
             PrepareScanInTwoDimensions(obj, x, y, nFlat, nOverRun, tPixel, 'x', 'y');
         end
         
-        function PrepareScanYX(obj, x, y, z, nFlat, nOverRun, tPixel)
+        function PrepareScanYX(obj, x, y, ~, nFlat, nOverRun, tPixel)
             %%%%%%%%%%%%%% TWO DIMENSIONAL XY SCAN MACRO %%%%%%%%%%%%%%
             % Prepare a macro scan for xy axes!
             % Scanning is done by calling 'ScanNextLine'.
             % Aborting via 'AbortScan'.
+            %
             % x/y - Vectors with the points to scan, points should have
-            % equal distance between them.
+            %       equal distance between them.
             % z - The starting points for the other axis.
             % nFlat - Not used.
             % nOveRun - How many extra points should be taken from each.
@@ -321,7 +320,6 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
                 warning('2D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
-            Move(obj, 'z', z);
             PrepareScanInTwoDimensions(obj, y, x, nFlat, nOverRun, tPixel, 'y', 'x');
         end
         
@@ -336,14 +334,12 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
             % when it's backwards.
             
             if (obj.macroIndex == -1)
-                errMsg = sprintf('No scan detected.\nFunction can only be called after ''PrepareScanXX!''');
-                obj.sendError(errMsg);
+                obj.sendError(sprintf('No scan detected.\nFunction can only be called after ''PrepareScanXX!'''));
             end
             
             tPixel = obj.macroPixelTime - obj.MINIMUM_PIXEL_TIME;
             if tPixel < 0
-                warnMsg = sprintf('Minimum pixel time is 8 ms, %.1f were requested, changing to 8 ms', 1000*tPixel);
-                obj.sendWarning(warnMsg);
+                obj.sendWarning(sprintf('Minimum pixel time is 8 ms, %.1f were requested, changing to 8 ms', 1000*tPixel));
                 tPixel = 0;
             end
             
@@ -356,21 +352,17 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
             end
             
             % Scan constants
-            numSampsPerChan = 1;
-            bAutoStart = 1;
-            timeout = 10;
-            bDataLayout = daq.ni.NIDAQmx.DAQmx_Val_GroupByChannel;
-            writeArrayLine = 2^line;
-            writeArrayZero = 0;
-            sampsPerChanWritten = 1;
+            channel = obj.pulseChannel;
+            line = str2double(channel(end));    % channel is of the form 'portM/lineN', where M and N are integers
+            nidaq = getObjByName(NiDaq.NAME);
             
             %Start Scan
             Move(obj, obj.macroNormalScanAxis, obj.macroNormalScanVector(obj.macroIndex));
             for i = indices     % might be forwards or backwards
                 Move(obj, obj.macroScanAxis, obj.macroScanVector(i), obj.analogVoltageTask); % Same as move, without creating and closing the task.
-                DAQmxWriteDigitalU32(obj.digitalPulseTask, numSampsPerChan, bAutoStart, timeout, bDataLayout, writeArrayLine, sampsPerChanWritten);
+                nidaq.writeDigitalOnce(obj.digitalPulseTask, 1, line);
                 Delay(obj, tPixel);
-                DAQmxWriteDigitalU32(obj.digitalPulseTask, numSampsPerChan, bAutoStart, timeout, bDataLayout, writeArrayZero, sampsPerChanWritten);
+                nidaq.writeDigitalOnce(obj.digitalPulseTask, 0, line);
             end
             
             done = (obj.macroIndex == obj.macroNumberOfPixels);
@@ -387,7 +379,7 @@ function PrepareRescanLine(obj)
 %                 return
 %             elseif (obj.macroIndex == 1)
         if (obj.macroIndex == 1)
-                error('Scan did not start yet. Function can only be called after ''ScanNextLine!''');
+                obj.sendError('Scan did not start yet. Function can only be called after ''ScanNextLine!''');
             end
             
             % Decrease index
@@ -411,7 +403,7 @@ function PrepareRescanLine(obj)
             %                 return
             %             elseif (obj.macroIndex == 1)
             if obj.macroIndex == 1
-                error('Scan did not start yet. Function can only be called after ''ScanNextLine!''');
+                obj.sendError('Scan did not start yet. Function can only be called after ''ScanNextLine!''');
             end
             
             todo = 'This looks wrong'
@@ -512,15 +504,15 @@ function PrepareRescanLine(obj)
             
             axis = GetAxis(obj, axis);
             if ~ismember(axis, [1 2])
-                Error('Only x & y (1 & 2) axes are supported, %d was given', axis)
+                obj.sendError(sprintf('Only x & y (1 & 2) axes are supported, %d was given', axis));
             end
             switch what
                 case 'ReadPosition'
                     channel = obj.readPositionChannel{axis};
-                case 'ReadInternalCommand'
-                    channel = obj.readInternalCommandChannel{axis};
-                case 'ReadError'
-                    channel = obj.readErrorChannel{axis};
+%                 case 'ReadInternalCommand'
+%                     channel = obj.readInternalCommandChannel{axis};
+%                 case 'ReadError'
+%                     channel = obj.readErrorChannel{axis};
                 case 'WritePosition'
                     channel = obj.writePositionChannel(axis);
             end
@@ -532,6 +524,15 @@ function PrepareRescanLine(obj)
             % angle range is between -20 to 20 degrees.
             voltage = readVoltage(obj, 'ReadPosition', axis);
             angle = voltage*obj.voltToAngleScaling;
+            
+            % This is a workaround, for dummy NiDaq: we read from the write
+            % channel, since no physical movement has happenned
+            nidaq = getObjByName(NiDaq.NAME);
+            if ~nidaq.dummyMode; return; end
+            voltage = readVoltage(obj, 'WritePosition', axis);
+            magicNum = 0.495; % to make things work
+            angle = magicNum *voltage * obj.voltToAngleScaling;
+
         end
         
         function MoveAngle(obj, axis, angle, task)
@@ -569,7 +570,7 @@ function PrepareRescanLine(obj)
             end
         end
         
-        function posInMicrons = GetPositionZ(obj)
+        function posInMicrons = GetPositionZ(obj) %#ok<MANU>
             % Returns the position in microns for axis z/3
             % for now returns only pos=0. todo: change this
             tempPosz = 0;
@@ -615,8 +616,7 @@ function PrepareRescanLine(obj)
         
         function MoveZ(obj, posInMicrons)
             % To be connected to Z-stage later on
-            errMsg = sprintf('No Z axis! You can''t move to %d\n', posInMicrons);
-            obj.sendError(errMsg);
+            obj.sendError(sprintf('No Z axis! You can''t move to %d\n', posInMicrons));
         end
         
         function Move(obj, axisName, posInMicrons, task)
@@ -702,25 +702,25 @@ function PrepareRescanLine(obj)
             % Changes the scan between fast & slow mode
             % 'enable' - 1 for fast scan, 0 for slow scan.
             if (obj.macroIndex ~= -1)
-                warning('2D Scan is in progress, previous scan canceled');
+                obj.sendWarning('2D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
             if enable
-                error('Fast scan is not supported by the Galvo Mirrors, please switch to slow scan');
+                obj.sendError('Fast scan is not supported by the Galvo Mirrors, please switch to slow scan');
             end
         end
         
         function maxScanSize = ReturnMaxScanSize(obj, nDimensions)
             % Returns the maximum number of points allowed for an
             % 'nDimensions' scan.
-            maxScanSize = obj.maxScanSize*ones(1,nDimensions);
+            maxScanSize = obj.maxScanSize * ones( size(nDimensions) );
         end
         
-        function [tiltEnabled, thetaXZ, thetaYZ] = GetTiltStatus(obj)
+        function [tiltEnabled, thetaXZ, thetaYZ] = GetTiltStatus(~)
             % Return the status of the tilt control.
-            tiltEnabled = obj.tiltCorrectionEnable;
-            thetaXZ = obj.tiltThetaXZ;
-            thetaYZ = obj.tiltThetaYZ;
+            tiltEnabled = 0;
+            thetaXZ = 0;
+            thetaYZ = 0;
         end
         
         function vel = Vel(obj, axis)
@@ -753,15 +753,16 @@ function PrepareRescanLine(obj)
                     obj.posSoftRangeLimit(axisIndex) = softLimit;
                 end
             else
-                obj.sendError('Soft limit %.4f is outside of the hard limits %.4f - %.4f', softLimit, obj.negRangeLimit(axisIndex), obj.posRangeLimit(axisIndex))
+                obj.sendError(sprintf('Soft limit %.4f is outside of the hard limits %.4f - %.4f', ...
+                    softLimit, obj.negRangeLimit(axisIndex), obj.posRangeLimit(axisIndex)));
             end
         end
         
-        function ScanZ(obj, x, y, z, nFlat, nOverRun, tPixel)
+        function ScanZ(obj, x, y, z, nFlat, nOverRun, tPixel) %#ok<INUSD>
             %%%%%%%%%%%%%%%%% ONE DIMENSIONAL Z SCAN %%%%%%%%%%%%%%%%%
             % Does a scan for z axis.
             % z - A vector with the points to scan, points should have
-            % equal distance between them.
+            %       equal distance between them.
             % x/y - The starting points for the other axes.
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -784,70 +785,74 @@ function PrepareRescanLine(obj)
         end
         
         
-        function PrepareScanZ(obj, x, y, z, nFlat, nOverRun, tPixel)
+        function PrepareScanZ(obj, x, y, z, nFlat, nOverRun, tPixel) %#ok<INUSD>
             %%%%%%%%%%%%%%%%% ONE DIMENSIONAL Z SCAN %%%%%%%%%%%%%%%%%
             % Prepares a scan for z axis, to be called before ScanZ.
+            %
             % z - A vector with the points to scan, points should have
-            % equal distance between them.
+            %       equal distance between them.
             % x/y - The starting points for the other axes.
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             obj.errorZAxisUnavailable;
         end
         
-        function PrepareScanXZ(obj, x, y, z, nFlat, nOverRun, tPixel)
+        function PrepareScanXZ(obj, x, y, z, nFlat, nOverRun, tPixel) %#ok<INUSD>
             %%%%%%%%%%%%%% TWO DIMENSIONAL XZ SCAN MACRO %%%%%%%%%%%%%%
             % Prepare a macro scan for xz axes!
             % Scanning is done by calling 'ScanNextLine'.
             % Aborting via 'AbortScan'.
+            %
             % x/z - Vectors with the points to scan, points should have
-            % equal distance between them.
+            %       equal distance between them.
             % y - The starting points for the other axis.
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             obj.errorZAxisUnavailable;
         end
         
-        function PrepareScanYZ(obj, x, y, z, nFlat, nOverRun, tPixel)
+        function PrepareScanYZ(obj, x, y, z, nFlat, nOverRun, tPixel) %#ok<INUSD>
             %%%%%%%%%%%%%% TWO DIMENSIONAL YZ SCAN MACRO %%%%%%%%%%%%%%
             % Prepare a macro scan for yz axes!
             % Scanning is done by calling 'ScanNextLine'.
             % Aborting via 'AbortScan'.
+            %
             % y/z - Vectors with the points to scan, points should have
-            % equal distance between them.
+            %       equal distance between them.
             % x - The starting points for the other axis.
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             obj.errorZAxisUnavailable;
         end
         
-        function PrepareScanZX(obj, x, y, z, nFlat, nOverRun, tPixel)
+        function PrepareScanZX(obj, x, y, z, nFlat, nOverRun, tPixel) %#ok<INUSD>
             %%%%%%%%%%%%%% TWO DIMENSIONAL XZ SCAN MACRO %%%%%%%%%%%%%%
             % Prepare a macro scan for xz axes!
             % Scanning is done by calling 'ScanNextLine'.
             % Aborting via 'AbortScan'.
+            %
             % x/z - Vectors with the points to scan, points should have
-            % equal distance between them.
+            %       equal distance between them.
             % y - The starting points for the other axis.
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             obj.errorZAxisUnavailable;
         end
         
-        function PrepareScanZY(obj, x, y, z, nFlat, nOverRun, tPixel)
+        function PrepareScanZY(obj, x, y, z, nFlat, nOverRun, tPixel) %#ok<INUSD>
             %%%%%%%%%%%%%% TWO DIMENSIONAL YZ SCAN MACRO %%%%%%%%%%%%%%
             % Prepare a macro scan for yz axes!
             % Scanning is done by calling 'ScanNextLine'.
             % Aborting via 'AbortScan'.
             % y/z - Vectors with the points to scan, points should have
-            % equal distance between them.
+            %       equal distance between them.
             % x - The starting points for the other axis.
             % tPixel - Scan time for each pixel.
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             obj.errorZAxisUnavailable;
         end
         
-        function JoystickControl(obj, enable)
+        function JoystickControl(obj, enable) %#ok<INUSD>
             % Changes the joystick state for all axes to the value of
             % 'enable' - true to turn Joystick on, false to turn it off.
             obj.sendWarning('No joystick support for the Galvo stage.');

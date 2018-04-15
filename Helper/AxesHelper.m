@@ -46,12 +46,6 @@ classdef AxesHelper
                     return
             end
         end
-        
-        function newInvisFigure = copyAxes(axesFig)
-            % copy the axes() object into a new figure
-            newInvisFigure = figure('Visible', 'off');
-            copyobj([axesFig colorbar(axesFig)], newInvisFigure);
-        end
     end
 end
 

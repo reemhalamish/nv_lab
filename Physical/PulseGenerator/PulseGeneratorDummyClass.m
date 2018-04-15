@@ -77,7 +77,7 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
         end
         function setRepeats(obj,newVal)
             if newVal<1 || newVal> obj.maxRepeats
-                error('Value out of range')
+                EventStation.anonymousError('Value out of range')
             end
             obj.repeatsPrivate = newVal;
         end
@@ -93,11 +93,15 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
                 nickname = {''};
             end
             newChannels = obj.ChannelValuesFromNames(newEvent);
-            if length(newDuration) > 1 || isempty(newDuration)
-                error('invalid input duration')
-            end
-            if newDuration < obj.minDuration || newDuration > obj.maxDuration
-                error('Duration must be between %s and %s',num2str(obj.minDuration),num2str(obj.maxDuration))
+            try
+                if length(newDuration) > 1 || isempty(newDuration)
+                    error('Invalid input duration')
+                end
+                if newDuration < obj.minDuration || newDuration > obj.maxDuration
+                    error('Duration must be between %s and %s',num2str(obj.minDuration),num2str(obj.maxDuration))
+                end
+            catch err
+                EventStation.anonymousError(err.message);
             end
             obj.durationPrivate = [obj.durationPrivate, newDuration];
             obj.sequencePrivate{end+1} = newChannels;
@@ -112,14 +116,18 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
             %newNickname = {''};
             
             [~, newEvent] = obj.ChannelValuesFromNames(newEvent); todo = 'maybe will not work'
-            if length(newDuration) > 1 || isempty(newDuration) || length(newTime) > 1 || isempty(newTime)
-                error('invalid input duration / initial time')
-            end
-            if newDuration < obj.minDuration || newDuration > obj.maxDuration
-                error('Duration must be between %s and %s',num2str(obj.minDuration),num2str(obj.maxDuration))
-            end
-            if newTime < minTime || newTime > maxTime
-                error('Duration must be between %s and %s \mus',num2str(minTime),num2str(maxTime))
+            try
+                if length(newDuration) > 1 || isempty(newDuration) || length(newTime) > 1 || isempty(newTime)
+                    error('Invalid input duration / initial time')
+                end
+                if newDuration < obj.minDuration || newDuration > obj.maxDuration
+                    error('Duration must be between %s and %s',num2str(obj.minDuration),num2str(obj.maxDuration))
+                end
+                if newTime < minTime || newTime > maxTime
+                    error('Duration must be between %s and %s \mus',num2str(minTime),num2str(maxTime))
+                end
+            catch err
+                EventStation.anonymousError(err.message);
             end
             localDuration= obj.durationPrivate;
             localSequence = obj.sequencePrivate;
@@ -176,31 +184,37 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
             switch lower(what)
                 case {'duration','t'}
                     if newValue < obj.minDuration || newValue > obj.maxDuration
-                        error('Duration must be between %s and %s',num2str(obj.minDuration),num2str(obj.maxDuration))
+                        EventStation.anonymousError(...
+                            'Duration must be between %s and %s', ...
+                            num2str(obj.minDuration), num2str(obj.maxDuration))
                     end
                     obj.durationPrivate(index) = newValue;
                 case {'sequence','event','pb'}
                     newChannels = obj.ChannelValuesFromNames(newValue);
                     obj.sequencePrivate{index} = newChannels;
                 otherwise
-                    error('Unknown option')
+                    EventStation.anonymousError('Unknown option')
             end
         end
         function setChannelNameAndValue(obj,names,values)
-            if size(names)~=size(values)
-                error('inputs must be of the same size')
-            end
-            if ~isa(names,'cell')
-                error('Input ''name'' must be of class ''cell''')
-            end
-            if ~isnumeric(values)
-                error('Input ''values'' must be a numeric input')
-            end
-            if length(unique(names)) ~= length(names)
-                error('input ''names'' has repeats in it. A single name must be given to each channel')
-            end
-            if length(unique(values)) ~= length(values)
-                error('input ''values'' has repeats in it. A single name must be given to each channel')
+            try
+                if size(names)~=size(values)
+                    error('Inputs must be of the same size')
+                end
+                if ~isa(names, 'cell')
+                    error('Input ''name'' must be of class ''cell''')
+                end
+                if ~isnumeric(values)
+                    error('Input ''values'' must be a numeric input')
+                end
+                if length(unique(names)) ~= length(names)
+                    error('input ''names'' has repeats in it. A single name must be given to each channel')
+                end
+                if length(unique(values)) ~= length(values)
+                    error('input ''values'' has repeats in it. A single name must be given to each channel')
+                end
+            catch err
+                EventStation.anonymousError(err.message);
             end
             values = round(values);
             obj.channelValuesPrivate = values;
@@ -209,11 +223,11 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
     end
     
     methods
-        function On(obj,channels) %#ok<*INUSD>
+        function On(obj,channels) %#ok<INUSD>
             % OutPuts - channels to be opened (0,1,2,,,,), as a double
             % vector
         end
-        function Off(obj) %#ok<*MANU>
+        function Off(obj) %#ok<MANU>
         end
         
         function Run(obj)
@@ -229,7 +243,7 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
             
 
             if isempty(obj.sequencePrivate)
-                error('Upload sequence')
+                EventStation.anonymousError('Upload sequence')
             end
             
             % settings for sequence generation
@@ -250,7 +264,7 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
             elseif isnumeric(channel)
                 j=obj.channelPrivate(obj.channelPrivate==channel);
             else
-                error('couldnt find the PB channel');
+                EventStation.anonymousError('couldnt find the PB channel');
             end
             
         end
@@ -287,9 +301,9 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
                         chanIndex(:) = p;
                     case 'double'
                         if sum(rem(names,1))
-                            error('input must be an integer')
+                            EventStation.anonymousError('Input must be an integer')
                         elseif sum(names<0) || sum(names > 16)
-                            error('Value out of range')
+                            EventStation.anonymousError('Value out of range')
                         end                     
                         chanNum = names;
                         for k = 1:length(chanNum)
@@ -301,7 +315,7 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
                             end
                         end
                     otherwise
-                        error('Unknown class')
+                        EventStation.anonymousError('Unknown class')
                 end
             end
         end
@@ -311,10 +325,10 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
             elseif isa(nickname,'char')
                 index = strcmp(nickname,obj.nicknamePrivate);
             else
-                error('unknown kind')
+                EventStation.anonymousError('Unknown kind')
             end
             if isempty(index) || ~nnz(index)
-                    error('index not found')
+                    EventStation.anonymousError('Index not found')
             end
         end
     end
