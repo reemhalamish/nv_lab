@@ -40,7 +40,6 @@ classdef Tracker < EventSender & EventListener & Savable
                         % If this is the case, calling the function should
                         % have included stage- and laser-name
                         stageName = varargin{1};
-                        laserName = varargin{2};
                         exp = TrackablePosition(stageName);
                     otherwise
                         disp('This should not have happenned')
@@ -51,15 +50,15 @@ classdef Tracker < EventSender & EventListener & Savable
     end
     
     methods (Static)
-        function init(obj)
+        function init
             newTracker = Tracker;
-            addBaseObject(newTracker);
+            replaceBaseObject(newTracker);  % in base object map
         end
     end
     
             %% overriding from Savable
         methods(Access = protected)
-            function outStruct = saveStateAsStruct(obj, category, type) %#ok<*MANU>
+            function outStruct = saveStateAsStruct(obj, category, type)
                 % Saves the state as struct. if you want to save stuff, make
                 % (outStruct = struct;) and put stuff inside. If you dont
                 % want to save, make (outStruct = NaN;)
@@ -82,7 +81,7 @@ classdef Tracker < EventSender & EventListener & Savable
                 end
             end
     
-            function loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<*INUSD>
+            function loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<INUSD>
                 % loads the state from a struct.
                 % to support older versoins, always check for a value in the
                 % struct before using it. view example in the first line.

@@ -19,7 +19,6 @@ classdef SpcmDummy < Spcm
     methods
         function obj = SpcmDummy
             obj@Spcm(Spcm.NAME);
-            addBaseObject(obj);   % Redundant? Anyway, it's harmless
             obj.timesToRead = 0;
             obj.isEnabled = false;
             obj.integrationTime = 0;

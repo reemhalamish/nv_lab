@@ -28,8 +28,7 @@ classdef PulseGenerator < EventSender
             name = PulseGenerator.NAME;
             obj@EventSender(name);
             
-            removeObjIfExists(name);
-            addBaseObject(obj);  % so it can be reached by getObjByName(PulseGenerator.NAME)
+            replaceBaseObject(obj);  % so it can be reached by getObjByName(PulseGenerator.NAME)
             
             obj.type = obj.generatorType(struct);
             
@@ -67,8 +66,7 @@ classdef PulseGenerator < EventSender
     methods (Static)
         function create(struct)
             try
-                type = PulseGenerator.generatorType(struct);
-                getObjByName(type);
+                getObjByName(PulseGenerator.NAME);
             catch
                 PulseGenerator(struct);
             end

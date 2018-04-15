@@ -135,17 +135,16 @@ classdef SpcmCounter < EventSender
         end
     end
     
-    methods (Static = true)
+    methods (Static)
         function init
-            older = removeObjIfExists(SpcmCounter.NAME);
-            if isa(older, 'SpcmCounter')
-                older.stop;
-                pause((older.integrationTimeMillisec + 1) / 1000);
-                older.integrationTimeMillisec = 'older!!!';
+            try
+                obj = getObjByName(SpcmCounter.NAME);
+                obj.stop;
+                pause((obj.integrationTimeMillisec + 1) / 1000);
+            catch
+                % There was no such object, so we create one
+                addBaseObject(SpcmCounter);
             end
-            
-            newCounter = SpcmCounter;
-            addBaseObject(newCounter);
-        end     % Bug: Calls destructor when called twice
+        end
     end
 end

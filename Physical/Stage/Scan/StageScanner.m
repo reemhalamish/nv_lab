@@ -30,7 +30,6 @@ classdef StageScanner < EventSender & EventListener & Savable
             obj@EventSender(StageScanner.NAME);
             obj@Savable(StageScanner.NAME);
             obj@EventListener(SaveLoadCatImage.NAME);
-            addBaseObject(obj);
             obj.clear();
         end
     end
@@ -465,7 +464,7 @@ classdef StageScanner < EventSender & EventListener & Savable
             spcm.clearScanRead();
         end
         
-        function [x,y,z] = getXYZfor2dScanChunk(obj, axisAPointsPerLine, axisBLinesPerScan, axisADirectionIndex, axisBDirectionIndex, axisCPoint0) %#ok<STOUT,INUSL>
+        function [x,y,z] = getXYZfor2dScanChunk(obj, axisAPointsPerLine, axisBLinesPerScan, axisADirectionIndex, axisBDirectionIndex, axisCPoint0) %#ok<INUSD,STOUT,INUSL>
             % Converts from "axisA", "axisB", to xyz: calculates the vectors for x,y,z to be used in scan2dChunk()
             for letter = ClassStage.SCAN_AXES
                 % Iterate over the string "xyz" letter by letter
@@ -550,9 +549,9 @@ classdef StageScanner < EventSender & EventListener & Savable
             axisLetters = obj.mStageScanParams.getScanAxes;
             switch obj.getScanDimensions
                 case 1
-                    string = sprintf('%s %s', axisLetters, StringHelper.MICRON); % for example, 'x (?m)'
+                    string = sprintf('%s [%s]', axisLetters, StringHelper.MICRON); % for example, 'x (?m)'
                 case 2
-                    string = sprintf('%s %s', axisLetters(1), StringHelper.MICRON); % (as above)
+                    string = sprintf('%s [%s]', axisLetters(1), StringHelper.MICRON); % (as above)
                 otherwise
                     string = 'bottom label :)';
             end
@@ -564,20 +563,21 @@ classdef StageScanner < EventSender & EventListener & Savable
                     string = 'kcps';
                 case 2
                     axisLetters = obj.mStageScanParams.getScanAxes;
-                    string = sprintf('%s %s', axisLetters(2), StringHelper.MICRON); % for example, 'y (?m)'
+                    string = sprintf('%s [%s]', axisLetters(2), StringHelper.MICRON); % for example, 'y (?m)'
                 otherwise
                     string = 'left label :)';
             end
         end
     end
     
-    methods(Static)
+    methods (Static)
         function obj = init
             try
                 obj = getObjByName(StageScanner.NAME);
                 return
             catch
                 obj = StageScanner;
+                addBaseObject(obj);
             end
         end
         
@@ -644,7 +644,7 @@ classdef StageScanner < EventSender & EventListener & Savable
     
     %% overriding from Savable
     methods(Access = protected)
-        function outStruct = saveStateAsStruct(obj, category, type) %#ok<*MANU>
+        function outStruct = saveStateAsStruct(obj, category, type)
             % Saves the state as struct. if you want to save stuff, make
             % (outStruct = struct;) and put stuff inside. If you dont
             % want to save, make (outStruct = NaN;)
@@ -672,7 +672,7 @@ classdef StageScanner < EventSender & EventListener & Savable
             end
         end
         
-        function loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<*INUSD>
+        function loadStateFromStruct(obj, savedStruct, category, subCategory)
             % Loads the state from a struct.
             % to support older versions, always check for a value in the
             % struct before using it. View example in the first line.

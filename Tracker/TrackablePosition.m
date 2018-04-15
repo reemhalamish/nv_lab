@@ -9,7 +9,7 @@ classdef TrackablePosition < Trackable % & StageScanner
 
         mSignal
         mScanParams     % Object of class StageScanParams, to store current running scan
-        stepSize        % 3x1 double. Holds the current size of position step
+        stepSize        % nx1 double. Holds the current size of position step
         
         % Tracking options
         initialStepSize
@@ -49,13 +49,16 @@ classdef TrackablePosition < Trackable % & StageScanner
             expName = Tracker.TRACKABLE_POSITION_NAME;
             obj@Trackable(expName);
             obj.mStageName = stageName;
-            obj.mLaserName = LaserGate.GREEN_LASER_NAME;
+            stage = getObjByName(stageName);
+            axes = stage.getAxis(stage.availableAxes);
             
             obj.mScanParams = StageScanParams;
             
+            obj.mLaserName = LaserGate.GREEN_LASER_NAME;
+            
             % Set default tracking properties
-            obj.initialStepSize = obj.INITIAL_STEP_VECTOR;
-            obj.minimumStepSize = obj.MINIMUM_STEP_VECTOR;
+            obj.initialStepSize = obj.INITIAL_STEP_VECTOR(axes);
+            obj.minimumStepSize = obj.MINIMUM_STEP_VECTOR(axes);
             obj.thresholdFraction = obj.THRESHOLD_FRACTION;
             obj.pixelTime = obj.PIXEL_TIME;
             obj.nMaxIterations = obj.NUM_MAX_ITERATIONS;
@@ -121,7 +124,10 @@ classdef TrackablePosition < Trackable % & StageScanner
         end
         
         function str = textOutput(obj)
-            if all(obj.stepSize <= obj.MINIMUM_STEP_VECTOR)
+            stage = getObjByName(obj.mStageName);
+            axes = stage.getAxis(stage.availableAxes);
+            
+            if all(obj.stepSize <= obj.MINIMUM_STEP_VECTOR(axes))
                 str = sprintf('Local maximum was found in %u steps', obj.stepNum);
             elseif obj.stopFlag
                 str = 'Operation terminated by user';
@@ -148,40 +154,48 @@ classdef TrackablePosition < Trackable % & StageScanner
         
         function setMinimumStepSize(obj, index, newSize)
             % Allows for vector input
-            if length(newSize) ~= length(index)
-                error('Inputs are incompatible. Cannot Complete action.')
-            elseif  any (index > length(obj.minimumStepSize)) || any(newSize <= 0)
-                error('Cannot set this step size!')
-            elseif any(newSize > obj.initialStepSize(index))
-                error('Minimum step size can''t be larger than the initial step size, or tracking will LITERALLY take forever.')
-            elseif any(newSize <= 0)
-                error('There is no point in setting negative step size.')
+            try
+                if length(newSize) ~= length(index)
+                    error('Inputs are incompatible. Cannot Complete action.')
+                elseif  any (index > length(obj.minimumStepSize)) || any(newSize <= 0)
+                    error('Cannot set this step size!')
+                elseif any(newSize > obj.initialStepSize(index))
+                    error('Minimum step size can''t be larger than the initial step size, or tracking will LITERALLY take forever.')
+                elseif any(newSize <= 0)
+                    error('There is no point in setting negative step size.')
+                end
+                obj.minimumStepSize(index) = newSize;
+            catch err
+                obj.sendError(err.message);
             end
-            obj.minimumStepSize(index) = newSize;
         end
         
         function setInitialStepSize(obj, index, newSize)
             % Allows for vector input
-            if length(newSize) ~= length(index)
-                error('Inputs are incompatible. Cannot Complete action.')
-            elseif  any (index > length(obj.minimumStepSize)) || any(newSize <= 0)
-                error('Cannot set this step size!')
-            elseif any(newSize < obj.minimumStepSize(index))
-                error('Initial step size can''t be smaller than the minimum step size, or tracking will LITERALLY take forever.')
+            try
+                if length(newSize) ~= length(index)
+                    error('Inputs are incompatible. Cannot Complete action.')
+                elseif  any (index > length(obj.minimumStepSize)) || any(newSize <= 0)
+                    error('Cannot set this step size!')
+                elseif any(newSize < obj.minimumStepSize(index))
+                    error('Initial step size can''t be smaller than the minimum step size, or tracking will LITERALLY take forever.')
+                end
+                obj.initialStepSize(index) = newSize;
+            catch err
+                obj.sendError(err.message);
             end
-            obj.initialStepSize(index) = newSize;
         end
         
         function set.thresholdFraction(obj, newFraction)
             if ~isnumeric(newFraction) || newFraction <= 0 || newFraction >= 1
-                error('Fraction must be a numeric value between 0 and 1');
+                obj.sendError('Fraction must be a numeric value between 0 and 1');
             end
             obj.thresholdFraction = newFraction;
         end
         
         function set.pixelTime(obj, newTime)
             if ~(newTime > 0)       % False if zero or less, and also if not a number
-                error('Pixel time must be a positive number');
+                obj.sendError('Pixel time must be a positive number');
             end
             obj.pixelTime = newTime;
         end
@@ -194,9 +208,10 @@ classdef TrackablePosition < Trackable % & StageScanner
             end
             
             if num == 0
-                error('We don''t allow for %s iterations', newNum);
+                errorMsg = sprintf('We don''t allow for %s iterations', newNum);
+                obj.sendError(errorMsg);
             elseif num ~= newNum
-                warning('Maximum number of iterations was rounded to nearest integer')
+                obj.sendWarning('Maximum number of iterations was rounded to nearest integer')
             end
                 obj.nMaxIterations = num;     
         end
@@ -252,6 +267,7 @@ classdef TrackablePosition < Trackable % & StageScanner
             stage = getObjByName(obj.mStageName);
             spcm = getObjByName(Spcm.NAME);
             axes = stage.getAxis(stage.availableAxes);
+            len = length(axes);
             scanner = StageScanner.init;
             
             % Initialize scan parameters for search
@@ -259,7 +275,7 @@ classdef TrackablePosition < Trackable % & StageScanner
             sp.fixedPos = stage.Pos(axes);
             sp.pixelTime = obj.pixelTime;
             
-            while ~obj.stopFlag && any(obj.stepSize > obj.MINIMUM_STEP_VECTOR) && ~obj.isDivergent
+            while ~obj.stopFlag && any(obj.stepSize > obj.MINIMUM_STEP_VECTOR(axes)) && ~obj.isDivergent
                 if obj.stepSize(obj.currAxis) > obj.MINIMUM_STEP_VECTOR(obj.currAxis)
                     obj.stepNum = obj.stepNum + 1;
                     pos = sp.fixedPos(obj.currAxis);
@@ -325,7 +341,7 @@ classdef TrackablePosition < Trackable % & StageScanner
                     obj.stepSize(obj.currAxis) = step/2;
                 end
                 sp.isFixed(obj.currAxis) = true;        % We are done with this axis, for now
-                obj.currAxis = mod(obj.currAxis,3) + 1; % Cycle through [1 2 3]
+                obj.currAxis = mod(obj.currAxis, len) + 1; % Cycle through 1:len
             end
         end
     end

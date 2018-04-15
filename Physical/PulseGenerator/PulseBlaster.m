@@ -40,12 +40,11 @@ classdef PulseBlaster < EventSender
     end
     
     methods(Access = private)
-        function obj = PulseBlaster(libPathName, dummyModeOptional) %#ok<*INUSD>
-            % dummyModeOptional - if exist and set to true, no actual physics will be
+        function obj = PulseBlaster(libPathName, dummyModeOptional)
+            % dummyModeOptional - if exists and set to true, no actual physics will be
             % involved. good for testing purposes
             obj@EventSender(PulseBlaster.NAME);
-            removeObjIfExists(PulseBlaster.NAME); 
-            addBaseObject(obj);  % so it can be reached by getObjByName(PulseBlaster.NAME)
+            replaceBaseObject(obj);	%   % in base object map, so it can be reached by getObjByName(PulseBlaster.NAME)
             
             obj.dummyMode = and(exist('dummyModeOptional', 'var'), dummyModeOptional == true);
             obj.mChannels = [];
@@ -88,7 +87,7 @@ classdef PulseBlaster < EventSender
             % if "dummy" isn't in the struct, it will be considered as false
             %
             if ~isfield(pbStruct, 'libPathName')
-                error('"libPathName must be in the struct! (pulse blaster)')
+                EventStation.anonymousError('"libPathName must be in the struct for the pulse blaster!')
             end
             
             libPathName = strrep(pbStruct.libPathName, '[NV Lab]\', PathHelper.getPathToNvLab());
@@ -283,11 +282,11 @@ classdef PulseBlaster < EventSender
         
         function set.seqRepeats(obj,newVal)
             if ~isnumeric(newVal)
-                error('''newVal'' must be numeric!');
+                obj.sendError('''newVal'' must be numeric!');
             end
             
             if newVal < 1 || newVal > obj.MAX_REPEATS
-                error('Value out of range. Range: [%d, %d]', 1, obj.MAX_REPEATS);
+                obj.sendError('Value out of range. Range: [%d, %d]', 1, obj.MAX_REPEATS);
             end
             obj.seqRepeats = newVal;
         end
@@ -464,7 +463,7 @@ classdef PulseBlaster < EventSender
         function status = PBesrStartProgramming(obj)
             
             PULSE_PROGRAM  = 0;
-            FREQ_REGS      = 1;
+            FREQ_REGS      = 1; %#ok<*NASGU>
             
             PHASE_REGS     = 2;
             TX_PHASE_REGS  = 2;

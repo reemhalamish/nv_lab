@@ -51,25 +51,35 @@ classdef(Abstract) Spcm < EventSender
     end
 
     methods(Static = true)
-        function spcmObject = create(spcmTypeStruct)
-            removeObjIfExists(Spcm.NAME);
-            
+        function create(spcmTypeStruct)
+            % Get all we need from json
             missingField = FactoryHelper.usualChecks(spcmTypeStruct, Spcm.SPCM_NEEDED_FIELDS);
             if ~isnan(missingField)
-                error('Can''t initialize SPCM - needed field "%s" was not found in initialization struct!', missingField);
+                EventStation.anonymousError('Can''t initialize SPCM - needed field "%s" was not found in initialization struct!', missingField);
             end
             
+            try % Maybe there is already one
+                getObjByName(Spcm.NAME);
+                warning('Another instance of the SPCM already exists')
+                return
+            catch
+                % We hope to get here, since this means we are not creating
+                % an object that already exists
+            end
+            
+            % Create new object
             switch (lower(spcmTypeStruct.classname))
                 case 'nidaq'
                     spcmObject = SpcmNiDaqControlled.create(Spcm.NAME, spcmTypeStruct);
                 case 'dummy'
                     spcmObject = SpcmDummy();
                 otherwise
-                    error('%s\n%s', ...
-                        sprintf('The requested SPCM classname ("%s") was not recognized.\n',spcmTypeStruct.classname), ...
-                        'Please fix the .json file and try again.');
+                    EventStation.anonymousError(...
+                        ['The requested SPCM classname ("%s") was not recognized.\n', ...
+                        'Please fix the .json file and try again.'], ...
+                        spcmTypeStruct.classname);
             end
-            
+
             addBaseObject(spcmObject);
         end
     end

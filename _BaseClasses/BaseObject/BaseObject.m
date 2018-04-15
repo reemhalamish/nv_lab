@@ -9,7 +9,7 @@ classdef BaseObject < HiddenMethodsHandle & PropertiesDisplaySorted
     %   they would be nice to have around. Adding an object to this map
     %   would be via calling addBaseObject() --> an Exception will be
     %   thrown if an object is in with the same name.
-    %   Removing a BaseObject from the map is done via removeBaseObject().
+    %   Removing a BaseObject from the map is done via removeObjIfExists().
     %   Querying (getting) objects from the map is done via 
     %   getObjByName(string), which will return the BaseObject or throw an
     %   exception if no BaseObject was found
@@ -48,23 +48,25 @@ classdef BaseObject < HiddenMethodsHandle & PropertiesDisplaySorted
         
     end
     
-    methods(Static = true, Access = public, Hidden = true) % Change "public" in working copy!!!!!!
+    methods (Static, Hidden, Access = public) % Change "public" in working copy!!!!!!
         function objectMap = allObjects
             persistent allObjectsMap
             if isempty(allObjectsMap)
-                temp = containers.Map;
+                temp = containers.Map('UniformValues', false);
                 allObjectsMap = HandleWrapper(temp); 
             end
             objectMap = allObjectsMap;
         end
         
         function baseObject = getByName(objName)
-            % searches and returns an object based on his "name" property
-            % can error() if not such object has been found
-            % although this function is accessable from anywhere in the
-            % code, i tis hidden so that it won't auto-complete in every
-            % object inheriting from BaseObject. call "getObjByName(name)"
-            % instead, as it's a wrapper function for "BaseObject.getByName(name)"
+            % Searches and returns an object based on its "name" property;
+            % produces an error/exception if no such object was found.
+            %
+            % Although this function is accessable from anywhere in the
+            % code, it is hidden so that it won't auto-complete in every
+            % object inheriting from BaseObject.
+            % Instead, call "getObjByName(name)", which is a wrapper
+            % function for "BaseObject.getByName(name)"
             allBaseObjects = BaseObject.allObjects.wrapped;
 
             if ~ischar(objName) && ~isstring(objName)
@@ -77,23 +79,23 @@ classdef BaseObject < HiddenMethodsHandle & PropertiesDisplaySorted
         end
         
         function addObject(baseObject)
-            allBaseObjects = BaseObject.allObjects;
+            allBaseObjects = BaseObject.allObjects.wrapped;
             objName = baseObject.name;
-            if allBaseObjects.wrapped.isKey(objName)
+            if allBaseObjects.isKey(objName)
                 % so apparently an object with this name exist.
                 % It's probably an error, but maybe it's the same object
                 % being constructed twice (it can happen with diamond
-                % inheritance. for example if something inherits both
+                % inheritance. For example if something inherits both
                 % "Savable" and "EventSender", both inherit from
                 % "BaseObject". We need to check this
-                if allBaseObjects.wrapped(objName) == baseObject
+                if allBaseObjects(objName) == baseObject
                     % Dismiss - same object constructed twice. Not an error
                     return
                 end
                 EventStation.anonymousError('Another object named "%s" already exists!', objName)
             end
             
-            allBaseObjects.wrapped(objName) = baseObject;
+            allBaseObjects(objName) = baseObject; %#ok<NASGU>
         end
         
         function removeObject(baseObjectOrObjName)
@@ -103,9 +105,9 @@ classdef BaseObject < HiddenMethodsHandle & PropertiesDisplaySorted
                 nameToRemove = baseObjectOrObjName.name;
             end
             
-            allBaseObjects = BaseObject.allObjects;
-            if allBaseObjects.wrapped.isKey(nameToRemove)
-                allBaseObjects.wrapped.remove(nameToRemove);
+            allBaseObjects = BaseObject.allObjects.wrapped;
+            if allBaseObjects.isKey(nameToRemove)
+                allBaseObjects.remove(nameToRemove);
             end
         end
     end

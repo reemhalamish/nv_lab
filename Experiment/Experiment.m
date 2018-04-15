@@ -44,14 +44,11 @@ classdef Experiment < EventSender & EventListener & Savable
             obj.mCategory = Savable.CATEGORY_EXPERIMENTS; 
             
             % copy parameters from previous experiment (if exists) and replace its base object
-            prevExp = removeObjIfExists(Experiment.NAME);
+            prevExp = replaceBaseObject(obj);   % in base object map
             if isa(prevExp, 'Experiment')
                 obj.robAndKillPrevExperiment(prevExp); 
-            % No need to tell the users otherwise. Perfectly normal.
-%             else
-%                 EventStation.anonymousWarning('Can''t find previous experiment! Initiating parameters from scratch...');
+                % No need to tell the user otherwise. Perfectly normal.
             end
-            addBaseObject(obj);
         end
         
         function cellOfStrings = getAllExpParameterProperties(obj)
