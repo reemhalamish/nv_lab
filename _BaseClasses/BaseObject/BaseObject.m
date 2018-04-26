@@ -48,7 +48,9 @@ classdef BaseObject < HiddenMethodsHandle & PropertiesDisplaySorted
         
     end
     
-    methods (Static, Hidden, Access = public) % Change "public" in working copy!!!!!!
+    methods (Static, Access = {?DeveloperFunctions})
+        % We don't want people messing around with this.
+        % But there's a class in dev\DevOnly\ ...
         function objectMap = allObjects
             persistent allObjectsMap
             if isempty(allObjectsMap)
@@ -57,7 +59,9 @@ classdef BaseObject < HiddenMethodsHandle & PropertiesDisplaySorted
             end
             objectMap = allObjectsMap;
         end
-        
+    end
+       
+    methods (Static, Hidden)
         function baseObject = getByName(objName)
             % Searches and returns an object based on its "name" property;
             % produces an error/exception if no such object was found.
@@ -99,20 +103,37 @@ classdef BaseObject < HiddenMethodsHandle & PropertiesDisplaySorted
         end
         
         function removeObject(baseObjectOrObjName)
+            allBaseObjects = BaseObject.allObjects.wrapped;
+            
             if ischar(baseObjectOrObjName)
                 nameToRemove = baseObjectOrObjName;
             else
+                % We have the actual object at hand. Since this function
+                % is sometimes incorrectly invoked, we want to make sure
+                % that we are not deleting the new object, but only the old
+                % one.
                 nameToRemove = baseObjectOrObjName.name;
+                if ~isKey(allBaseObjects, nameToRemove) || ...
+                        allBaseObjects(nameToRemove) ~= baseObjectOrObjName
+                    % ^ Logic for this condition: This name might:
+                    % (1) not exist in the system - and then there's no
+                    %     point in further checking;
+                    % (2) exist in the system (condition was not
+                    %     short-circuited), but it does not refer to the
+                    %     object that we wanted to delete (but to an older
+                    %     version of it).
+                    % Either way, nothing more to do here.
+                    return
+                end
             end
             
-            allBaseObjects = BaseObject.allObjects.wrapped;
             if allBaseObjects.isKey(nameToRemove)
                 allBaseObjects.remove(nameToRemove);
             end
         end
     end
     
-%     methods(Static = true, Access = public)         % why public?
+%     methods (Static, Access = public)         % why public?
 %         function objectMap = allObjects
 %             persistent allObjectsMap
 %             if isempty(allObjectsMap) || ~isvalid(allObjectsMap)
