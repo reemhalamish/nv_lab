@@ -17,7 +17,7 @@ classdef ViewSpcm < ViewVBox & EventListener
         edtWrap
     end
     
-    properties(Constant = true)
+    properties (Constant)
         BOTTOM_LABEL = 'time [sec]'; % Text for horiz. axis
         LEFT_LABEL = 'kcps';     % Text for vert. axis
         
@@ -29,8 +29,7 @@ classdef ViewSpcm < ViewVBox & EventListener
         function obj = ViewSpcm(parent, controller, heightOpt, widthOpt)
             padding = 5;
             obj@ViewVBox(parent, controller, padding);
-            spcmCount = getObjByName(SpcmCounter.NAME);
-            obj@EventListener(spcmCount.name);
+            obj@EventListener(Experiment.NAME);
             
             obj.wrap = obj.DEFAULT_WRAP_VALUE;
             
@@ -59,6 +58,7 @@ classdef ViewSpcm < ViewVBox & EventListener
                 'Callback', @obj.btnResetCallback);
             
             % Integration time column %
+            defaultTime = SpcmCounter.INTEGRATION_TIME_DEFAULT_MILLISEC;
             vboxIntegrationTime =  uix.VBox('Parent', hboxControls, ...
                 'Spacing', 1, 'Padding', 1);
             uicontrol(obj.PROP_LABEL{:}, ...
@@ -66,7 +66,7 @@ classdef ViewSpcm < ViewVBox & EventListener
                 'String', 'Integration (ms)');
             obj.edtIntegrationTime = uicontrol(obj.PROP_EDIT{:}, ...
                 'Parent', vboxIntegrationTime, ...
-                'String', 'Error in Refresh', ...
+                'String', num2str(defaultTime), ...
                 'Callback', @obj.edtIntegrationTimeCallback);
             vboxIntegrationTime.Heights = [-1 -1];
             
@@ -113,23 +113,28 @@ classdef ViewSpcm < ViewVBox & EventListener
         end
         
         function refresh(obj)
-            spcmCount = getObjByName(SpcmCounter.NAME);
-            if spcmCount.isOn
-                set(obj.btnStartStop,'BackgroundColor', 'red', ...
-                    'String', 'Stop', ...
-                    'Callback', @obj.btnStopCallback);
-            else
-                set(obj.btnStartStop,'BackgroundColor', 'green', ...
-                    'String', 'Start', ...
-                    'Callback', @obj.btnStartCallback);
+            if Experiment.current(SpcmCounter.COUNTER_NAME)
+                spcmCount = getObjByName(Experiment.NAME);
+                obj.edtIntegrationTime.String = spcmCount.integrationTimeMillisec;
+                
+                if spcmCount.isOn
+                    set(obj.btnStartStop,'BackgroundColor', 'red', ...
+                        'String', 'Stop', ...
+                        'Callback', @obj.btnStopCallback);
+                    return
+                end
             end
-            obj.edtIntegrationTime.String = spcmCount.integrationTimeMillisec;
+            
+            % If we got here, it means the counter is not running (either
+            % available but off, or unavailable)
+            set(obj.btnStartStop,'BackgroundColor', 'green', ...
+                'String', 'Start', ...
+                'Callback', @obj.btnStartCallback);
         end
         
-
         %%%% Callbacks %%%%
         function cbxUsingWrapCallback(obj, ~, ~)
-            obj.recolor(obj.edtWrap,~obj.isUsingWrap)
+            obj.recolor(obj.edtWrap, ~obj.isUsingWrap)
             % obj.update;           todo: replot with relevant data
         end
         function edtWrapCallback(obj, ~, ~)
@@ -140,20 +145,20 @@ classdef ViewSpcm < ViewVBox & EventListener
             obj.wrap = str2double(obj.edtWrap.String);
             % obj.update;           todo: replot with relevant data
         end
-        function btnStartCallback(~, ~, ~)
-            spcmCount = getObjByName(SpcmCounter.NAME);
-                spcmCount.run;
+        function btnStartCallback(obj, ~, ~)
+            spcmCount = obj.getCounter;
+            spcmCount.run;
         end
-        function btnStopCallback(~, ~, ~)
-            spcmCount = getObjByName(SpcmCounter.NAME);
+        function btnStopCallback(obj, ~, ~)
+            spcmCount = obj.getCounter;
             spcmCount.stop;
         end
-        function btnResetCallback(~, ~ ,~)
-            spcmCount = getObjByName(SpcmCounter.NAME);
+        function btnResetCallback(obj, ~ ,~)
+            spcmCount = obj.getCounter;
             spcmCount.reset;
         end
         function edtIntegrationTimeCallback(obj, ~, ~) 
-            spcmCount = getObjByName(SpcmCounter.NAME);
+            spcmCount = obj.getCounter;
             integrationTime = str2double(obj.edtIntegrationTime.String);
             if ValidationHelper.isValuePositiveInteger(integrationTime)
                 spcmCount.integrationTimeMillisec = integrationTime;
@@ -165,19 +170,35 @@ classdef ViewSpcm < ViewVBox & EventListener
         
     end
     
+    methods (Static)
+        function spcmCounter = getCounter
+            if Experiment.current(SpcmCounter.COUNTER_NAME)
+                spcmCounter = getObjByName(Experiment.NAME);
+            else
+                spcmCounter = SpcmCounter;
+            end
+        end
+    end
+    
     %% overridden from EventListener
     methods
         % When events happens, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
-            spcmCount = event.creator;
-            if isfield(event.extraInfo, spcmCount.EVENT_SPCM_COUNTER_UPDATED)   % event = update
+            % We're listening to all experiments, but only care if the
+            % experiment is an SPCM counter.
+            if ~Experiment.current(SpcmCounter.COUNTER_NAME)
+                return
+            end
+            
+            spcmCounter = event.creator;
+            if isfield(event.extraInfo, spcmCounter.EVENT_SPCM_COUNTER_UPDATED)   % event = update
                 % todo: this should be a method, say obj.update(spcm),
                 % which can be called also when changing wrap mode
                 if obj.isUsingWrap
-                    [time,kcps,std] = spcmCount.getRecords(obj.wrap);
+                    [time,kcps,std] = spcmCounter.getRecords(obj.wrap);
                 else
-                    [time,kcps,std] = spcmCount.getRecords;
+                    [time,kcps,std] = spcmCounter.getRecords;
                 end
                 dimNum = 1;
                 AxesHelper.fillAxes(obj.vAxes, kcps, dimNum, time, nan, obj.BOTTOM_LABEL, obj.LEFT_LABEL,std);   %Still requires std implementation
@@ -189,7 +210,7 @@ classdef ViewSpcm < ViewVBox & EventListener
             else
                 obj.refresh;
             end
-            if isfield(event.extraInfo, spcmCount.EVENT_SPCM_COUNTER_RESET)    % event = reset
+            if isfield(event.extraInfo, spcmCounter.EVENT_SPCM_COUNTER_RESET)    % event = reset
                 line = obj.vAxes.Children;
                 delete(line);
             end

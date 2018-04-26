@@ -3,21 +3,21 @@ classdef Experiment < EventSender & EventListener & Savable
     %   Detailed explanation goes here
     
     properties (SetAccess = protected)
-        expName                 % For retrieving using getExpByName
-        mCategory               % For loading (might change in subclasses)
+        expName = ''            % string. For retrieving using getExpByName
+        mCategory               % string. For loading (might change in subclasses)
         
-        mCurrentXAxisParam      % stores the ExpParameter that is in charge of axis x (which has name and value)
-        mCurrentYAxisParam		% stores the ExpParameter that is in charge of axis y (which has name and value)
+        mCurrentXAxisParam      % ExpParameter in charge of axis x (which has name and value)
+        mCurrentYAxisParam		% ExpParameter in charge of axis y (which has name and value)
     end
     
-    properties(Constant)
+    properties (Constant)
         NAME = 'Experiment'
         
-        EVENT_PLOT_UPDATED = 'plotUpdated' % when something changed regarding the plot (new data, change in x\y axis, change in x\y labels)
+        EVENT_PLOT_UPDATED = 'plotUpdated'      % when something changed regarding the plot (new data, change in x\y axis, change in x\y labels)
         EVENT_EXP_RESUMED = 'experimentResumed' % when the experiment is starting to run
-        EVENT_EXP_PAUSED = 'experimentPaused' % when the experiment stops from running
-        EVENT_PLOT_ANALYZE_FIT = 'plot_analyzie_fit' % when the experiment wants the plot to draw the fitting-function-analysis
-        EVENT_PARAM_CHANGED = 'experimentParameterChanged' % when one of the sequence params \ general params is changed
+        EVENT_EXP_PAUSED = 'experimentPaused'   % when the experiment stops from running
+        EVENT_PLOT_ANALYZE_FIT = 'plot_analyzie_fit'        % when the experiment wants the plot to draw the fitting-function-analysis
+        EVENT_PARAM_CHANGED = 'experimentParameterChanged'  % when one of the sequence params \ general params is changed
         
         % Exception handling
         EXCEPTION_ID_NO_EXPERIMENT = 'getExp:noExp';
@@ -94,7 +94,7 @@ classdef Experiment < EventSender & EventListener & Savable
     
     
     %% overriding from Savable
-    methods(Access = protected)
+    methods (Access = protected)
         function outStruct = saveStateAsStruct(obj, category, type) %#ok<INUSD>
             % Saves the state as struct. if you want to save stuff, make
             % (outStruct = struct;) and put stuff inside. If you dont
@@ -122,8 +122,6 @@ classdef Experiment < EventSender & EventListener & Savable
             %            'image_stages' category, for example
             % subCategory - string. could be empty string
             
-            
-            
             if isfield(savedStruct, 'some_value')
                 obj.my_value = savedStruct.some_value;
             end
@@ -135,6 +133,31 @@ classdef Experiment < EventSender & EventListener & Savable
             % (string = '');
             
             string = NaN;
+        end
+    end
+    
+    methods (Static)
+        function obj = init
+            % Creates a default Experiment, if needed.
+            try
+                obj = getObjByName(Experiment.NAME);
+                return
+            catch
+                obj = Experiment('');
+            end
+        end
+        
+        function tf = current(newExpName)
+            % logical. Whether the requested name is the current one (i.e.
+            % obj.expName).
+            %
+            % see also: GETEXPBYNAME
+            try
+                exp = getObjByName(Experiment.NAME);
+                tf = strcmp(exp.expName, newExpName);
+            catch
+                tf = false;
+            end
         end
     end
     

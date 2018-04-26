@@ -1,9 +1,7 @@
 classdef GuiControllerSpcmCounter < GuiController
     %GUICONTROLLERSPCMCOUNTER Gui Controller for the SPCM counter
-    %   
     
     methods
-        
         function obj = GuiControllerSpcmCounter()
             Setup.init;
             shouldConfirmOnExit = false;
@@ -26,15 +24,17 @@ classdef GuiControllerSpcmCounter < GuiController
             obj.moveToMiddleOfScreen();
         end
         
-        function onClose(obj)
-            % callback. things to run when need to close the GUI.
-            spcmCounter = getObjByName(SpcmCounter.NAME);
-            if ~spcmCounter.isOn; return; end
-            EventStation.anonymousWarning('SPCM Counter is now turned off');
-            spcmCounter.stop;
-            spcmCounter.reset;
-                % maybe implement static property of class that counts
-                % instances
+        function onClose(obj) %#ok<MANU>
+            % callback. Things to run when need to close the GUI.
+            
+            % If the counter is running, we want to turn it off
+            if Experiment.current(SpcmCounter.COUNTER_NAME)
+                spcmCounter = getObjByName(Experiment.NAME);
+                if ~spcmCounter.isOn; return; end
+                EventStation.anonymousWarning('SPCM Counter is now turned off');
+                spcmCounter.stop;
+                spcmCounter.reset;
+            end
         end
     end
     

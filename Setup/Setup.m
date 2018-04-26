@@ -6,7 +6,7 @@ classdef Setup < handle
     properties
     end
     
-    properties(Hidden = true, Constant = true)
+    properties (Hidden, Constant)
         NEEDED_FIELDS = {'lasers', 'niDaq', 'pulseGenerator', 'setupNumber', 'stages', 'spcm'};
     end
     
@@ -24,7 +24,7 @@ classdef Setup < handle
         end
     end
     
-    methods(Access = private) 
+    methods (Access = private) 
         function obj = Setup()
             obj@handle();          
             
@@ -45,12 +45,12 @@ classdef Setup < handle
             Spcm.create(jsonStruct.spcm);
             ImageScanResult.init;
             StageScanner.init;
-            SpcmCounter.init;
+            Experiment.init;
             SaveLoad.init;
             LaserGate.getLasers;	% the first call to getLasers() also inits them
 			ClassStage.getStages;	% the first call to getStages() also inits them
             Tracker.init;
-			
+            % Joystick.init should be also here. For the moment, it is found in the appropriate stage
         end
     end
     
