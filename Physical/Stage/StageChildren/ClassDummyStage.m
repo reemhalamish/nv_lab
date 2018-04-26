@@ -26,7 +26,7 @@ classdef (Sealed) ClassDummyStage  < ClassStage
         macroIndex = -1;
     end
     
-    properties(Constant = true)
+    properties (Constant)
         STEP_MINIMUM_SIZE = 1   % double
         STEP_DEFAULT_SIZE = 20  % double
     end
@@ -56,6 +56,9 @@ classdef (Sealed) ClassDummyStage  < ClassStage
             if tiltAvailable
                 obj.availableProperties.(obj.TILTABLE) = true;
             end
+            obj.availableProperties.(obj.HAS_OPEN_LOOP) = true;
+            obj.availableProperties.(obj.HAS_CLOSED_LOOP) = true;
+            obj.getJoystick;
         end 
     end
     
@@ -479,6 +482,8 @@ classdef (Sealed) ClassDummyStage  < ClassStage
         function ChangeLoopMode(obj, mode)
             % Changes between closed and open loop.
             % Mode should be either 'Open' or 'Closed'.
+            obj.loopMode = mode;
+            obj.sendEventLoopModeChanged;
         end
         
         function Halt(obj)
@@ -506,7 +511,7 @@ classdef (Sealed) ClassDummyStage  < ClassStage
         end
     end
     
-    methods(Access = public)
+    methods (Access = public)
         function ok = PointIsInRange(obj, axis, point)
             % Checks if the given point is within the soft (and hard)
             % limits of the given axis (x,y,z or 1 for x, 2 for y and 3 for z).

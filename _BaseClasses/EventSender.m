@@ -1,6 +1,6 @@
 classdef EventSender < BaseObject
     %EVENTSENDER a member of this class can send events     
-    %   those events can be captured by various listeners   
+    %   Events sent by an object can be captured by various listeners   
     %                                                       %
     %   child classes can use                               %
     %       @ sendEvent(struct)                             %
@@ -14,28 +14,40 @@ classdef EventSender < BaseObject
         ERROR_MESSAGE_PHYSICAL = 'Something in the real world just crashed. Sorry'
     end
     
-    methods(Access = protected)
+    methods (Access = protected)
         function obj = EventSender(name)
-            % name - the object name
+            % name - string. Object name for future reference
             obj@BaseObject(name);
         end
         
-        function sendEvent(obj, optionalStructToSend)
-            % sending an event to the station
-            % optionalStructToSend - optional struct. empty struct will be
-            %                        used if not supplied
-            if exist('optionalStructToSend', 'var')
-                eventToSend = Event(obj, optionalStructToSend);
-            else
-                eventToSend = Event(obj, struct);
-            end
+        function sendEvent(obj, varargin)
+            % Sends an event to the EventStation
+            % optionalStructToSend - struct (optional). If not supplied,
+            %                           the Event class will supplement it.
+            creator = obj;
+            optionalStructToSend = varargin;
+            
+            eventToSend = Event(creator, optionalStructToSend{:});
             station = EventStation.getInstance;
             station.newEvent(eventToSend);
         end
         
+        function sendQueuedEvent(obj, varargin)
+            % Sends a queued event to the EventStation, to be sent only
+            % after all other events have been sent
+            % optionalStructToSend - struct (optional). If not supplied,
+            %                           the Event class will supplement it.
+            creator = obj;
+            optionalStructToSend = varargin;
+            
+            eventToSend = Event(creator, optionalStructToSend{:});
+            station = EventStation.getInstance;
+            station.newQueuedEvent(eventToSend);
+        end
+        
         function sendWarning(obj, errorString, extraInfoStructIfNeeded)
-            % sending an error event to the controller
-            % errorString - the error string to display
+            % Sends an error event to the controller
+            % errorString - string. Warning message to display
             % extraInfoStructIfNeeded - if you want to send the event with
             %       some extra info to be received by your listeners
             if exist('extraInfoIfNeeded', 'var')
@@ -48,8 +60,8 @@ classdef EventSender < BaseObject
         end
                 
         function sendError(obj, errorString, extraInfoStructIfNeeded)
-            % sending an error event to the controller
-            % errorString - the error string to display
+            % Sends an error event to the controller
+            % errorString - string. Error message to display
             % extraInfoStructIfNeeded - if you want to send the event with
             %       some extra info to be received by your listeners
             if exist('extraInfoIfNeeded', 'var')

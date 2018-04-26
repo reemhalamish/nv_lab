@@ -6,7 +6,7 @@ classdef (Sealed) ClassPIM686M501 < ClassStage
         stageCoarseXY
     end
     
-    properties(Constant = true)
+    properties (Constant)
         NAME = 'Stage (coarse) - ClassPIM686&PIM501'
         AVAILABLE_AXES = 'xyz'
         
@@ -33,8 +33,8 @@ classdef (Sealed) ClassPIM686M501 < ClassStage
 %             tiltAvailable = true;         todo: implement
             
             obj@ClassStage(name, availableAxes);
-            obj.stageCoarseXY = ClassPIM686.GetInstance();
             obj.stageCoarseZ = ClassPIM501.GetInstance();
+            obj.stageCoarseXY = ClassPIM686.GetInstance();
             
             obj.availableProperties.(obj.HAS_CLOSED_LOOP) = true;
             obj.availableProperties.(obj.HAS_OPEN_LOOP) = true;
@@ -81,8 +81,8 @@ classdef (Sealed) ClassPIM686M501 < ClassStage
             else % Mixture
                 zAxisBool = (axis == 3);
                 xyAxesBool = (axis ~= 3);
-                [negSoftLimit(xyAxesBool), posSoftLimit(xyAxesBool)] = obj.stageCoarseXY.ReturnLimits(axis(xyAxesBool));
                 [negSoftLimit(zAxisBool),  posSoftLimit(zAxisBool)]  = obj.stageCoarseZ.ReturnLimits(axis(zAxisBool));
+                [negSoftLimit(xyAxesBool), posSoftLimit(xyAxesBool)] = obj.stageCoarseXY.ReturnLimits(axis(xyAxesBool));
             end
         end
         
@@ -98,8 +98,8 @@ classdef (Sealed) ClassPIM686M501 < ClassStage
             else % Mixture.
                 zAxisBool = (axis == 3);
                 xyAxesBool = (axis ~= 3);
-                [negHardLimit(xyAxesBool), posHardLimit(xyAxesBool)] = obj.stageCoarseXY.ReturnHardLimits(axis(xyAxesBool));
                 [negHardLimit(zAxisBool), posHardLimit(zAxisBool)] = obj.stageCoarseZ.ReturnHardLimits(axis(zAxesBool));
+                [negHardLimit(xyAxesBool), posHardLimit(xyAxesBool)] = obj.stageCoarseXY.ReturnHardLimits(axis(xyAxesBool));
             end
         end
         
@@ -206,53 +206,25 @@ classdef (Sealed) ClassPIM686M501 < ClassStage
         function JoystickControl(obj, enable)
             % Changes the joystick state for all axes to the value of
             % 'enable' - 1 to turn Joystick on, 0 to turn it off.
-            if all(axis == 3) % Only Z Axis.
-                obj.stageCoarseZ.JoystickControl(enable);
-            elseif all(axis ~= 3) % No Z Axis.
-                obj.stageCoarseXY.JoystickControl(enable);
-            else % Mixture.
-                obj.stageCoarseZ.JoystickControl(enable);
-                obj.stageCoarseXY.JoystickControl(enable);
-            end
+            obj.stageCoarseZ.JoystickControl(enable);
+            obj.stageCoarseXY.JoystickControl(enable);
         end
         
         function binaryButtonState = ReturnJoystickButtonState(obj)
             % Returns the state of the buttons in 3 bit decimal format.
             % 1 for first button, 2 for second and 4 for the 3rd.
-            if all(axis == 3) % Only Z Axis.
-                binaryButtonState = obj.stageCoarseZ.ReturnJoystickButtonState();
-            elseif all(axis ~= 3) % No Z Axis.
-                binaryButtonState = obj.stageCoarseXY.ReturnJoystickButtonState();
-            else % Mixture.
-                binaryButtonState = obj.stageCoarseZ.ReturnJoystickButtonState();
-                binaryButtonState = binaryButtonState + obj.stageCoarseXY.ReturnJoystickButtonState();
-            end
+            binaryButtonState = obj.stageCoarseZ.ReturnJoystickButtonState();
+            binaryButtonState = binaryButtonState + obj.stageCoarseXY.ReturnJoystickButtonState();
         end
         
         function FastScan(obj, enable)
-            % Changes the scan between the fast & the slow modes.
-            % 'enable' - 1 for fast scan, 0 for slow scan.
-            if all(axis == 3) % Only Z Axis.
-                obj.stageCoarseZ.FastScan(enable);
-            elseif all(axis ~= 3) % No Z Axis.
-                obj.stageCoarseXY.FastScan(enable);
-            else % Mixture.
-                obj.stageCoarseZ.FastScan(enable);
-                obj.stageCoarseXY.FastScan(enable);
-            end
+            % Not scannable stage, this function will never be called
         end
         
         function ChangeLoopMode(obj, mode)
             % Changes between closed and open loop.
             % Mode should be either 'Open' or 'Closed'.
-            if all(axis == 3) % Only Z Axis.
-                obj.stageCoarseZ.ChangeLoopMode(mode);
-            elseif all(axis ~= 3) % No Z Axis.
-                obj.stageCoarseXY.ChangeLoopMode(mode);
-            else % Mixture.
-                obj.stageCoarseZ.ChangeLoopMode(mode);
-                obj.stageCoarseXY.ChangeLoopMode(mode);
-            end
+            obj.stageCoarseXY.ChangeLoopMode(mode);
         end
         
         function success = SetTiltAngle(obj, thetaXZ, thetaYZ)
@@ -279,7 +251,7 @@ classdef (Sealed) ClassPIM686M501 < ClassStage
     
     %% overriding from Savable
     % This pseudo-stage should not return string.
-    methods(Access = protected)
+    methods (Access = protected)
         function string = returnReadableString(obj, savedStruct)
             % return a readable string to be shown. if this object
             % doesn't need a readable string, make (string = NaN;) or

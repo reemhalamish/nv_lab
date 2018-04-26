@@ -25,7 +25,7 @@ classdef StageScanner < EventSender & EventListener & Savable
         TRIALS_AMOUNT_ON_ERROR = 4;
     end
     
-    methods(Access = private)
+    methods (Access = private)
         function obj = StageScanner
             obj@EventSender(StageScanner.NAME);
             obj@Savable(StageScanner.NAME);
@@ -84,6 +84,8 @@ classdef StageScanner < EventSender & EventListener & Savable
             spcm = getObjByName(Spcm.NAME);
             spcm.setSPCMEnable(true);
             
+            stage.sanityCheckForScanRange(obj.mStageScanParams);
+            
             timerVal = tic;
             disp('Initiating scan...');
             kcpsScanMatrix = obj.scan(stage, spcm, obj.mStageScanParams);
@@ -124,10 +126,6 @@ classdef StageScanner < EventSender & EventListener & Savable
             % scanParams - the scan parameters. an object deriving from StageScanParams
             % kcpsScanMatrixOptional - the last scanned matrix, if exists
             skipCreatingMatrix = exist('kcpsScanMatrixOptional', 'var');
-            if skipCreatingMatrix
-                stage.sanityChecksRaiseErrorIfNeeded(scanParams);
-                % because we already trust the scan params
-            end
             
             kcpsScanMatrix = [];        % Return value for nonvalid dinemsion number
             nDimensions = sum(~scanParams.isFixed);
@@ -643,7 +641,7 @@ classdef StageScanner < EventSender & EventListener & Savable
     end
     
     %% overriding from Savable
-    methods(Access = protected)
+    methods (Access = protected)
         function outStruct = saveStateAsStruct(obj, category, type)
             % Saves the state as struct. if you want to save stuff, make
             % (outStruct = struct;) and put stuff inside. If you dont
@@ -705,7 +703,7 @@ classdef StageScanner < EventSender & EventListener & Savable
             obj.sendEventScanUpdated(savedStruct.scan);
         end
         
-        function string = returnReadableString(obj, savedStruct)
+        function string = returnReadableString(~, savedStruct)
             % Return a readable string to be shown. If this object
             % doesn't need a readable string, make (string = NaN;) or
             % (string = '');
@@ -719,29 +717,30 @@ classdef StageScanner < EventSender & EventListener & Savable
             end
             
             % Getting initial information from scan parameters, ...
-            scanAxes = obj.mStageScanParams.getScanAxes;
-            nScanned = length(scanAxes);
-            fixAxes = obj.mStageScanParams.getFixedAxes;
-            nFixed = length(fixAxes);
-            stage = getObjByName(obj.mStageName);
+            params = savedStruct.scanParams;
+            scanAxes = find(~params.isFixed);
+            fixAxes = find(params.isFixed);
+            
+            stageName = savedStruct.stageName;
             
             % so we can create the output string
-            string = sprintf('Scanning %s %s:', stage.name, upper(scanAxes));
+            string = sprintf('Scanning %s %s:', stageName, upper(scanAxes));
             
             indentation = 5;
-            for i = 1:nFixed
-                ax = fixAxes(i);
-                position = stage.Pos(ax);
+            for i = 1:length(fixAxes)
+                index = fixAxes(i);
+                ax = ClassStage.GetLetterFromAxis(index);
+                position = params.fixedPos(index);
                 axisString = sprintf('%s position: %.3f', upper(ax), position);
                 string = sprintf('%s\n%s', string, ...
                     StringHelper.indent(axisString, indentation));
             end
-            for i = 1:nScanned
-                ax = scanAxes(i);
-                index = stage.getAxis(ax);
-                from = obj.mStageScanParams.from(index);
-                to = obj.mStageScanParams.to(index);
-                numPoints = obj.mStageScanParams.numPoints(index);
+            for i = 1:length(scanAxes)
+                index = scanAxes(i);
+                ax = ClassStage.GetLetterFromAxis(index);
+                from = params.from(index);
+                to = params.to(index);
+                numPoints = params.numPoints(index);
                 axisString = sprintf('%s: %d points from %.3f to %.3f', upper(ax), numPoints, from, to);
                 string = sprintf('%s\n%s', string, ...
                     StringHelper.indent(axisString, indentation));

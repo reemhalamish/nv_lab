@@ -1,10 +1,11 @@
 classdef (Abstract) ClassStage < EventSender & Savable & EventListener
     % Created by Yoav Romach, The Hebrew University, September, 2016
     properties
-        availableAxes           % string. for example - "xy"
+        availableAxes           % string. For example - 'xy'
         scanParams              % object of class StageScanParams
         availableProperties = struct;
         stepSize                % double
+        loopMode = 'Closed'     % string. 'Closed' by default. Can be either that or 'Open'.
     end
     
     properties (Abstract, Constant)
@@ -14,7 +15,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
     
     properties (Constant)
         SCAN_AXES = 'xyz';
-        SCAN_AXES_SIZE = 3; % the length of SCAN_AXES
+        SCAN_AXES_SIZE = 3; % int. Length of SCAN_AXES
              
         TILT_MIN_LIM_DEG = -5;
         TILT_MAX_LIM_DEG = 5;
@@ -31,11 +32,12 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         EVENT_STEP_SIZE_CHANGED = 'stepSizeChanged';
         EVENT_POSITION_CHANGED = 'positionChanged';
         EVENT_TILT_CHANGED = 'tiltChanged';
+        EVENT_LOOP_MODE_CHANGED = 'loopModeChanged';
     end
     
     methods (Static, Access = public) % Get instance constructor
         function stages = getStages()
-            % return an instance of cell{all the stages}
+            % Return an instance of cell{all the stages}
             
             persistent stagesCellContainer
             if isempty(stagesCellContainer) || ~isvalid(stagesCellContainer)
@@ -87,6 +89,18 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                                 stageName = 'Dummy stage';
                             end
                             
+                            try
+                                % Maybe this already exists, and we will
+                                % then replace it.
+                                oldStage = getObjByName(stageName);
+                                EventStation.anonymousWarning('%s will be overridden!', stageName);
+                                removeObjIfExists(oldStage);
+                            catch
+                                % This is actually the simple case, despite
+                                % the use of syntax.
+                            end
+                                
+                            
                             if isfield(curStageStruct, 'is_scanable')
                                 stageScanable = curStageStruct.is_scanable;
                             else
@@ -120,6 +134,17 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
 
         end  % function getStages()
         
+        function scannableStages = getScannableStages
+            % Among available stages, return only those which are scannable
+            stages = ClassStage.getStages;
+            scannableStages = {};
+            for i = 1:length(stages)
+                if stages{i}.isScannable
+                    scannableStages{end + 1} = stages{i}; %#ok<AGROW>
+                end
+            end
+        end
+        
         function axis = getAxis(axis)
             % Converts x,y,z into the corresponding numeric value (1,2,3).
             % If already in numeric value it does nothing.
@@ -143,7 +168,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             string = ClassStage.SCAN_AXES(axis);
         end
         
-    end  % methods(static, public)
+    end  % methods (static, public)
     
     methods (Access = protected)
         function obj = ClassStage(name, availableAxes)
@@ -177,7 +202,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         
     end
     
-    methods(Abstract = true, Access = public)
+    methods (Abstract, Access = public)
         ok = PointIsInRange(obj, axis, point)
         % Checks if the given point is within the soft (and hard)
         % limits of the given axis (x,y,z or 1 for x, 2 for y and 3 for z).
@@ -425,6 +450,9 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         function sendEventPositionChanged(obj)
             obj.sendEvent(struct(obj.EVENT_POSITION_CHANGED, true));
         end
+        function sendEventLoopModeChanged(obj)
+             obj.sendEvent(struct(obj.EVENT_LOOP_MODE_CHANGED, true));
+        end
         
         function sendPosToScanParams(obj)
             % New behavior: update "Fixed Position" to be current position,
@@ -456,7 +484,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             % For all the positions marked as "fixed" in obj.scanParams,
             % move to this position
             params = obj.scanParams;
-            obj.sanityChecksRaiseErrorIfNeeded(params);
+            obj.sanityCheckForScanRange(params);
             axes = obj.SCAN_AXES(find(params.isFixed)); %#ok<FNDSB>
             fixedPos = params.fixedPos(find(params.isFixed)); %#ok<FNDSB>
             if isempty(axes)
@@ -496,7 +524,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             % degrees.
             try
                 if ~obj.tiltAvailable
-                    obj.sendError('This stage doesn''t support tilt!');
+                    error('This stage doesn''t support tilt!');
                 end
                 
                 if ~ValidationHelper.isInBorders(thetaXZ, obj.TILT_MIN_LIM_DEG, obj.TILT_MAX_LIM_DEG)
@@ -528,9 +556,9 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         end
         
         
-        function sanityChecksRaiseErrorIfNeeded(obj, scanParams)
+        function sanityCheckForScanRange(obj, scanParams)
             % Sanity checks on the scan parameters
-            % the way: copy the scan parameters, call updateByLimit() on
+            % The way: copy the scan parameters, call updateByLimit() on
             % the new object and see if something has changed.  
             % 
             % If nothing changed, then all the parameters were in the
@@ -540,6 +568,13 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             if wasChange
                 obj.sendError('Sanity checks on the scan parameters failed!');
             end
+        end
+        
+        function getJoystick(obj)
+            % We create the joystick here, for techniacl reasons. It should
+            % be in Setup.init, when available
+            Joystick.init(obj.name);
+            obj.availableProperties.(obj.HAS_JOYSTICK) = true;
         end
         
     end
@@ -700,7 +735,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
     end
     
     %% overriden from Savable
-    methods(Access = protected) 
+    methods (Access = protected) 
         function outStruct = saveStateAsStruct(obj, category, type) %#ok<INUSL>
             % Saves the state as struct. if you want to save stuff, make
             % (outStruct = struct;) and put stuff inside. If you dont
@@ -750,7 +785,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             end
         end
         
-        function string = returnReadableString(obj, savedStruct) %#ok<INUSD>
+        function string = returnReadableString(obj, savedStruct)
             % Return a readable string to be shown. if this object
             % doesn't need a readable string, make (string = NaN;) or
             % (string = '');
@@ -769,7 +804,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             for i = 1:n
                 axLetter = obj.availableAxes(i);
                 axNum = obj.getAxis(axLetter);
-                position = obj.Pos(axNum);
+                position = savedStruct.position(axNum);
                 axisString = sprintf('%s axis: %.3f', axLetter, position);
                 string = sprintf('%s\n%s', string, ...
                     StringHelper.indent(axisString, indentation));

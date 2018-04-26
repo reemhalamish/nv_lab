@@ -67,7 +67,7 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             
             niDaqChannel = stageStruct.niDaqChannel;
             removeObjIfExists(ClassPILPS65.NAME);
-            obj = ClassPIP562(niDaqChannel);       
+            obj = ClassPIP562(niDaqChannel);
         end
     end
     
@@ -82,7 +82,7 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             daq.registerChannel(niDaqChannel, obj.name);
             
             obj.ID = -1;
-            obj.axesID = [-1,-1,-1];
+            obj.axesID = [-1, -1, -1];
             obj.posRangeLimit = [6500 6500 6500]; % Units set to microns.
             obj.negRangeLimit = [-6500 -6500 -6500]; % Units set to microns.
             obj.posSoftRangeLimit = obj.posRangeLimit;
@@ -114,7 +114,7 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             obj.availableProperties.(obj.TILTABLE) = true;
             obj.availableProperties.(obj.HAS_CLOSED_LOOP) = true;
             obj.availableProperties.(obj.HAS_OPEN_LOOP) = true;
-            obj.availableProperties.(obj.HAS_JOYSTICK) = true;
+            obj.getJoystick;        % inits the joystick, and adds it to the available properties
             
             obj.Connect();
             obj.Initialization();
@@ -859,7 +859,7 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
                     case 'Closed'
                         SendPICommand(obj,'PI_SVO', axisID, obj.szAxes, 1);
                     otherwise
-                        errorMsg = sprintf('Unknown mode %s', mode);
+                        errorMsg = sprintf('Unknown mode: %s', mode);
                         obj.sendError(errorMsg);
                 end
             else
@@ -868,6 +868,8 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
                     ChangeLoopMode(obj, obj.validAxes(i), mode)
                 end
             end
+            obj.loopMode = mode;
+            obj.sendEventLoopModeChanged;
         end
     end
 end

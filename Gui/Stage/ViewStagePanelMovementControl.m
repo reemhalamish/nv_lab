@@ -37,7 +37,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             axesLen = length(obj.stageAxes);
             
             %%%% panel init %%%%
-            panelMain = uix.Panel('Parent', parent.component,'Title','Movement Control', 'Padding', 5);
+            panelMain = uix.Panel('Parent', parent.component,'Title', 'Movement Control', 'Padding', 5);
             hboxMain = uix.HBox('Parent', panelMain, 'Spacing', 25, 'Padding', 0);
             vboxLeft = uix.VBox('Parent',hboxMain, 'Spacing', 6); % will contain the grid and "step"
             
@@ -127,7 +127,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
                 obj.cbxJoystick = uicontrol(obj.PROP_CHECKBOX{:}, ...
                     'Parent', vboxRight, ...
                     'String', 'Joystick');
-                joystickHeight = -1;
+                joystickHeight = 15;
                 heights = [heights joystickHeight];
             end
             vboxRight.Heights = heights;
@@ -142,6 +142,7 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             obj.edtSteps.Callback = @(h,e) obj.edtStepSizeCallback();
             obj.btnMoveStageToFixedPos.Callback = @(h,e) obj.btnMoveStageToFixedPosCallback();
             obj.btnHaltStage.Callback = @(h,e) StageControlEvents.sendHalt;
+            obj.cbxJoystick.Callback = @(h,e) obj.cbxJoystickCallback;
             
             obj.btnMoveToBlue.Callback = @(h,e) obj.btnMoveToBlueCallback();
             if canScan
@@ -173,6 +174,9 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             for i = 1: length(obj.stageAxes)
                 obj.tvCurPos(i).String = StringHelper.formatNumber(currentPosition(i));
             end
+            
+            obj.checkMovementEnabled;
+            
         end
         
         function edtStepSizeCallback(obj)
@@ -254,7 +258,35 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             axis = ClassStage.getAxis(obj.stageAxes(index));
             pos = stage.Pos(axis);
             obj.tvCurPos(index).String = pos;
+        end
+        
+        function cbxJoystickCallback(obj)
+            % Enables or disable the joystick according to the GUI settings.
+            % While the joystick is on, updates the location every ~200ms.
+            stage = getObjByName(obj.stageName);
+            stageScanner = getObjByName(StageScanner.NAME);
+            jstick = getObjByName(Joystick.NAME);
             
+            isEnabled = obj.cbxJoystick.Value;
+            % Don't let other things interrupt
+            if strcmp(stageScanner.mStageName, obj.stageName) ...
+                    && stageScanner.mCurrentlyScanning
+                stageScanner.stopScan;
+            end
+            obj.checkMovementEnabled;
+            
+            jstick.isEnabled = isEnabled;
+            stage.JoystickControl(isEnabled);
+            
+
+            stage.sendEventPositionChanged;
+            while jstick.isEnabled
+                jstick.buttonAction;
+                stage.sendEventPositionChanged;
+                drawnow();
+            end
+            
+            % ^ what a mish mash. todo: sort it out.
         end
         
         function showEdtCurPos(obj, index, shouldShow)
@@ -302,6 +334,31 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             % ^ removes the focus from the edt and sets the focus to the
             % current figure itself
         end
+        
+        function checkMovementEnabled(obj)
+            % Enables or disables (Greys out) the movement control buttons.
+            % Control can be either 'On' or 'Off'
+            
+            % We want to enable movement only if
+            %  * we're in closed loop
+            %  * stage scanner is not running
+            %  * joystick is off
+            % We first get all this information
+            stage = getObjByName(obj.stageName);
+            isLoopClosed = strcmp(stage.loopMode, 'Closed');
+            scanner = getObjByName(StageScanner.NAME);
+            jstick = getObjByName(Joystick.NAME);
+            isEnabled = (isLoopClosed && ~scanner.mCurrentlyScanning ...
+                && ~jstick.isEnabled);
+            onOffString = BooleanHelper.boolToOnOff(isEnabled);
+            
+            ax = ClassStage.getAxis(obj.stageAxes);
+            
+            for i = 1:length(ax)
+                obj.btnMoveLeft(i).Enable = onOffString;
+                obj.btnMoveRight(i).Enable = onOffString;
+            end
+        end
             
     end
     
@@ -314,6 +371,8 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
                     || isfield(event.extraInfo, ClassStage.EVENT_STEP_SIZE_CHANGED) ...
                     || isfield(event.extraInfo, ClassStage.EVENT_POSITION_CHANGED)
                 obj.refresh();
+            elseif isfield(event.extraInfo, ClassStage.EVENT_LOOP_MODE_CHANGED)
+                obj.checkMovementEnabled;
             end
         end
     end

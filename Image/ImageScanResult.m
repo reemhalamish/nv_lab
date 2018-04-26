@@ -6,7 +6,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
     % this class should be abstracted, and a child class will need to
     % implement it for scan result.
     
-    properties(GetAccess = public, SetAccess = private)
+    properties (GetAccess = public, SetAccess = private)
         mData = []; % double. Scan results
         mDimNumber  % dimensions number
         mFirstAxis  % vector
@@ -460,7 +460,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         
         %% Helper methods
         function sendEventImageUpdated(obj)
-            obj.sendEvent(struct(obj.EVENT_IMAGE_UPDATED, true));
+            obj.sendQueuedEvent(struct(obj.EVENT_IMAGE_UPDATED, true));
         end
         
         function tf = isDataAvailable(obj)

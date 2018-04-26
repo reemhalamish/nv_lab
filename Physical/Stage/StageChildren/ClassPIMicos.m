@@ -1124,6 +1124,8 @@ classdef ClassPIMicos < ClassStage
                 otherwise
                     obj.sendError(sprintf('Unknown mode %s', mode));
             end
+            obj.loopMode = mode;
+            obj.sendEventLoopModeChanged;
         end
         
         function success = EnableTiltCorrection(obj, enable)
