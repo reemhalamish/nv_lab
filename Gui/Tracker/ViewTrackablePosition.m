@@ -7,8 +7,9 @@ classdef ViewTrackablePosition < ViewTrackable
         
         stageAxes       % string. The axes of the stage this trackable uses
         laserPartNames	% cell. names of laser parts that can set their value (power)
-        tvStageName     % text-view. Shows the name of the current stage
+        uiStageName     % text-view. Shows the name of the current stage
         tvCurPos        % text-view. Shows the current position of the stage
+        lblCurPos       % label. Name of axes (Used for visibility)
     end
     
     properties
@@ -31,24 +32,28 @@ classdef ViewTrackablePosition < ViewTrackable
         function obj = ViewTrackablePosition(parent, controller)
             obj@ViewTrackable(Tracker.TRACKABLE_POSITION_NAME, parent, controller)
             
+            % Set parameters for graphic axes
             obj.vAxes1.YLabel.String = obj.LEFT_LABEL1;
             obj.vAxes2.XLabel.String = obj.BOTTOM_LABEL2;
             obj.vAxes2.YLabel.String = obj.LEFT_LABEL2;
             obj.legend1 = obj.newLegend(obj.vAxes1,{'x','y','z'});
             
+            %%%% Get objects we will work with: %%%%
+            % first and foremost: the trackable experiment
             trackablePos = getExpByName(obj.trackableName);
-            
-            stage = getObjByName(trackablePos.mStageName);
-            obj.stageAxes = stage.availableAxes; 
-            axesLen = length(obj.stageAxes);
-            oneForEachAxis = ones(1, axesLen); % might change, depending on the stage
-            
+            % list of all available stages
+            stages = ClassStage.getScannableStages;
+            stagesNames = cellfun(@(x) x.name, stages, 'UniformOutput', false);
+            % gneral stage parameters
+            axesLen = ClassStage.SCAN_AXES_SIZE;
+            % green laser
             laser = getObjByName(trackablePos.mLaserName);
             obj.laserPartNames = laser.getContollableParts;
             laserPartsLen = length(obj.laserPartNames);
             laserParts = cell(1, laserPartsLen);
             for i = 1:laserPartsLen
                 laserParts{i} = getObjByName(obj.laserPartNames{i});
+                obj.startListeningTo(laserParts{i}.name);
             end
             
             %%%% Fill input parameter panel %%%%
@@ -59,6 +64,7 @@ classdef ViewTrackablePosition < ViewTrackable
             
             hboxInput = uix.HBox('Parent', obj.panelInput, 'Spacing', 5, 'Padding', 5);
             
+            % Label column
             vboxLabels = uix.VBox('Parent', hboxInput, 'Spacing', 5, 'Padding', 0);
             uicontrol(obj.PROP_LABEL{:}, 'Parent', vboxLabels, ...
                 'String', 'Tracked Stage');
@@ -82,15 +88,22 @@ classdef ViewTrackablePosition < ViewTrackable
             uix.Empty('Parent', vboxLabels);
             vboxLabels.Heights = heights;
             
+            % Values column
             vboxValues = uix.VBox('Parent', hboxInput, 'Spacing', 5, 'Padding', 0);
-            obj.tvStageName = uicontrol(obj.PROP_TEXT_BIG{:}, ...
-                'Parent', vboxValues);   % todo: when there is more than one scannable stage, this should be a dropdown box
+            obj.uiStageName = obj.uiTvOrPopup(vboxValues, stagesNames);     % might be a text-view or a dropdown-menu
+                obj.uiStageName.Callback = @obj.uiStageNameCallback;
             obj.edtNumStep = uicontrol(obj.PROP_EDIT{:}, ...
                 'Parent', vboxValues, ...
                 'Callback', @obj.edtNumStepCallback);
-            obj.edtPixelTime = uicontrol(obj.PROP_EDIT{:}, ...
-                'Parent', vboxValues, ...
-                'Callback', @obj.edtPixelTimeCallback);
+            hboxPixelTime = uix.HBox('Parent', vboxValues, ...
+                    'Spacing', 5, 'Padding', 0);
+                obj.edtPixelTime = uicontrol(obj.PROP_EDIT{:}, ...
+                    'Parent', hboxPixelTime, ...
+                    'Callback', @obj.edtPixelTimeCallback);
+                uicontrol(obj.PROP_TEXT_UNITS{:}, ...
+                    'Parent', hboxPixelTime, ...
+                    'String', 's');
+                hboxPixelTime.Widths = [-1 15];
             
             hboxInitStepSize = uix.HBox('Parent', vboxValues, 'Spacing', 5, 'Padding', 0);
                 obj.edtInitStepSize = gobjects(1, axesLen);
@@ -104,8 +117,6 @@ classdef ViewTrackablePosition < ViewTrackable
                     'Parent', hboxMinStepSize, ...
                     'Callback', @(h,e)obj.edtMinStepSizeCallback(i));
             end
-                hboxInitStepSize.Widths = -oneForEachAxis;
-                hboxMinStepSize.Widths = -oneForEachAxis;
                 
             hboxLaserPower = gobjects(1, laserPartsLen);
             obj.edtLaserPower = gobjects(1, laserPartsLen);
@@ -116,31 +127,71 @@ classdef ViewTrackablePosition < ViewTrackable
                 obj.edtLaserPower(i) = uicontrol(obj.PROP_EDIT{:}, ...
                     'Parent', hboxLaserPower(i), ...
                     'Callback', @obj.edtLaserPowerCallback);
-                uicontrol(obj.PROP_TEXT_NO_BG{:}, 'Parent', hboxLaserPower(i), ...
+                uicontrol(obj.PROP_TEXT_UNITS{:}, 'Parent', hboxLaserPower(i), ...
                     'String', laserParts{i}.units);
-                hboxLaserPower(i).Widths = [-1 10];
+                hboxLaserPower(i).Widths = [-1 15];
             end
             uix.Empty('Parent', vboxValues);
-
             vboxValues.Heights = heights;
 
             hboxInput.Widths = [longLabelWidth -1];
             
             %%%% Fill tracked parameter panel %%%%
             gridTracked = uix.Grid('Parent', obj.panelTracked, 'Spacing', 5, 'Padding', 5);
-            for i = 1:axesLen
-                uicontrol(obj.PROP_LABEL{:}, 'Parent', gridTracked, 'String', upper(obj.stageAxes(i)));
-            end
+            obj.lblCurPos = gobjects(1, axesLen);
             obj.tvCurPos = gobjects(1, axesLen);
+            % First column
+            for i = 1:axesLen
+                obj.lblCurPos(i) = uicontrol(obj.PROP_LABEL{:}, 'Parent', gridTracked, 'String', upper(ClassStage.SCAN_AXES(i)));
+            end
+            % Second column
             for i = 1:axesLen
                 obj.tvCurPos(i) = uicontrol(obj.PROP_EDIT{:}, 'Parent', gridTracked, 'Enable', 'off');
             end
-            set(gridTracked, 'Widths', [shortLabelWidth -1], 'Heights', -oneForEachAxis );
+            set(gridTracked, 'Widths', [shortLabelWidth -1]);
             
-            obj.refreshUponStageChange;     % technically, not "refresh", but is needed @ init.
+            % Get information from all devices
+            obj.totalRefresh;
         end
-
-        function refresh(obj)
+    end
+    
+    methods % Called to update GUI
+        % We have several levels of refreshing\updating:
+        % 1. When the tracker finishes one step. Here we only want to check
+        %    that how are scanned parameters are doing, and redraw on the
+        %    axes. Dubbed: update.
+        % 2. When user changes other tracking parameters. We then make sure
+        %    that all other tracking parameters are is in place.
+        %    Dubbed: refresh.
+        % 3. When stage is changed: this requires checking almost
+        %    everything. This is very costly, but will rarely happen.
+        %    Dubbed: totalRefresh.
+        
+        function update(obj) % (#1)
+            trackablePos = getExpByName(obj.trackableName);
+            history = trackablePos.convertHistoryToStructToSave;
+            t = cell2mat(history.time);
+            pos = cell2mat(history.position);
+            
+            p_1 = pos(1, :);
+            dp = diff([p_1;pos]);
+            plot(obj.vAxes1, t, dp); % plots each column (x,y,z) against the time
+            drawnow;
+            axes = num2cell(obj.stageAxes);     % Odd, but this usefully turns 'xyz' into {'x', 'y', 'z'}
+            set(obj.legend1, 'String', axes, 'Visible', 'on');
+            
+            kcps = cell2mat(history.value);
+            plot(obj.vAxes2,t,kcps);
+            
+            currentPos = pos(end, :);
+            axesLen = length(obj.stageAxes);
+            for i = 1:axesLen
+                axisIndex = ClassStage.getAxis(obj.stageAxes(i));
+                obj.tvCurPos(axisIndex).String = num2str(currentPos(i));
+            end
+        end
+        
+        function refresh(obj) % (#2)
             trackablePos = getExpByName(obj.trackableName);
             stage = getObjByName(trackablePos.mStageName);
             
@@ -169,39 +220,33 @@ classdef ViewTrackablePosition < ViewTrackable
             end
         end
         
-        function refreshUponStageChange(obj)
-            % "Under the hood"
+        function totalRefresh(obj) % (#3)
+            %%% "Under the hood" %%%
             trackablePos = getExpByName(obj.trackableName);
             stage = getObjByName(trackablePos.mStageName);
             obj.stageAxes = stage.availableAxes;
             
-            % On display
-            obj.tvStageName.String = trackablePos.mStageName;
-            % todo: we need to check the available axes, and enable/disable
-            % everything that has to do with changed axes
+            %%% On display %%%
+            % Update stage name
+            obj.uiStageName.String = trackablePos.mStageName;
+            % Set all as visible ("init")
+            axesIndex = ClassStage.getAxis(obj.stageAxes);
+            obj.setAxisVisible(axesIndex, 'on')
+            % Hide irrelevent ones
+            unavailableAxes = setdiff(ClassStage.SCAN_AXES, obj.stageAxes);
+            axesIndex = ClassStage.getAxis(unavailableAxes);
+            obj.setAxisVisible(axesIndex, 'off')
+            
             obj.refresh;
         end
         
-        function draw(obj, history)
-            t = cell2mat(history.time);
-            pos = cell2mat(history.position);
-            
-            p_1 = pos(1, :);
-            dp = diff([p_1;pos]);
-            plot(obj.vAxes1, t, dp); % plots each column (x,y,z) against the time
-            drawnow;
-            set(obj.legend1,'String', {'x','y','z'}, ... % todo: should use obj.stageAxes
-                'Visible', 'on');
-            
-            kcps = cell2mat(history.value);
-            plot(obj.vAxes2,t,kcps);
-            
-            currentPos = pos(end, :);
-            axesLen = length(obj.stageAxes);
-            for i = 1:axesLen
-                obj.tvCurPos(i).String = num2str(currentPos(i));
-            end
+        function setAxisVisible(obj, index, value)
+            % Helps with setting visibility of elements related to stage
+            objects = [obj.edtInitStepSize(index), obj.edtMinStepSize(index), ...
+                obj.lblCurPos(index), obj.tvCurPos(index) ];
+            set(objects, 'Visible', value);
         end
+        
     end
     
     %% Callbacks
@@ -246,6 +291,11 @@ classdef ViewTrackablePosition < ViewTrackable
         end
         
         % Unique to class
+        function uiStageNameCallback(obj)
+            newStageName = obj.uiStageName;
+            trackablePos = getObjByName(obj.trackableName);
+            trackablePos.mStageName = newStageName;
+        end
         function edtInitStepSizeCallback(obj, index)
             edt = obj.edtInitStepSize(index);   % For brevity
             trackablePos = getExpByName(obj.trackableName);
@@ -314,22 +364,26 @@ classdef ViewTrackablePosition < ViewTrackable
         % event is the event sent from the EventSender
         function onEvent(obj, event)
             creator = event.creator;
+            % Maybe it is one of the laser parts:
+                if isfield(event.extraInfo, 'value')
+                    obj.refresh;    % check values of all devices (level 2 refresh)
+                end
+            % Besides that, we only want to listen to trackablePos
             if ~isprop(creator, 'expName') || ~strcmp(creator.expName, obj.trackableName)
+                
                 return
             end
             
             trackablePos = creator;
             if isfield(event.extraInfo, trackablePos.EVENT_TRACKABLE_EXP_UPDATED)
-                history = trackablePos.convertHistoryToStructToSave;
-                obj.draw(history);
-                obj.refresh;
+                obj.update;
             elseif isfield(event.extraInfo, trackablePos.EVENT_TRACKABLE_EXP_ENDED)
                 obj.refresh;
                 obj.showMessage(event.extraInfo.text);
             elseif isfield(event.extraInfo, trackablePos.EVENT_CONTINUOUS_TRACKING_CHANGED)
                 obj.refresh;
             elseif isfield(event.extraInfo, trackablePos.obj.EVENT_STAGE_CHANGED)
-                
+                obj.totalRefresh;
             elseif event.isError
                 errorMsg = event.extraInfo.(Event.ERROR_MSG);
                 obj.showMessage(errorMsg);

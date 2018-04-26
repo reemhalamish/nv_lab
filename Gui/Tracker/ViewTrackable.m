@@ -11,7 +11,7 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
         vAxes2  % graphical axes. Usually, history of the tracked parameter
         legend1 % legend. for plot in vAxes1
         
-        % manual control panel
+        % Manual control panel
         cbxContinuous   % checkbox
         btnStartStop    % button
         btnReset        % button
@@ -39,6 +39,7 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
             
             hboxMain = uix.HBox('Parent', obj.component, ...
                 'Spacing', 20, 'Padding', 5);
+            
             %%%% Left column - parameters and control %%%%
             vboxLeft = uix.VBox('Parent', hboxMain, ...
                 'Spacing', 5);
@@ -154,7 +155,7 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
         % object. To be used at initializtion and when EVENT_DATA_UPDATED
         % is sent from the tracker
         
-        draw(obj)
+        update(obj)
         % Plots relevant data from trackable history on axes, when
         % EVENT_DATA_UPDATED is sent from the tracker
     end

@@ -42,7 +42,11 @@ classdef ViewStage < ViewVBox
                 hboxBottom = ViewHBox(obj, controller, 0, 16);
                 vMovement = ViewStagePanelMovementControl(hboxBottom, controller, stage);
                 vboxBottomRight = ViewVBox(hboxBottom, controller, 0, 0);
-                    vTilt = ViewStagePanelTiltCorrection(vboxBottomRight, controller, stage);
+                    if stage.tiltAvailable
+                        vTilt = ViewStagePanelTiltCorrection(vboxBottomRight, controller, stage);
+                    else
+                        vTilt = ViewEmpty(vboxBottomRight);
+                    end
                     vTrackPosition = ViewStagePanelTrack(vboxBottomRight, controller, stage);
                     vboxBottomRight.setHeights([vTilt.height, vTrackPosition.height])
                     bottom = {vMovement, vboxBottomRight};
@@ -67,7 +71,11 @@ classdef ViewStage < ViewVBox
                 hboxBottom = ViewHBox(obj, controller, 0, 10);  
                 vLimits = ViewStagePanelLimits(hboxBottom, controller, stage);
                 vboxBottomRight = ViewVBox(hboxBottom, controller, 0, 8);
-                    vTilt = ViewStagePanelTiltCorrection(vboxBottomRight, controller, stage);
+                    if stage.tiltAvailable
+                        vTilt = ViewStagePanelTiltCorrection(vboxBottomRight, controller, stage);
+                    else
+                        vTilt = ViewEmpty(vboxBottomRight);
+                    end
                     uix.Empty('Parent', vboxBottomRight.component);
                     vboxBottomRight.setHeights([vTilt.height -1]);
                 bottom = {vLimits, vTilt};

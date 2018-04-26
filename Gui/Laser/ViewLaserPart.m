@@ -141,23 +141,30 @@ classdef ViewLaserPart < ViewHBox & EventListener
             
             % If the physics got our change - it will send an event to notify us
             % If not, it will send an error Event to notify us
-            pause(0.05)         % todo: do it better (uiwait)
         end
         
         function requestNewEnabled(obj, newBoolValue)
             obj.laserPart.isEnabled = newBoolValue;
             % If the physics got our change - it will send an event to notify us
             % If not, it will send an error Event to notify us
-            pause(0.05)         % todo: do it better (uiwait)
         end
     end
     
     %% Overridden from EventListener
     methods
-        function onEvent(obj, event) %#ok<INUSD>
-            % We don't need the event details -- we can ask for what we
-            % need directly from the laser!
-            obj.refresh();
+        function onEvent(obj, event)
+            info = event.extraInfo;
+            if event.isError
+                obj.refresh;
+            elseif isfield(info, 'isEnabled')
+                obj.setEnabledInternally(info.isEnabled);
+            elseif isfield(info, 'value')
+                obj.setValueInternally(info.value);
+            else
+                f = fields(info);
+                errMsg = sprintf('%s ', f{:});
+                EventStation.anonymousWarning(['Unknown field(s):', errMsg])
+            end
         end
     end
     

@@ -75,11 +75,15 @@ classdef TimedDisplay < handle
     
     methods (Access = protected)
         function hide(obj)
-            set(obj.grahpicObj, 'Visible', 'off');
+            if isgraphics(obj.grahpicObj) % Maybe it was deleted in the meantime
+                set(obj.grahpicObj, 'Visible', 'off');
+            end
         end
         
         function show(obj)
-            set(obj.grahpicObj, 'Visible', 'on');
+            if isgraphics(obj.grahpicObj) % Maybe it was deleted in the meantime
+                set(obj.grahpicObj, 'Visible', 'on');
+            end
         end
         
 		% clears the timer (if it exists)

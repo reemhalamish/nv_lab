@@ -20,10 +20,7 @@ classdef ViewStagePanelTiltCorrection < GuiComponent & EventListener
             obj@EventListener(stage.name);
             obj.stageName = stage.name;
             if ~stage.tiltAvailable
-                obj.component = uix.Empty('Parent', parent.component);
-                obj.width = 1;
-                obj.height = 1;
-                return
+                EventStation.anonymousError('This should not have happenned');
             end
             
             

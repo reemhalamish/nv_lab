@@ -48,12 +48,21 @@ classdef TrackablePosition < Trackable % & StageScanner
         function obj = TrackablePosition(stageName)
             expName = Tracker.TRACKABLE_POSITION_NAME;
             obj@Trackable(expName);
-            obj.mStageName = stageName;
-            stage = getObjByName(stageName);
+            
+            % Get stage
+            if exist('stageName', 'var')
+                obj.mStageName = stageName;
+                stage = getObjByName(stageName);
+                assert(stage.isScannable)
+            else
+                stages = ClassStage.getScannableStages;
+                stage = stages{1};
+                obj.mStageName = stage.NAME;
+            end
+            
+            % We also need these:
             axes = stage.getAxis(stage.availableAxes);
-            
             obj.mScanParams = StageScanParams;
-            
             obj.mLaserName = LaserGate.GREEN_LASER_NAME;
             
             % Set default tracking properties
@@ -65,6 +74,7 @@ classdef TrackablePosition < Trackable % & StageScanner
         end
 
         function startTrack(obj)
+            
             %%%% Initialize %%%%
             obj.resetAlgorithm;
             obj.isCurrentlyTracking = true;
@@ -88,6 +98,16 @@ classdef TrackablePosition < Trackable % & StageScanner
             scanner = StageScanner.init;
             if ~ischar(scanner.mStageName) || ~strcmp(scanner.mStageName, obj.mStageName)
                 scanner.switchTo(obj.mStageName)
+            end
+            
+            % We are up and running. Now show GUI, so we can actually see
+            % what's going on
+            gui = GuiControllerTrackablePosition;
+            try
+                gui.start();
+            catch err
+                EventStation.anonymousWarning('Tracker window could not open. Continuing tracking nonetheless.');
+                err2warning(err);
             end
             
             obj.mSignal = scanner.scanPoint(stage, spcm, sp);

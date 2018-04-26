@@ -2,18 +2,19 @@ classdef GuiComponent < handle
     %GUICOMPONENT parent class for all the GUI components
     %   connects to the controller
     
-    properties(GetAccess = public, SetAccess = protected)
-        component  % this inner variable stores the component
-        parent   % parent of the component
+    properties (SetAccess = protected)
+        component   % Inner variable which stores the component
+        parent      % Parent of the component
     end
     properties
         width = -1;
         height = -1;
     end
     
-    properties(Constant = true)
+    properties (Constant)
         %% properties for design
         PROP_TEXT_NO_BG =           {'Style', 'text',       'FontSize', 8,                          'ForegroundColor', 'black',                             'HorizontalAlignment', 'left'};
+        PROP_TEXT_UNITS =           {'Style', 'text',       'FontSize', 10, 'FontWeight', 'bold',   'ForegroundColor', 'black',                             'HorizontalAlignment', 'left'};
         PROP_TEXT_NORMAL =          {'Style', 'text',       'FontSize', 8,                          'ForegroundColor', 'black', 'BackgroundColor', 'white', 'HorizontalAlignment', 'left'};
         PROP_TEXT_BIG =             {'Style', 'edit',       'FontSize', 10, 'FontWeight', 'bold',   'ForegroundColor', 'black', 'BackgroundColor', 'white', 'HorizontalAlignment', 'center', 'Enable', 'off'};
         PROP_LABEL =                {'Style', 'edit',       'FontSize', 10, 'FontWeight', 'bold',   'ForegroundColor', 'white', 'BackgroundColor', 'black', 'HorizontalAlignment', 'center', 'Enable', 'inactive'};
@@ -75,15 +76,38 @@ classdef GuiComponent < handle
         
     end
     
-    methods(Static)
+    methods (Static)
         function out = getWidth(uicontrol)
             position = get(uicontrol, 'Position');  % "Position" returns an array --> [left bottom width height]
             out = position(3);
         end
-            
+        
         function out = getHeight(uicontrol)
             position = get(uicontrol, 'Position');  % "Position" returns an array --> [left bottom width height]
             out = position(4);
+        end
+        
+        
+        function uiObj = uiTvOrPopup(parent, cellOfStrings)
+            % Creates uicontrol in parent, which is either text-view (tv)
+            % or dropdown-menu (popup), according to input:
+            % it will be tv if 0 <= length(cellOfStrings) <=1, or a popup
+            % otherwise.
+            %
+            % Disclaimer: the callback for the popup needs to be set
+            % externally.
+            
+            switch length(cellOfStrings)
+                case {0, 1}
+                    uiObj = uicontrol(GuiComponent.PROP_TEXT_BIG{:}, ...
+                        'Parent', parent, ...
+                        'String', cellOfStrings{:});
+                otherwise
+                    uiObj = uicontrol(GuiComponent.PROP_POPUP{:}, ...
+                        'Parent', parent, ...
+                        'String', cellOfStrings);
+            end
+            
         end
     end
 end
