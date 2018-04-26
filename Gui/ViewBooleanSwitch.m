@@ -46,7 +46,7 @@ classdef ViewBooleanSwitch < EventListener & GuiComponent
     end
     
     %% 
-    methods(Access = protected)
+    methods (Access = protected)
         
         function refresh(obj)
             obj.setSwitchEnabledInternally(obj.physicsBooleanSwitch.isEnabled);
@@ -69,9 +69,18 @@ classdef ViewBooleanSwitch < EventListener & GuiComponent
     
     %% Overriding methods!
     methods
-        function out = onEvent(obj, event) %#ok<INUSD>
-            % We don't need the event details; we can ask the details directly from the laser!
-            obj.refresh();
+        function out = onEvent(obj, event)
+            info = event.extraInfo;
+            if event.isError
+                obj.refresh;
+            elseif isfield(info, 'isEnabled')
+                obj.setSwitchEnabledInternally(info.isEnabled);
+            else
+                f = fields(info);
+                errMsg = sprintf('%s ', f{:});
+                EventStation.anonymousWarning(['Unknown field(s):', errMsg])
+            end
+
             out = true;
         end
     end

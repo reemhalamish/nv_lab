@@ -2,7 +2,7 @@ classdef PulseStreamer < handle
     % PulseStreamer is a wrapper class to communicate with the JSON-RPC
     % interface of the Pulse Streamer
     properties (Constant)
-        version = 0.4;      % current version of the Pulse Streamer matlab driver
+        version = 0.5;      % current version of the Pulse Streamer matlab driver
     end
     
     properties (SetAccess = private, GetAccess = public)
@@ -18,6 +18,12 @@ classdef PulseStreamer < handle
         wasRunning          % variable which stores the last state of the Pulse Streamer to detect the end of the sequences
         sequenceDuration    % length of the sequence in ns including multiple runs
         finishedFlag        % store internally whether the end of the sequence was reached
+        nRuns               % store internally the number of runs
+        initialOutputState  % store internally the initial state
+        underflowOutputState% store internally the underflow state
+        debugDepth          % maximum number of requests recorded
+        debugFilename       % filename the requests will be recorded to
+        debugBuffer         % buffer for stored requests
     end
     
     methods
@@ -25,6 +31,7 @@ classdef PulseStreamer < handle
         function obj = PulseStreamer(ipAddress)
             % ipAdress: hostname or ip address of the pulse streamer (e.g.
             % 'PulseStreamer' or '192.168.178.20')
+            obj.debugDepth = 0;
             obj.ipAddress = ipAddress;
             try
                 obj.isRunning();
@@ -43,6 +50,40 @@ classdef PulseStreamer < handle
             obj.stopTimer();
             obj.httpRequest(PulseStreamer.getJsonRpcRequest('constant', outputState.getJsonString()));
             obj.finishedFlag = true;
+        end
+        
+        function rearm(obj)
+            % reinitialize the most recent sequence uploaded and rearm
+            % WARNING - METHOD NOT TESTET YET
+            if (obj.sequenceDuration <= 0)
+                error('No valid sequence on the device. cannot rearm!')
+            end
+            if ~isa(obj.initialOutputState,'OutputState') || ~isa(obj.underflowOutputState,'OutputState')
+                error('Invalid parameter: initialState, and underflowState must be a OutputState object!');
+            end
+            if ~isa(obj.sequenceStartMode,'PSStart')
+                error('Invalid parameter: startType must be a PSStart enumeration!');
+            end
+            if ~(obj.sequenceStartMode == PSStart.Hardware)
+                error('Rearm is only supported for hardware trigger!');
+            end
+            obj.stopTimer();
+            obj.wasRunning = false;
+            obj.finishedFlag = false;
+            obj.httpRequest(PulseStreamer.getJsonRpcRequest('stream', obj.initialOutputState.getJsonString(), obj.underflowOutputState.getJsonString(), num2str(obj.sequenceStartMode)));
+            %if ~isempty(obj.callbackFinished) && nRuns > 0
+            % this needs to change again if the hasFinished comes from the
+            % FPGA itself
+            %%% the callback timer is only started if a callback function
+            %%% is set by the user and as long the sequence has no infinite runs
+            if ~isempty(obj.callbackFinished) && (obj.nRuns > 0)
+                obj.pollTimer = timer;
+                obj.pollTimer.TimerFcn = @obj.callbackInternalTimer;
+                obj.pollTimer.Period = 0.1; %s
+                obj.pollTimer.ExecutionMode = 'fixedSpacing';
+
+                start(obj.pollTimer);
+            end
         end
         
         function timing = stream(obj, sequence, nRuns, initialState, finalState, underflowState, startType)
@@ -84,6 +125,9 @@ classdef PulseStreamer < handle
             obj.httpRequest(json);
             timing.http = toc(tStart);
             obj.sequenceStartMode = startType;
+            obj.initialOutputState = initialState;
+            obj.underflowOutputState = underflowState;
+            obj.nRuns = nRuns;
             obj.sequenceDuration = P.duration(sequence) * nRuns;
             timing.sum = toc(tStart);
             %if ~isempty(obj.callbackFinished) && nRuns > 0
@@ -184,6 +228,15 @@ classdef PulseStreamer < handle
             display(['debug:', tab, tab, num2str(getDebugRegister(obj))]);
         end
         
+        %%%%%%%% debugging methods %%%%%%%%%%%%%%%%%%%%%
+        function enableDebugRecorder(obj, recordedRequests, filename)
+            warning(['Recording the pulse streamer communication to file: ', filename]);
+            obj.debugDepth = recordedRequests;            
+            obj.debugFilename = filename;
+            obj.debugBuffer.counter = 0;
+            obj.debugBuffer.data = cell(1,recordedRequests);
+        end
+
         %%%%%%%% callback function and event handling %%%%%%%%%%%%%%%%%%%%%
         function setCallbackFinished(obj, func)
             % sets the callback function to detect when the Pulse Streamer
@@ -216,7 +269,7 @@ classdef PulseStreamer < handle
             % detect that the sequence is running
             % wasRunning == false && isRunning == true
             if ~obj.wasRunning
-                if obj.isRunning
+                if obj.isRunning()
                     obj.wasRunning = true;
                     % stop the poll timer
                     obj.stopTimer();
@@ -266,10 +319,19 @@ classdef PulseStreamer < handle
         end
         %%%%%%%%%%%%%%%%%%%% internal methods  %%%%%%%%%%%%%%%%%%%%%%%%%%%
         function ret = httpRequest(obj, req)
+            if obj.debugDepth > 0
+                buffer = obj.debugBuffer;
+                buffer.counter = buffer.counter + 1;
+                data = circshift(buffer.data,1);
+                data{1} = {now, req};
+                buffer.data = data;
+                obj.debugBuffer = buffer;
+                save(obj.debugFilename, 'buffer')
+            end
             % http handling
             url = strcat('http://',obj.ipAddress,':8050/json-rpc');
             % set the timeout to 3s
-            ret = urlread2(url, 'POST', req, []);
+            ret = urlread2(url, 'POST', req, []);            
         end
     end
     

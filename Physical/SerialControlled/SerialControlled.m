@@ -5,7 +5,7 @@ classdef SerialControlled < matlab.mixin.SetGet
     
     properties (Hidden)
         s                   % serial. MATLAB representation of the connection
-        commDelay = 0.05    % double. Time (in seconds) between consecutive commands
+        commDelay = 0.01    % double. (Default value) time (in seconds) between consecutive commands
     end
     
     properties (Dependent)
@@ -16,7 +16,7 @@ classdef SerialControlled < matlab.mixin.SetGet
     properties
         keepConnected  % logical. Should this connection stay open
         
-        % properties of s we want available
+        % Properties of s we want available
         port
         baudRate
         dataBits

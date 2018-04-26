@@ -18,12 +18,23 @@ classdef LaserGate < Savable % Needs to be EventSender
         isOn
     end
     
-    properties(Constant)
+    properties (Constant)
         NEEDED_FIELDS = {'nickname', 'directControl', 'aomControl', 'switch'};
         STRUCT_IO_IS_ENABLED = 'isEnabled';     % used to save and load the state
         STRUCT_IO_CUR_VALUE = 'value';          % used to save and load the state
         
         GREEN_LASER_NAME = 'Green Laser';
+    end
+       
+    properties (Constant, Access = private)
+        % names of saved fields (for Savable)
+        SAVE_PROPERTY_SWITCH = 'switch';
+        SAVE_PROPERTY_AOM_VALUE = 'aom_curValue'
+        SAVE_PROPERTY_AOM_ENABLED = 'aom_isEnabled'
+        SAVE_PROPERTY_AOM_DOUBLE_ACTIVE = 'aom_activeChannel'
+        SAVE_PROPERTY_AOM_DOUBLE_VALUES = 'mAom.values'
+        SAVE_PROPERTY_SOURCE_VALUE = 'source_curValue'
+        SAVE_PROPERTY_SOURCE_ENABLED = 'source_isEnabled'
     end
     
     methods
@@ -104,7 +115,7 @@ classdef LaserGate < Savable % Needs to be EventSender
     end
     
     %% overriding from Savable
-    methods(Access = protected)
+    methods (Access = protected)
         function outStruct = saveStateAsStruct(obj, category, type)
             % Saves the state as struct. Overriden from Savable
             
@@ -121,20 +132,20 @@ classdef LaserGate < Savable % Needs to be EventSender
             end
             
             outStruct = struct;
-            outStruct.switch = obj.aomSwitch.isEnabled;
+            outStruct.(obj.SAVE_PROPERTY_SWITCH) = obj.aomSwitch.isEnabled;
             if obj.isAomAvail()
                 mAom = obj.aom;
                 if isa(mAom, 'AomDoubleNiDaqControlled')
-                    outStruct.aom_activeChannel = mAom.activeChannel;
-                    outStruct.aom_values = mAom.values;
+                    outStruct.(obj.SAVE_PROPERTY_AOM_DOUBLE_ACTIVE) = mAom.activeChannel;
+                    outStruct.SAVE_PROPERTY_AOM_DOUBLE_VALUES = mAom.values;
                 else
-                    outStruct.aom_isEnabled = mAom.isEnabled;
-                    outStruct.aom_curValue = mAom.value;
+                    outStruct.(obj.SAVE_PROPERTY_AOM_ENABLED) = mAom.isEnabled;
+                    outStruct.(obj.SAVE_PROPERTY_AOM_VALUE) = mAom.value;
                 end
             end
             if obj.isSourceAvail()
-                outStruct.source_isEnabled = obj.source.isEnabled;
-                outStruct.source_curValue = obj.source.value;
+                outStruct.(obj.SAVE_PROPERTY_SOURCE_ENABLED) = obj.source.isEnabled;
+                outStruct.(obj.SAVE_PROPERTY_SOURCE_VALUE) = obj.source.value;
             end
         end
         
@@ -158,50 +169,52 @@ classdef LaserGate < Savable % Needs to be EventSender
             
             if ~shouldLoad; return; end
             
-            if isfield(savedStruct, 'switch')
-                obj.aomSwitch.isEnabled = savedStruct.switch;
+            if isfield(savedStruct, obj.SAVE_PROPERTY_SWITCH)
+                obj.aomSwitch.isEnabled = savedStruct.(obj.SAVE_PROPERTY_SWITCH);
             end
             
             if obj.isAomAvail
                 mAom = obj.aom;
                 if isa(mAom, 'AomDoubleNiDaqControlled')
-                    mAom.activeChannel = savedStruct.aom_activeChannel;
-                    mAom.aomOne.value = savedStruct.aom_values(1);
-                    mAom.aomTwo.value = savedStruct.aom_values(2);
+                    mAom.activeChannel = savedStruct.(obj.SAVE_PROPERTY_AOM_DOUBLE_ACTIVE);
+                    values = savedStruct.(obj.SAVE_PROPERTY_AOM_DOUBLE_VALUES);
+                    mAom.aomOne.value = values(1);
+                    mAom.aomTwo.value = values(2);
                 else
-                    if isfield(savedStruct, 'aom_isEnabled') && obj.aom.canSetEnabled
-                        obj.aom.isEnabled = savedStruct.aom_isEnabled;
+                    if isfield(savedStruct, obj.SAVE_PROPERTY_AOM_ENABLED) && obj.aom.canSetEnabled
+                        obj.aom.isEnabled = savedStruct.(obj.SAVE_PROPERTY_AOM_ENABLED);
                     end
-                    if isfield(savedStruct, 'aom_curValue') && obj.aom.canSetValue
-                        obj.aom.value = savedStruct.aom_curValue;
+                    if isfield(savedStruct, obj.SAVE_PROPERTY_AOM_VALUE) && obj.aom.canSetValue
+                        obj.aom.value = savedStruct.(obj.SAVE_PROPERTY_AOM_VALUE);
                     end
                 end
             end
             
             if obj.isSourceAvail()
-                if isfield(savedStruct, 'source_isEnabled') && obj.source.canSetEnabled
-                    obj.source.isEnabled = savedStruct.source_isEnabled;
+                if isfield(savedStruct, obj.SAVE_PROPERTY_SOURCE_ENABLED) && obj.source.canSetEnabled
+                    obj.source.isEnabled = savedStruct.(obj.SAVE_PROPERTY_SOURCE_ENABLED);
                 end
-                if isfield(savedStruct, 'source_curValue') && obj.source.canSetValue
-                    obj.source.value = savedStruct.source_curValue;
+                if isfield(savedStruct, obj.SAVE_PROPERTY_SOURCE_VALUE) && obj.source.canSetValue
+                    obj.source.value = savedStruct.(obj.SAVE_PROPERTY_SOURCE_VALUE);
                 end
             end
         end
         
-        function string = returnReadableString(obj, savedStruct) %#ok<INUSD>
+        function string = returnReadableString(obj, savedStruct)
             indentation = 10;
             
-            isOnString = BooleanHelper.boolToOnOff(obj.aomSwitch.isEnabled);
+            isOnString = BooleanHelper.boolToOnOff(savedStruct.(obj.SAVE_PROPERTY_SWITCH));
             string = sprintf('%s -- switch: %s', obj.name, isOnString);
 
             if obj.isSourceAvail
                 if obj.source.canSetValue
-                    valString = StringHelper.formatNumber(obj.source.value, 2);
+                    value = savedStruct.(obj.SAVE_PROPERTY_SOURCE_VALUE);
+                    valString = StringHelper.formatNumber(value, 2);
                     valString = sprintf('%s%s ', valString, obj.source.units);
                 else
                     valString = '';
                 end
-                isOnString = BooleanHelper.boolToOnOff(obj.source.isEnabled);
+                isOnString = BooleanHelper.boolToOnOff(savedStruct.(obj.SAVE_PROPERTY_SOURCE_ENABLED));
                 
                 sourceString = sprintf('source: %s(%s)', valString, isOnString);
                 string = sprintf('%s\n%s', string, ...
@@ -210,9 +223,9 @@ classdef LaserGate < Savable % Needs to be EventSender
             if obj.isAomAvail
                 if isa(obj.aom, 'AomDoubleNiDaqControlled')
                 % Get everything we need
-                activeChannel = obj.aom.activeChannel;
+                activeChannel = savedStruct.(obj.SAVE_PROPERTY_AOM_DOUBLE_ACTIVE);
                 inactiveChannel = 3 - activeChannel;    % (1 -> 2) & (2 -> 1)
-                mValues = obj.aom.values;
+                mValues = savedStruct.(obj.SAVE_PROPERTY_AOM_DOUBLE_VALUES);
                 
                 % Create string for each AOM
                 activeChannelVal = StringHelper.formatNumber(mValues(activeChannel));
@@ -227,7 +240,8 @@ classdef LaserGate < Savable % Needs to be EventSender
                     StringHelper.indent(activeChannelString, indentation), ...
                     StringHelper.indent(inactiveChannelString, indentation));
                 elseif obj.aom.canSetValue
-                    valString = StringHelper.formatNumber(obj.aom.value, 2);
+                    value = savedStruct.(obj.SAVE_PROPERTY_AOM_VALUE);
+                    valString = StringHelper.formatNumber(value, 2);
                     aomString = sprintf('AOM: %s%s', valString, obj.aom.units);
                     string = sprintf('%s\n%s', string, ...
                         StringHelper.indent(aomString, indentation));

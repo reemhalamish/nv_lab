@@ -52,6 +52,26 @@ classdef ViewSaveLoad < GuiComponent & EventListener
             obj.width = max(widths);
             panel.height = obj.height;
             
+            % Dispaly current file name and status
+            saveload = SaveLoad.getInstance('image');
+            fileName = saveload.mLoadedFileName;
+            status = saveload.mLocalStructStatus;
+            obj.refresh(fileName, status);
+        end
+        
+        function refresh(obj, fileName, status)
+            if isnan(fileName)
+                % No new file could be loaded
+                toDisplay = sprintf('File Name -');
+            elseif ischar(fileName) && ischar(status)
+                toDisplay = sprintf('File Name - %s (%s)', fileName, status);
+            elseif ischar(fileName)
+                toDisplay = sprintf('File Name - %s', fileName);
+            elseif ischar(status)
+                toDisplay = sprintf('File Name - %s', status);
+            end
+            obj.tvFileName.String = toDisplay;
+            obj.tvFileName.ForegroundColor = obj.statusColor(status);
         end
     end
     
@@ -61,39 +81,30 @@ classdef ViewSaveLoad < GuiComponent & EventListener
         % event is the event sent from the EventSender
         function onEvent(obj, event)
             
-            %%%% display the filename status %%%%
-            if ~event.isError
-                if isfield(event.extraInfo, SaveLoad.EVENT_STATUS_LOCAL_STRUCT)
-                    status = event.extraInfo.(SaveLoad.EVENT_STATUS_LOCAL_STRUCT);
-                else
-                    status = NaN;
-                end
-                
-                if isfield(event.extraInfo, SaveLoad.EVENT_FILENAME)
-                    fileName = PathHelper.getFileNameFromFullPathFile(event.extraInfo.(SaveLoad.EVENT_FILENAME));
-                else
-                    fileName = NaN;
-                end
-                
-                noNewFile = isfield(event.extraInfo, SaveLoad.EVENT_DELETE_FILE_SUCCESS);
-                shouldDisplayNewString = ischar(fileName) || ischar(status) || noNewFile;
-                
-                if shouldDisplayNewString
-                    if noNewFile
-                        % true only if no new file could be loaded
-                        toDisplay = sprintf('File Name -');
-                        
-                    elseif ischar(fileName) && ischar(status)
-                        toDisplay = sprintf('File Name - %s (%s)', fileName, status);
-                    elseif ischar(fileName)
-                        toDisplay = sprintf('File Name - %s', fileName);
-                    elseif ischar(status)
-                        toDisplay = sprintf('File Name - %s', status);                        
-                    end
-                    obj.tvFileName.String = toDisplay;
-                    obj.tvFileName.ForegroundColor = obj.statusColor(status);
-                end
+            if event.isError
+                return
             end
+            
+            % Get filename and status
+            if isfield(event.extraInfo, SaveLoad.EVENT_STATUS_LOCAL_STRUCT)
+                status = event.extraInfo.(SaveLoad.EVENT_STATUS_LOCAL_STRUCT);
+            else
+                status = NaN;
+            end
+            
+            if isfield(event.extraInfo, SaveLoad.EVENT_FILENAME)
+                fileName = PathHelper.getFileNameFromFullPathFile(event.extraInfo.(SaveLoad.EVENT_FILENAME));
+            else
+                fileName = NaN;
+            end
+            
+            noNewFile = isfield(event.extraInfo, SaveLoad.EVENT_DELETE_FILE_SUCCESS);
+            
+            % Change display, if needed
+            if ischar(fileName) || ischar(status) || noNewFile
+                obj.refresh(fileName, status)
+            end
+            
         end
     end
     
