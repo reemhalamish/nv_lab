@@ -1,21 +1,21 @@
 classdef Event < handle
-    %EVENT events are being sent from the senders to the listeners
+    %EVENT events are sent from EventSenders to EventListeners
     
     properties
-        creator         % is the object who sent the event
-        extraInfo       % is a struct that the physics-object and the listener should know what inside
-        isError         % boolean. is this en error event
+        creator         % handle to the object that sent the event
+        extraInfo       % struct. Both sender (physics-object) and listener should know what's inside
+        isError         % logical. Is this is an error event?
     end
     
-    properties(Constant = true, Hidden = true)
+    properties (Constant, Hidden)
        ERROR_MSG = 'event_error_msg'; 
     end
     
     methods
-        %% constructor for normal events
+        %% Constructor for normal events
         function obj = Event(creator, extraInfoIfNeeded)
             % creator - object
-            % extraInfoIfNeeded - a struct containing more information
+            % extraInfoIfNeeded - struct. Additional details about the event
             obj@handle();
             obj.creator = creator;
             obj.isError = false;
@@ -26,8 +26,9 @@ classdef Event < handle
             end
         end
     end
-    methods(Static)
-        %% constructor for error events
+    
+    methods (Static)
+        %% Constructor for error events
         function errorEvent = createErrorEvent(creator, errorMsgStr, extraInfoIfNeeded)
             % creator - the object that want to create an error event
             % errorMsgStr - the error message to be displayed            

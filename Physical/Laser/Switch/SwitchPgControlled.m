@@ -11,7 +11,7 @@ classdef SwitchPgControlled < EventSender & EventListener
         channel     % string
     end
     
-    properties(Constant = true, Hidden = true)
+    properties (Constant, Hidden)
         NEEDED_FIELDS = {'switchChannelName'}
         OPTIONAL_FIELDS = {'isEnabled'}
     end

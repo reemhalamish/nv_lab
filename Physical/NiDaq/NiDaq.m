@@ -37,7 +37,7 @@ classdef NiDaq < EventSender
         EVENT_NIDAQ_RESET = 'Ni_Daq_reset';
     end
     
-    methods(Access = protected)
+    methods (Access = protected)
         function obj = NiDaq(deviceName, dummyMode)
             obj@EventSender(NiDaq.NAME);
             obj.init(deviceName, dummyMode)
@@ -458,7 +458,7 @@ classdef NiDaq < EventSender
         
     end % methods
     
-    methods(Access = protected)
+    methods (Access = protected)
         % helper methods
         function checkError(obj, status)
             % Checks for DAQ errors according to the status and sends an error event.

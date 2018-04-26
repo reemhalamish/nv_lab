@@ -3,10 +3,10 @@ classdef ViewImageResultPanelColormap < GuiComponent
     %   Detailed explanation goes here
     
     properties
-        popupTypes
-        cbxAuto
-        edtMin
-        edtMax
+        popupTypes  % popup/dropdown-menu. Chooses names of the available colormaps
+        cbxAuto     % checkbox. Wheteher the colormap is auto-scaled
+        edtMin      % edit-input. Minimum value of colormap
+        edtMax      % edit-input. Maximum value of colormap
     end
     
     methods

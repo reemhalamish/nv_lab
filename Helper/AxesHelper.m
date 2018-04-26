@@ -5,7 +5,7 @@ classdef AxesHelper
     properties
     end
     
-    methods(Static = true)
+    methods (Static)
         function fillAxes(axesFig, data, dimNumber, firstAxisVector, secondAxisOptionalVector, bottomLabel, leftLabel, stdev)
             % fills axes with data - usefull for displaying the scan results on GUI views
             %

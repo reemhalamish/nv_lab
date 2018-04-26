@@ -7,7 +7,7 @@ classdef ViewMessage < ViewHBox
         DELAY_SHOW_MESSAGE_SEC = 12;
     end
     
-    properties(Access = protected)
+    properties (Access = protected)
         timerHideMessage
     end
     
@@ -26,7 +26,7 @@ classdef ViewMessage < ViewHBox
         end
     end
     
-    methods(Access = protected)
+    methods (Access = protected)
         function cleanErrorAfterTime(obj)
             obj.exitTimersIfNeeded();
             

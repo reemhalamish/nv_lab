@@ -35,7 +35,7 @@ classdef SpcmDummy < Spcm
             end
             pause(obj.integrationTime)
             kcps = randi([0 obj.MAX_RANDOM_READ],1,1);
-            std = sqrt(obj.integrationTime) * randi([0 obj.MAX_RANDOM_READ],1,1)/sqrt(12);  % looks legit
+            std = sqrt(obj.integrationTime) * randi([0 obj.MAX_RANDOM_READ],1,1)/sqrt(12);  % looks legit (std of unif. rand. var.)
         end
         
         function clearTimeRead(obj)

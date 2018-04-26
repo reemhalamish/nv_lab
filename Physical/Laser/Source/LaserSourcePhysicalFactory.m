@@ -2,11 +2,11 @@ classdef LaserSourcePhysicalFactory
     %LASERSOURCEPHYSICSFACTORY creates the source part for a laser
     %   has only one method: createFromStruct()
     
-    properties(Constant)
+    properties (Constant)
         NEEDED_FIELDS = {'classname'};
     end
     
-    methods(Static)
+    methods (Static)
         function laserPhysicalPart = createFromStruct(name, struct)
             if isempty(struct)
                 laserPhysicalPart = [];

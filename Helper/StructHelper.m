@@ -2,14 +2,14 @@ classdef StructHelper
     %STRUCTHELPER Summary of this class goes here
     %   Detailed explanation goes here
     
-    properties(Constant = true)
+    properties (Constant)
         WHITESPACES_STRUCT_DISP_AMNT = 4
         
         MERGE_OVERRIDE = 'override';
         MERGE_SKIP = 'skip';
     end
     
-    methods(Static)
+    methods (Static)
         function string = structAsString(inputStruct)
             % Returns a string repr. of the input struct, which can hold
             % some nested structures inside.
@@ -81,7 +81,7 @@ classdef StructHelper
         end
     end
     
-    methods(Static = true, Access = private)
+    methods (Static, Access = private)
         function string = recGetStructOut(inputStruct, whitespaecesAmount)
             % Recuresively get the struct out as a string
             % 

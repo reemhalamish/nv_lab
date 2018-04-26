@@ -120,8 +120,7 @@ classdef StageScanParams < handle
             
             sameAsBefore = all(oldFrom == obj.from) ...
                 && all(oldTo == obj.to) ...
-                && all(oldFixedPos == obj.fixedPos) ...
-                ;
+                && all(oldFixedPos == obj.fixedPos);
             wasChanged = ~sameAsBefore;
         end
         
@@ -225,8 +224,8 @@ classdef StageScanParams < handle
         end
     end
     
-    % helper methods
-    methods(Access = protected)
+    % Helper methods
+    methods (Access = protected)
         function isOk = sendWarningIfNotScannable(obj)
             if all(obj.isFixed)
                 EventStation.anonymousWarning('Attention - StageScanParams object is not scan-friendly! All the axes are fixed!');
@@ -238,7 +237,7 @@ classdef StageScanParams < handle
         
     end
     
-    methods(Static = true)
+    methods (Static)
         function propNames = varProps
             % This should probably have been implemebted as a method of
             % some superclass, if anybody knows how to

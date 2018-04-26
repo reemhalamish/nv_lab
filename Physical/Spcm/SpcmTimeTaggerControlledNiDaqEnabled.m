@@ -185,7 +185,7 @@ classdef SpcmTimeTaggerControlledNiDaqEnabled < Spcm & NiDaqControlled
         end
     end
   
-    methods(Static = true)
+    methods (Static)
         function spcmObj = create(spcmName, spcmStruct)
             missingField = FactoryHelper.usualChecks(spcmStruct, SpcmNiDaqControlled.NEEDED_FIELDS_SPCM_NIDAQ_TIMETAGGER);
             if ~isnan(missingField)

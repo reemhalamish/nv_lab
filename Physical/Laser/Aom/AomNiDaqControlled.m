@@ -24,7 +24,7 @@ classdef AomNiDaqControlled < LaserPartAbstract & NiDaqControlled
         end
     end
     
-    methods(Access = protected)
+    methods (Access = protected)
         function setValueRealWorld(obj, newValue)
             niDaq = getObjByName(NiDaq.NAME);
             niDaq.writeVoltage(obj.name, newValue);
@@ -46,7 +46,7 @@ classdef AomNiDaqControlled < LaserPartAbstract & NiDaqControlled
         end
     end
     
-    methods(Static)
+    methods (Static)
         function obj = create(name, jsonStruct)
             missingField = FactoryHelper.usualChecks(jsonStruct, AomNiDaqControlled.NEEDED_FIELDS);
             if ~isnan(missingField)

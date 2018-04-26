@@ -2,11 +2,11 @@ classdef LaserAomPhysicalFactory
     %LASERAOMPHYSICSFACTORY creates the laser part for a laser
     %   has only one method: createFromStruct()
     
-    properties(Constant)
+    properties (Constant)
         NEEDED_FIELDS = {'classname'};
     end
     
-    methods(Static)
+    methods (Static)
         function aomPhysicalPart = createFromStruct(name, struct)
             if isempty(struct)
                 aomPhysicalPart = [];

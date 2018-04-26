@@ -8,7 +8,7 @@ classdef (Abstract) Savable < BaseObject
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     %     %% overriding from Savable
-    %     methods(Access = protected)
+    %     methods (Access = protected)
     %         function outStruct = saveStateAsStruct(obj, category, type) %#ok<MANU>
     %             % Saves the state as struct. if you want to save stuff, make
     %             % (outStruct = struct;) and put stuff inside. If you dont
@@ -49,7 +49,7 @@ classdef (Abstract) Savable < BaseObject
     
     
     
-    properties(Constant = true)
+    properties (Constant)
         TYPE_PARAMS = 'parameters';
         TYPE_RESULTS = 'results';
         
@@ -70,7 +70,7 @@ classdef (Abstract) Savable < BaseObject
         CHILD_PROPERTY_READABLE_STRING = 'readable_string';
     end
     
-    methods(Access = protected, Abstract = true)
+    methods (Access = protected, Abstract)
         saveStateAsStruct(obj, category, type)
         % Saves the state as struct.
         % Override this function to save.
@@ -83,7 +83,7 @@ classdef (Abstract) Savable < BaseObject
         % type - string. Whether the objects saves at the beginning
         %                       of the run (parameter) or at its end (result)
         %
-        loadStateFromStruct(obj, savedStruct, category, subCategory) %#ok<INUSD>
+        loadStateFromStruct(obj, savedStruct, category, subCategory)
         % loads the state from a struct previousely saved.
         % override this function to load
         % category - a string, some savable objects will load stuff
@@ -96,7 +96,7 @@ classdef (Abstract) Savable < BaseObject
         % string or NaN if no readable string is needed
     end
     
-    methods(Access = protected)
+    methods (Access = protected)
         function obj = Savable(name)
             % name - the object name
             obj@BaseObject(name);
@@ -115,7 +115,7 @@ classdef (Abstract) Savable < BaseObject
     end
     
     
-    methods(Static = true, Access = {?SaveLoad})
+    methods (Static, Access = {?SaveLoad})
         function savableObjects = getAllSavableObjects()
             persistent allObjects
             if isempty(allObjects)
@@ -125,7 +125,7 @@ classdef (Abstract) Savable < BaseObject
         end
     end
     
-    methods(Static = true, Access = private)
+    methods (Static, Access = private)
         function addSavable(savableObject)
             allObjects = Savable.getAllSavableObjects();
             allObjects.cells{end + 1} = savableObject;
@@ -138,8 +138,7 @@ classdef (Abstract) Savable < BaseObject
         end
     end
     
-    methods(Static = true, Hidden = true)
-        
+    methods (Static, Hidden)
         function longString = onlyReadableStrings(loadedStruct)
             % Extract all the readable strings
             fields = fieldnames(loadedStruct);

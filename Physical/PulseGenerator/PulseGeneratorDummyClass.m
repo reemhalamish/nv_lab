@@ -1,7 +1,7 @@
 classdef (Sealed) PulseGeneratorDummyClass < handle
     
-    % Created form PulseStreamerClass. Many functions here are unneeded.
-    properties (Dependent = true)
+    % Created from PulseStreamerClass. Many functions here are unneeded.
+    properties (Dependent)
         channelNames
         channelValues
         duration %mus
@@ -11,7 +11,7 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
         repeats
     end
     
-    properties (Constant = true) 
+    properties (Constant) 
         maxDigitalChannels = 8;
         minDuration = 0; %mus
         maxDuration = Inf; %mus

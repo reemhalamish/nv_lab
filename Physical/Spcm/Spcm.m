@@ -1,4 +1,4 @@
-classdef(Abstract) Spcm < EventSender
+classdef (Abstract) Spcm < EventSender
     %SPCM single photon counter
     %   the spcm is controlled by the NiDaq
     
@@ -18,7 +18,7 @@ classdef(Abstract) Spcm < EventSender
         SPCM_NEEDED_FIELDS = {'classname'};
     end
     
-    methods(Abstract)
+    methods (Abstract)
         % prepare to read spcm count from opening the spcm window to unit of time
         prepareReadByTime(obj, integrationTimeInSec)
         
@@ -44,13 +44,13 @@ classdef(Abstract) Spcm < EventSender
         setSPCMEnable(obj, newBooleanState)
     end
     
-    methods(Access = protected)
+    methods (Access = protected)
         function obj = Spcm(spcmName)
             obj@EventSender(spcmName);
         end
     end
 
-    methods(Static = true)
+    methods (Static)
         function create(spcmTypeStruct)
             % Get all we need from json
             missingField = FactoryHelper.usualChecks(spcmTypeStruct, Spcm.SPCM_NEEDED_FIELDS);

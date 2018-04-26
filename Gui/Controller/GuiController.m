@@ -2,7 +2,7 @@ classdef GuiController < handle
     %MAINCONTROLLER controls the communication between the GUI and the physics
     %   Detailed explanation goes here
     
-    properties(Access = public)
+    properties (Access = public)
         views  % 1D array of gui components
         windowMinHeight = 0     % will be set when starting to the mainView.height
         windowMinWidth = 0      % will be set when starting to the mainView.width
@@ -15,7 +15,7 @@ classdef GuiController < handle
         screenHeight            % integer. in pixels
     end
     
-    properties(Constant = true)
+    properties (Constant)
         POSITION_INDEX_X0_LEFT = 1
         POSITION_INDEX_Y0_BOT = 2
         POSITION_INDEX_WIDTH = 3
@@ -91,6 +91,7 @@ classdef GuiController < handle
                     obj.onStarted();
                 catch err
                     delete(obj.figureWindow);
+                    delete(obj)
                     rethrow(err);
                 end
             end
@@ -243,14 +244,14 @@ classdef GuiController < handle
     end
     
     %% To be overriden
-    methods(Abstract)
+    methods (Abstract)
         view = getMainView(obj, figureWindowParent)
         % This function should get the main View of this GUI.
         % It can call any view constructor with the params:
         % parent=figureWindowParent, controller=obj
     end
     
-    methods(Static = true)
+    methods (Static)
         function openWindow = findOpenOrNan(windowName)
             % Looks for a window with this name. if found, return it. else
             % - returns NaN

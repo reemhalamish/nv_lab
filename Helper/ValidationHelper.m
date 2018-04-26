@@ -5,7 +5,7 @@
     properties
     end
     
-    methods(Static)
+    methods (Static)
         function bool = isInBorders(valueNumber, minBorder, maxBorder)
             bool = and(all(valueNumber >= minBorder), all(valueNumber <= maxBorder));
         end

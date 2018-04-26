@@ -16,11 +16,11 @@ classdef SaveLoad < Savable & EventSender
         notesStatus                      % string. Whether the notes are saved on current file.
     end
     
-    properties(Dependent = true)
+    properties (Dependent)
         isStructLoaded
     end
     
-    properties(Constant = true)
+    properties (Constant)
         EVENT_DELETE_FILE_SUCCESS = 'fileDeletedSuccessfully';
         EVENT_SAVE_SUCCESS_LOCAL_TO_FILE = 'fileSavedSuccessfully';
         EVENT_LOAD_SUCCESS_FILE_TO_LOCAL = 'fileLoadedSuccessfullyToLocalStruct';
@@ -53,7 +53,7 @@ classdef SaveLoad < Savable & EventSender
     end
     
     
-    methods(Static, Sealed)
+    methods (Static, Sealed)
         function obj = getInstance(category)
             % This method gets the relevant SaveLoad object based on the
             % needed mCategory, so that calling
@@ -89,7 +89,7 @@ classdef SaveLoad < Savable & EventSender
         end
     end
     
-    methods(Access = protected)
+    methods (Access = protected)
         function obj = SaveLoad(category)
             name = SaveLoad.getInstanceName(category);
             obj@EventSender(name);
@@ -660,7 +660,7 @@ classdef SaveLoad < Savable & EventSender
         end
     end
     
-    methods(Access = private)
+    methods (Access = private)
         function createFolderIfNeeded(obj, fileFullPath)
             folderFileCellArray = PathHelper.splitFullPathToFolderAndFile(fileFullPath);
             [folder, ~] = folderFileCellArray{:};
@@ -745,7 +745,7 @@ classdef SaveLoad < Savable & EventSender
     end
     
     %% overriden from Savable
-    methods(Access = protected)
+    methods (Access = protected)
         function outStruct = saveStateAsStruct(obj, mCategory, ~)
             % saves the state as struct.
             if strcmp(mCategory, obj.mCategory)

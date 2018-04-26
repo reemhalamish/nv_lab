@@ -22,7 +22,7 @@ classdef (Sealed) ClassPIM686 < ClassPIMicos
         scanRunning
     end
     
-    properties(Constant = true)
+    properties (Constant)
         NAME = 'Stage (coarse) - ClassPIM686'
         
         STEP_MINIMUM_SIZE = 0.3

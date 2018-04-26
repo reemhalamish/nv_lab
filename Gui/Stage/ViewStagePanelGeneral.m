@@ -46,7 +46,7 @@ classdef ViewStagePanelGeneral < GuiComponent
         end
         
         function cbxClosedLoopCallback(obj,~,~)
-            mode = BooleanHelper.ifTrueElse(obj.cbxClosedLoop.Value,'Closed','Open');
+            mode = BooleanHelper.ifTrueElse(obj.cbxClosedLoop.Value, 'Closed', 'Open');
             stage = getObjByName(obj.stageName);
             stage.ChangeLoopMode(mode);
         end

@@ -6,10 +6,8 @@ classdef ViewImageResultImage < GuiComponent
     
     properties
         vAxes       % the axes view to use for the plotting
-%        vColorbar   % colorbar axes view. todo: implement. Without it,
-%                       copying the colorbar will remove label
     end
-    properties(Constant = true)
+    properties (Constant)
         NAME = 'ViewImageResultImage';
     end
     

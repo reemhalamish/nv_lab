@@ -29,12 +29,12 @@ classdef (Abstract) EventListener < handle
     
     
     
-    properties(SetAccess = private)
+    properties (SetAccess = private)
         namesToListenTo
         % cell-array of strings
     end
     
-    properties(SetAccess = protected)
+    properties (SetAccess = protected)
         listensToEveryone = false;
         % Self explanatory. Can be used be someone who wants to listen to
         % all the events, and then check in onEvent() if the event is an
@@ -43,7 +43,7 @@ classdef (Abstract) EventListener < handle
         
     end
     
-    methods(Abstract = true)
+    methods (Abstract)
         onEvent(obj, event)
     end
     
@@ -104,13 +104,13 @@ classdef (Abstract) EventListener < handle
             % oldName - can be a string or cell of strings
             es = EventStation.getInstance;
             if ischar(oldName)
-                % remove this name
+                % Remove this name
                 senderName = oldName;
                 allOther = cellfun(@(x) ~strcmp(x, senderName), obj.namesToListenTo);
                 obj.namesToListenTo = obj.namesToListenTo(allOther);
                 es.removeListener(obj, senderName);
             else
-                % iterate and remove
+                % Iterate and remove
                 for i = 1 : length(oldName)
                     senderName = oldName{i};
                     allOther = cellfun(@(x) ~strcmp(x, senderName), obj.namesToListenTo);

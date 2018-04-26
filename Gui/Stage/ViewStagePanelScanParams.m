@@ -2,9 +2,9 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
     %VIEWSTAGESCANSCANPARAMS Summary of this class goes here
     %   Detailed explanation goes here
     
-    %   todo possible bug? if someone changes properties of the "scan params" property of
+    %   todo: possible bug? If someone changes properties of the "scan params" property of
     %   the stage, the stage will not send event and the GUI won't know
-    %   about it. how often do people use matlab programatically?
+    %   about it. How often do people use matlab programatically?
     
     properties
         edtFrom             % 1x3 input text
@@ -19,7 +19,7 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
         stageAxes   % string. valid axes of the stage. example: "zx"
     end
     
-    properties(Constant = true)
+    properties (Constant)
         SCAN_AROUND_DEFAULT_STRING = '5';
     end
     

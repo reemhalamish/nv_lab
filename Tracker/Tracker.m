@@ -5,7 +5,7 @@ classdef Tracker < EventSender & EventListener & Savable
         mLocalStruct = struct;
     end
     
-    properties(Constant = true)
+    properties (Constant)
         NAME = 'Tracker'
         TRACKABLE_POSITION_NAME = 'trackablePosition';
         % To be implemented
@@ -57,7 +57,7 @@ classdef Tracker < EventSender & EventListener & Savable
     end
     
             %% overriding from Savable
-        methods(Access = protected)
+        methods (Access = protected)
             function outStruct = saveStateAsStruct(obj, category, type)
                 % Saves the state as struct. if you want to save stuff, make
                 % (outStruct = struct;) and put stuff inside. If you dont
@@ -97,7 +97,7 @@ classdef Tracker < EventSender & EventListener & Savable
                 end
             end
     
-            function string = returnReadableString(obj, savedStruct)
+            function string = returnReadableString(obj, savedStruct) %#ok<INUSD>
                 % return a readable string to be shown. if this object
                 % doesn't need a readable string, make (string = NaN;) or
                 % (string = '');

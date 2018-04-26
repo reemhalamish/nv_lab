@@ -7,7 +7,7 @@ classdef FactoryHelper
     properties
     end
     
-    methods(Static)
+    methods (Static)
         function missingField = usualChecks(struct, neededFields)
             % Checks for the needed fields in the struct
             % neededFields - cell array of character vectors. For example:

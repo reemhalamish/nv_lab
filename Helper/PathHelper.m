@@ -5,7 +5,7 @@ classdef PathHelper
     properties
     end
     
-    methods(Static)
+    methods (Static)
         function nvLabFolderPath = getPathToNvLab()
             googleDriveFolder = sprintf('%s\\Google Drive\\', getenv('USERPROFILE'));
             nvLabFolderName = 'NV Lab';

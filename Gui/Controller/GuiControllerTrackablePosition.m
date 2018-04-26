@@ -29,12 +29,10 @@ classdef GuiControllerTrackablePosition < GuiController
             obj.moveToMiddleOfScreen();
         end
         
-        function onStarted(obj)
+        function onStarted(obj) %#ok<MANU>
             % Callback. Things to run after the window is already started
             % and running.
             % child classes can override this method
-            view = obj.views{:};
-            view.refresh;
         end
         
         function onSizeChanged(obj, newX0, newY0, newWidth, newHeight) %#ok<INUSD>

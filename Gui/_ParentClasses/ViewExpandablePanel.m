@@ -2,7 +2,7 @@ classdef ViewExpandablePanel < GuiComponent
     %VIEWHBOX Summary of this class goes here
     %   Detailed explanation goes here
     
-    properties(Hidden = true, Constant = true)
+    properties (Hidden, Constant)
         SIZE_MIN = 23;
     end
     properties

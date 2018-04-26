@@ -17,7 +17,7 @@ classdef (Abstract) NiDaqControlled < EventListener
     properties
     end
     
-    methods(Access = protected)
+    methods (Access = protected)
         function obj = NiDaqControlled(niDaqChannelName, niDaqChannel, minVal, maxVal)
             % niDaqChannelName - string. Name that the daq will call this component
             % niDaqChannel - string. Number of channel to register to.
@@ -55,7 +55,7 @@ classdef (Abstract) NiDaqControlled < EventListener
     % This way, we can override onEvent() HERE in this class, and make
     % it work the way we expect it
 
-    methods(Abstract)
+    methods (Abstract)
         onNiDaqReset(obj, niDaq)
         % This function jumps when the NiDaq resets
         % Each component can decide what to do

@@ -11,7 +11,7 @@ classdef ExpParameter < HiddenMethodsHandle & PropertiesDisplaySorted
         expName = nan;  % string. Name of associated experiment
     end
     
-    properties (Constant = true)
+    properties (Constant)
         TYPE_LOGICAL = 'logical'
         TYPE_BOOLEAN = ExpParameter.TYPE_LOGICAL; % just in case anybody gets confused
         TYPE_DOUBLE = 'double'

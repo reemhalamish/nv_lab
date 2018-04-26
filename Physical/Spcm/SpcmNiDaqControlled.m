@@ -172,7 +172,7 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
         end
     end
   
-    methods(Static = true)
+    methods (Static)
         function spcmObj = create(spcmName, spcmStruct)
             missingField = FactoryHelper.usualChecks(spcmStruct, SpcmNiDaqControlled.NEEDED_FIELDS);
             if ~isnan(missingField)

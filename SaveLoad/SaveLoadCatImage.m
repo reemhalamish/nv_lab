@@ -2,7 +2,7 @@ classdef SaveLoadCatImage < SaveLoad & EventListener
     %SAVELOADCATIMAGE Summary of this class goes here
     %   Detailed explanation goes here
     
-    properties(Constant = true)
+    properties (Constant)
         NAME = SaveLoad.getInstanceName(Savable.CATEGORY_IMAGE);
     end
     

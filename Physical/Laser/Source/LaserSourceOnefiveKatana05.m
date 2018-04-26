@@ -64,7 +64,7 @@ classdef LaserSourceOnefiveKatana05 < LaserPartAbstract & SerialControlled
     end
     
     %% Interact with physical laser. Be careful!
-    methods(Access = protected)
+    methods (Access = protected)
         function setEnabledRealWorld(obj, newBoolValue)
             % Validating value is assumed to have been done
             errToken = '(Error 100)';

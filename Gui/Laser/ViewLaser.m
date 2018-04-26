@@ -31,7 +31,7 @@ classdef ViewLaser < GuiComponent
             
             if sourceAvailBool
                 if laserGate.source.canSetEnabled && ~laserGate.source.canSetValue
-                    % Maybe we only need an on/off switch
+                    % ^ Checking: maybe we only need an on/off switch
                     % 1st condition: otherwise there is no point in switch
                     % 2nd condition: otherwise, the checkbox is contained in ViewLaserPart
                     cbxSourceOn = ViewBooleanSwitch(hboxCbx, controller, laserGate.source, 'Source on?');

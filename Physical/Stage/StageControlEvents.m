@@ -8,7 +8,7 @@ classdef StageControlEvents < EventSender
     %   if you want to call only one stage to do some work, this IS NOT the
     %   appropriate method!
     
-    properties(Constant)
+    properties (Constant)
         NAME = 'stageController';
         HALT = 'haltAllStages';
         CLOSE_CONNECTION = 'closeConnectionAllStages';
@@ -20,7 +20,7 @@ classdef StageControlEvents < EventSender
         end
     end
     
-    methods(Static)
+    methods (Static)
         function sendHalt()
             stageController = StageControlEvents();
             stageController.sendEvent(struct(StageControlEvents.HALT, true));

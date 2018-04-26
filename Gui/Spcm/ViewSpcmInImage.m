@@ -1,7 +1,7 @@
 classdef ViewSpcmInImage < GuiComponent
     %VIEWSPCMINIMAGE wrapper for ViewSpcm for display in main image view
     
-    properties (Constant = true)
+    properties (Constant)
         VIEW_HEIGHT = 100;
         VIEW_WIDTH = -1;
     end
@@ -10,7 +10,7 @@ classdef ViewSpcmInImage < GuiComponent
         function obj = ViewSpcmInImage(parent,controller)
             panel = ViewExpandablePanel(parent, controller, 'SPCM Counter');
             obj@GuiComponent(parent,controller);
-            spcmView = ViewSpcm(panel,controller,obj.VIEW_HEIGHT,obj.VIEW_WIDTH);
+            spcmView = ViewSpcm(panel,controller, obj.VIEW_HEIGHT, obj.VIEW_WIDTH);
             obj.component = spcmView.component;
         end
     end

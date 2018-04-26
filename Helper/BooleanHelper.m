@@ -5,7 +5,7 @@ classdef BooleanHelper
     properties
     end
     
-    methods(Static)
+    methods (Static)
         function value = ifTrueElse(bool, valueIfTrue, valueIfFalse)
             if bool
                 value = valueIfTrue;

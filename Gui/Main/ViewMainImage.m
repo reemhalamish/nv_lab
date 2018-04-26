@@ -8,7 +8,7 @@ classdef ViewMainImage < ViewVBox
     %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    properties (Constant = true)
+    properties (Constant)
         
     end
     

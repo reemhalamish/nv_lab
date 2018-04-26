@@ -17,7 +17,7 @@ classdef ViewStagePanelLimits < GuiComponent & EventListener
         stageAxes           % string. example: "xy"
     end
     
-    properties(Constant = true)
+    properties (Constant)
         SET_AROUND_DEFAULT_STRING = '10';
         LIM_LOWER = 0;
         LIM_UPPER = 1;

@@ -2,14 +2,14 @@ classdef ViewError < GuiComponent & EventListener
     %VIEWERROR showing the errors
     %   this view listens for all the event, and shows the error events. it uses a timer to remove the display from the event
     
-    properties(Access = protected, Constant)
+    properties (Access = protected, Constant)
         PROP_ERROR_TEXT = {'Style', 'text', 'ForegroundColor', 'red', 'BackgroundColor', 'white', 'HorizontalAlignment', 'center'};
-        PROP_ERROR_MSG = {'FontSize',14,'String', 'Errors will be displayed here!'};
-        PROP_ERROR_FROM = {'FontSize',12, 'String', ''};
+        PROP_ERROR_MSG = {'FontSize', 14, 'String', 'Errors will be displayed here!'};
+        PROP_ERROR_FROM = {'FontSize', 12, 'String', ''};
         PROP_ERROR_MAIN = {'BackgroundColor', 'white', 'Spacing', 20, 'Padding', 5};
     end
     
-    properties(Access = protected)
+    properties (Access = protected)
         tvFrom
         tvMsg
         
@@ -18,12 +18,12 @@ classdef ViewError < GuiComponent & EventListener
     
     methods
         function obj = ViewError(parent, controller)
-            %%%%%% parent constructors %%%%%%
+            %%%% parent constructors %%%%
             obj@GuiComponent(parent, controller);
             obj@EventListener();
             obj.setListeningForAll(true);
             
-            %%%%%% UI initialization %%%%%%
+            %%%% UI initialization %%%%
             obj.width = 800;   % for the screen
             obj.height = 60;   % for the screen
             

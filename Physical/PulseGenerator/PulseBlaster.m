@@ -2,7 +2,7 @@ classdef PulseBlaster < EventSender
     %PULSEBLASTER Summary of this class goes here
     %   Detailed explanation goes here
     
-    properties(SetAccess = protected)
+    properties (SetAccess = protected)
         dummyMode  % boolean. if set to true, no physics will be changed!
         seqDuration %mus 1D array of length(y)
         seqNicknames % 1D array of strings, (cell array) of length(y)
@@ -10,7 +10,7 @@ classdef PulseBlaster < EventSender
         seqRepeats  % scalar. how many times do this sequence
     end
     
-    properties (Dependent = true)
+    properties (Dependent)
         seqTime  % sum() on seqDuration
         channelNames % 1D array of length(x)
         channelValues % 1D array of length(x)
@@ -25,11 +25,11 @@ classdef PulseBlaster < EventSender
         
     end
     
-    properties(Constant = true)
+    properties (Constant)
         NAME = 'PulseBlaster';
     end
     
-    properties(Constant = true, Access = private)
+    properties (Constant, Access = private)
         FREQUENCY=500; % in MHz %500e6;% Hz
         MAX_PB_CHANNEL = 16;
         MIN_DURATION = 0;
@@ -39,7 +39,7 @@ classdef PulseBlaster < EventSender
         PBl_LIB_NAME = 'PB_LIB_NAME'; %Alias name of the PB library
     end
     
-    methods(Access = private)
+    methods (Access = private)
         function obj = PulseBlaster(libPathName, dummyModeOptional)
             % dummyModeOptional - if exists and set to true, no actual physics will be
             % involved. good for testing purposes
@@ -63,7 +63,7 @@ classdef PulseBlaster < EventSender
         end
     end
     
-%     methods(Static, Sealed)
+%     methods (Static, Sealed)
 %         function out=getInstance(newObjectInstanceOptional)
 %             % one can call getInstance() with no args to get the object
 %             % the function create() calls getInstance(with some newObject)
@@ -76,7 +76,7 @@ classdef PulseBlaster < EventSender
 %         end
 %     end
     
-    methods(Static)
+    methods (Static)
         function obj = create(pbStruct)
             % Create a new instance of the pulse blaster, to be retreived
             % via getInstance()
@@ -102,7 +102,7 @@ classdef PulseBlaster < EventSender
         end
     end
     
-    methods(Access = private)
+    methods (Access = private)
         function channel = getChannel(obj, channelNameOrNumber)
             % Get the channel from a name or number:
             % if it's a name, search for it;
@@ -292,7 +292,7 @@ classdef PulseBlaster < EventSender
         end
     end
     
-    methods(Access = private)
+    methods (Access = private)
         % helper methods
         
         function setInternalChannelStatusIfExist(obj, channel, newBooleanValue)
@@ -340,7 +340,8 @@ classdef PulseBlaster < EventSender
             obj.PBesrStart();
         end
     end
-    methods(Access = protected)
+    
+    methods (Access = protected)
         % Pulse communication methods - calling to the PB library
         function [PBready] = PBisReady(obj)
             stat = obj.PBesrReadStatus;

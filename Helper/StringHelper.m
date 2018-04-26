@@ -9,7 +9,7 @@ classdef StringHelper
         RIGHT_ARROW = sprintf('\x2192');
     end
     
-    methods(Static = true)
+    methods (Static)
         function booleanAnswer = isAllCapsAndUnderscore(string)
             booleanAnswer = strcmp(string, upper(string));
         end
