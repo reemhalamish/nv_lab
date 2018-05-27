@@ -142,7 +142,7 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             % Connect to axes
             for i = 1:numberOfConnectedDevices
                 if obj.axesID(i) < 0
-                    obj.axesID(i) = SendPICommandWithoutReturnCode(obj,'PI_ConnectDaisyChainDevice', obj.ID, i);
+                    obj.axesID(i) = SendPICommandWithoutReturnCode(obj, 'PI_ConnectDaisyChainDevice', obj.ID, i);
                     obj.CheckIDForError(obj.axesID(i), ['Could not connect to ' obj.axesName(i) ' axis controller!']);
                 end
             end
@@ -211,12 +211,12 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             
             % Delete Macros
             for i=1:length(obj.validAxes)
-                DeleteMacro(obj, obj.axesID(i) ,'')
+                DeleteMacro(obj, obj.axesID(i) , '')
             end
             obj.scanStruct = struct([]);
         end
         
-        function ChangeMode(obj, axis, mode)
+        function ChangeMode(obj, phAxis, mode)
             % Changes between mixed mode and nano stepping mode.
             % Mode should be:
             % 'Mixed' - for mixed analog and nano stepping mode.
@@ -224,24 +224,24 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             % This function is lengthy operation, if directly after this
             % function another command is being sent to the controller then
             % WaitFor(obj, axis, 'ControllerReady') should be added.
-            axisID = obj.axesID(GetAxis(obj, axis));
+            axisID = obj.axesID(GetAxis(obj, phAxis));
             switch mode
                 case 'Mixed'
-                    SendPICommand(obj,'PI_SPA', axisID, obj.szAxes, hex2dec('7001A00'), 1, '');
+                    SendPICommand(obj, 'PI_SPA', axisID, obj.szAxes, hex2dec('7001A00'), 1, '');
                 case 'Nanostepping'
-                    SendPICommand(obj,'PI_SPA', axisID, obj.szAxes, hex2dec('7001A00'), 0, '');
+                    SendPICommand(obj, 'PI_SPA', axisID, obj.szAxes, hex2dec('7001A00'), 0, '');
                 otherwise
                     errorMsg = sprintf('Unknown mode %s', mode);
                     obj.sendError(errorMsg);
             end
-            ChangeLoopMode(obj, axis, 'Closed');
+            ChangeLoopMode(obj, phAxis, 'Closed');
         end
         
-        function SetOnTargetWindow(obj, axis, pixelSize, spatialResolutionRatio)
+        function SetOnTargetWindow(obj, phAxis, pixelSize, spatialResolutionRatio)
             % Sets the OnTarget window according to the given pixel size
             % and resolution.
             % The window is given by +-(pixelSize*spatialResolutionRatio)/2
-            axisID = obj.axesID(GetAxis(obj, axis));
+            axisID = obj.axesID(GetAxis(obj, phAxis));
             counts = round(pixelSize*spatialResolutionRatio/0.0005); % 1 count is 0.5nm
             SendPICommand(obj, 'PI_SPA', axisID, obj.szAxes, hex2dec('36'), counts, '')
         end
@@ -250,7 +250,7 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             % Queries the position for all 3 axes and updates the internal
             % variables.
             for i=1:length(obj.validAxes)
-                [~,obj.curPos(i)] = SendPICommand(obj,'PI_qPOS', obj.axesID(i), obj.szAxes, obj.curPos(i));
+                [~,obj.curPos(i)] = SendPICommand(obj, 'PI_qPOS', obj.axesID(i), obj.szAxes, obj.curPos(i));
             end
         end
         
@@ -262,16 +262,16 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             end
         end
         
-        function WaitFor(obj, axis, what)
+        function WaitFor(obj, phAxis, what)
             % Waits until a specific action, defined by what, is finished.
-            % 'axis' should be a specific axis (x,y,z or 1 for x, 2 for y
+            % 'phAxis' should be a specific axis (x,y,z or 1 for x, 2 for y
             % and 3 for z).
             % Current options for what:
             % MovementDone - Waits until movement is done.
             % onTarget - Waits until the stage reaches it's target.
             % MacroDone - Waits until the macro stopped running.
             % ControllerReady - Waits until the controller is ready.
-            axisID = obj.axesID(GetAxis(obj, axis));
+            axisID = obj.axesID(GetAxis(obj, phAxis));
             timer = tic;
             timeout = 30; % 30 second timeout
             wait = 1;
@@ -583,7 +583,7 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             WaitFor(obj, normalScanAxis, 'ControllerReady')
         end
         
-        function MovePrivate(obj, axis, pos)
+        function MovePrivate(obj, phAxis, pos)
             % Absolute change in position (pos) of axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
@@ -596,24 +596,24 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             end
             
             if obj.tiltCorrectionEnable
-                [axis, pos] = TiltCorrection(obj, axis, pos);
+                [phAxis, pos] = TiltCorrection(obj, phAxis, pos);
             end
             
-            if ~PointIsInRange(obj, axis, pos) % Check that point is in limits
+            if ~PointIsInRange(obj, phAxis, pos) % Check that point is in limits
                 obj.sendError('Move Command is outside the soft limits');
             end
             
-            CheckRefernce(obj, axis)
+            CheckRefernce(obj, phAxis)
             
             % Send the move command
-            axisID = obj.axesID(GetAxis(obj, axis));
-            for i=1:length(axis)
+            axisID = obj.axesID(GetAxis(obj, phAxis));
+            for i=1:length(phAxis)
                 SendPICommand(obj, 'PI_MOV', axisID(i), obj.szAxes, pos(i));
             end
             
             % Wait for move command to finish
-            for i=1:length(axis)
-                WaitFor(obj, axis(i), 'onTarget')
+            for i=1:length(phAxis)
+                WaitFor(obj, phAxis(i), 'onTarget')
             end
         end
         
@@ -624,49 +624,49 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
             warning('Stage Halted!');
         end
         
-        function SetVelocityPrivate(obj, axis, vel)
+        function SetVelocityPrivate(obj, phAxis, vel)
             % Absolute change in velocity (vel) of axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Does not check if scan is running.
             % Vectorial axis is possible.
-            axis = GetAxis(obj, axis);
-            axisID = obj.axesID(GetAxis(obj, axis));
-            for i=1:length(axis)
+            phAxis = GetAxis(obj, phAxis);
+            axisID = obj.axesID(GetAxis(obj, phAxis));
+            for i=1:length(phAxis)
                 SendPICommand(obj, 'PI_VEL', axisID(i), obj.szAxes, vel(i));
             end
         end
         
-        function refernced = IsRefernced(obj, axis)
+        function refernced = IsRefernced(obj, phAxis)
             % Check reference status for the given axis.
-            % 'axis' can be either a specific axis (x,y,z or 1 for x, 2 for y
-            % and 3 for z) or any vectorial combination of them.
-            axisID = obj.axesID(GetAxis(obj, axis));
-            refernced = zeros(size(axis));
+            % 'phAxis' can be either a specific axis (x,y,z or 1 for x,
+            % 2 for y and 3 for z) or any vectorial combination of them.
+            axisID = obj.axesID(GetAxis(obj, phAxis));
+            refernced = zeros(size(phAxis));
             
-            for i=1:length(axis)
+            for i=1:length(phAxis)
                 [~, refernced(i)] = SendPICommand(obj, 'PI_qFRF', axisID(i), obj.szAxes, 0);
             end
         end
         
-        function Refernce(obj, axis)
+        function Refernce(obj, phAxis)
             % Reference the given axis.
-            % 'axis' can be either a specific axis (x,y,z or 1 for x, 2 for y
+            % 'phAxis' can be either a specific axis (x,y,z or 1 for x, 2 for y
             % and 3 for z) or any vectorial combination of them.
-            axis = GetAxis(obj, axis);
-            axisID = obj.axesID(axis);
+            phAxis = GetAxis(obj, phAxis);
+            axisID = obj.axesID(phAxis);
             
-            for i=1:length(axis)
+            for i=1:length(phAxis)
                 SendPICommand(obj, 'PI_FRF', axisID(i), obj.szAxes);
             end
             
             % Check if ready & if referenced succeeded
-            for i=1:length(axis)
-                WaitFor(obj, axis(i), 'ControllerReady')
+            for i=1:length(phAxis)
+                WaitFor(obj, phAxis(i), 'ControllerReady')
                 [~, refernced] = SendPICommand(obj, 'PI_qFRF', axisID(i), obj.szAxes, 0);
                 if (~refernced)
                     errorMsg = sprintf(...
                         'Referencing failed for controller %s with ID %d (%s axis): Reason unknown.', ...
-                        obj.controllerModel, axisID(i), obj.axesName(axis(i)));
+                        obj.controllerModel, axisID(i), obj.axesName(phAxis(i)));
                     obj.sendError(errorMsg);
                 end
             end
@@ -843,21 +843,21 @@ classdef (Sealed) ClassPILPS65 < ClassPIMicos
         
         function ChangeLoopMode(obj, varargin)
             % Changes between closed and open loop.
-            % 'axis' can be either a specific axis (x,y,z or 1 for x, 2 for y
+            % 'phAxis' can be either a specific axis (x,y,z or 1 for x, 2 for y
             % and 3 for z) or any vectorial combination of them.
-            % if 'axis' is not given, all axes are changed.
+            % if 'phAxis' is not given, all axes are changed.
             % 'mode' should be either 'Open' or 'Closed'.
             % Stage will auto-lock when in open mode, which should increase
             % stability.
             if nargin == 3
-                axis = varargin{1};
+                phAxis = varargin{1};
                 mode = varargin{2};
-                axisID = obj.axesID(GetAxis(obj, axis));
+                axisID = obj.axesID(GetAxis(obj, phAxis));
                 switch mode
                     case 'Open'
-                        SendPICommand(obj,'PI_SVO', axisID, obj.szAxes, 0);
+                        SendPICommand(obj, 'PI_SVO', axisID, obj.szAxes, 0);
                     case 'Closed'
-                        SendPICommand(obj,'PI_SVO', axisID, obj.szAxes, 1);
+                        SendPICommand(obj, 'PI_SVO', axisID, obj.szAxes, 1);
                     otherwise
                         errorMsg = sprintf('Unknown mode: %s', mode);
                         obj.sendError(errorMsg);

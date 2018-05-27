@@ -360,7 +360,7 @@ classdef SaveLoad < Savable & EventSender
             if strcmp(obj.notesStatus, obj.STRUCT_STATUS_NOT_SAVED)
                 obj.saveLocalStructToFile(obj.mLoadedFileFullPath, obj.mLocalStructStatus);
             else
-                ME = MException('','Should this have happenned?');
+                ME = MException('', 'Should this have happenned?');
                 warningToDev(ME);
                 % For now, do nothing. Maybe should throw warning
             end

@@ -12,7 +12,7 @@ classdef ViewImageResultPanelColormap < GuiComponent
     methods
         function obj = ViewImageResultPanelColormap(parent, controller)
             obj@GuiComponent(parent, controller);
-            panel = uix.Panel('Parent', parent.component,'Title','Colormap', 'Padding', 5);
+            panel = uix.Panel('Parent', parent.component, 'Title', 'Colormap', 'Padding', 5);
             vboxMain = uix.VBox('Parent', panel, 'Spacing', 5, 'Padding', 0);
             obj.component = vboxMain;
             
@@ -49,9 +49,9 @@ classdef ViewImageResultPanelColormap < GuiComponent
             obj.width = 160;
             
             try
-                update;     % It might not succeed if there is no image
+                obj.update;     % It might not succeed if there is no image
             catch
-                % Stay with default values, for now
+                % There is nothing we can do, for now
             end
         end
         

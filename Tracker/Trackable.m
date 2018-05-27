@@ -62,11 +62,11 @@ classdef (Abstract) Trackable < Experiment
         function t = myToc(obj)
             % By using this function we get time 0 for the beginning of
             % tracking (maybe usable by other experiments as well)
-            try
-                t = toc(obj.timer);
-            catch
+            if isempty(obj.timer)
                 t = 0;
                 obj.timer = tic;
+            else
+                t = toc(obj.timer);
             end
         end
     end

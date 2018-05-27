@@ -54,131 +54,131 @@ classdef (Sealed) ClassPIM686M501 < ClassStage
             obj.stageCoarseXY.Reconnect();
         end
         
-        function ok = PointIsInRange(obj, axis, point)
+        function ok = PointIsInRange(obj, phAxis, point)
             % Checks if the given point is within the soft (and hard)
             % limits of the given axis (x,y,z or 1 for x, 2 for y and 3 for z).
             % Vectorial axis is possible.
-            axis = GetAxis(obj, axis);
-            if all(axis == 3) % Only Z Axis.
-                ok = obj.stageCoarseZ.PointIsInRange(axis, point);
-            elseif all(axis ~= 3) % No Z Axis.
-                ok = obj.stageCoarseXY.PointIsInRange(axis, point);
+            phAxis = GetAxis(obj, phAxis);
+            if all(phAxis == 3) % Only Z Axis.
+                ok = obj.stageCoarseZ.PointIsInRange(phAxis, point);
+            elseif all(phAxis ~= 3) % No Z Axis.
+                ok = obj.stageCoarseXY.PointIsInRange(phAxis, point);
             else % Mixture.
-                ok = obj.stageCoarseZ.PointIsInRange(axis(axis==3), point) ...
-                    & obj.stageCoarseXY.PointIsInRange(axis(axis~=3), point);
+                ok = obj.stageCoarseZ.PointIsInRange(phAxis(phAxis==3), point) ...
+                    & obj.stageCoarseXY.PointIsInRange(phAxis(phAxis~=3), point);
             end
         end
         
-        function [negSoftLimit, posSoftLimit] = ReturnLimits(obj, axis)
+        function [negSoftLimit, posSoftLimit] = ReturnLimits(obj, phAxis)
             % Return the soft limits of the given axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
-            axis = GetAxis(obj, axis);
-            if all(axis == 3) % Only Z Axis
-                [negSoftLimit, posSoftLimit] = obj.stageCoarseZ.ReturnLimits(axis);
-            elseif all(axis ~= 3) % No Z Axis
-                [negSoftLimit, posSoftLimit] = obj.stageCoarseXY.ReturnLimits(axis);
+            phAxis = GetAxis(obj, phAxis);
+            if all(phAxis == 3) % Only Z Axis
+                [negSoftLimit, posSoftLimit] = obj.stageCoarseZ.ReturnLimits(phAxis);
+            elseif all(phAxis ~= 3) % No Z Axis
+                [negSoftLimit, posSoftLimit] = obj.stageCoarseXY.ReturnLimits(phAxis);
             else % Mixture
-                zAxisBool = (axis == 3);
-                xyAxesBool = (axis ~= 3);
-                [negSoftLimit(zAxisBool),  posSoftLimit(zAxisBool)]  = obj.stageCoarseZ.ReturnLimits(axis(zAxisBool));
-                [negSoftLimit(xyAxesBool), posSoftLimit(xyAxesBool)] = obj.stageCoarseXY.ReturnLimits(axis(xyAxesBool));
+                zAxisBool = (phAxis == 3);
+                xyAxesBool = (phAxis ~= 3);
+                [negSoftLimit(zAxisBool),  posSoftLimit(zAxisBool)]  = obj.stageCoarseZ.ReturnLimits(phAxis(zAxisBool));
+                [negSoftLimit(xyAxesBool), posSoftLimit(xyAxesBool)] = obj.stageCoarseXY.ReturnLimits(phAxis(xyAxesBool));
             end
         end
         
-        function [negHardLimit, posHardLimit] = ReturnHardLimits(obj, axis)
+        function [negHardLimit, posHardLimit] = ReturnHardLimits(obj, phAxis)
             % Return the hard limits of the given axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
-            axis = GetAxis(obj, axis);
-            if all(axis == 3) % Only Z Axis.
-                [negHardLimit, posHardLimit] = obj.stageCoarseZ.ReturnHardLimits(axis);
-            elseif all(axis ~= 3) % No Z Axis.
-                [negHardLimit, posHardLimit] = obj.stageCoarseXY.ReturnHardLimits(axis);
+            phAxis = GetAxis(obj, phAxis);
+            if all(phAxis == 3) % Only Z Axis.
+                [negHardLimit, posHardLimit] = obj.stageCoarseZ.ReturnHardLimits(phAxis);
+            elseif all(phAxis ~= 3) % No Z Axis.
+                [negHardLimit, posHardLimit] = obj.stageCoarseXY.ReturnHardLimits(phAxis);
             else % Mixture.
-                zAxisBool = (axis == 3);
-                xyAxesBool = (axis ~= 3);
-                [negHardLimit(zAxisBool), posHardLimit(zAxisBool)] = obj.stageCoarseZ.ReturnHardLimits(axis(zAxesBool));
-                [negHardLimit(xyAxesBool), posHardLimit(xyAxesBool)] = obj.stageCoarseXY.ReturnHardLimits(axis(xyAxesBool));
+                zAxisBool = (phAxis == 3);
+                xyAxesBool = (phAxis ~= 3);
+                [negHardLimit(zAxisBool), posHardLimit(zAxisBool)] = obj.stageCoarseZ.ReturnHardLimits(phAxis(zAxesBool));
+                [negHardLimit(xyAxesBool), posHardLimit(xyAxesBool)] = obj.stageCoarseXY.ReturnHardLimits(phAxis(xyAxesBool));
             end
         end
         
-        function SetSoftLimits(obj, axis, softLimit, negOrPos)
+        function SetSoftLimits(obj, phAxis, softLimit, negOrPos)
             % Set the new soft limits:
             % if negOrPos = 0 -> then softLimit = lower soft limit
             % if negOrPos = 1 -> then softLimit = higher soft limit
             % This is because each time this function is called only when
             % one of the limits updates.
-            axis = GetAxis(obj, axis);
-            if all(axis == 3) % Only Z Axis
-                obj.stageCoarseZ.SetSoftLimits(axis, softLimit, negOrPos);
-            elseif all(axis ~= 3) % No Z Axis
-                obj.stageCoarseXY.SetSoftLimits(axis, softLimit, negOrPos);
+            phAxis = GetAxis(obj, phAxis);
+            if all(phAxis == 3) % Only Z Axis
+                obj.stageCoarseZ.SetSoftLimits(phAxis, softLimit, negOrPos);
+            elseif all(phAxis ~= 3) % No Z Axis
+                obj.stageCoarseXY.SetSoftLimits(phAxis, softLimit, negOrPos);
             else % Mixture
-                obj.stageCoarseZ.SetSoftLimits(axis(axis==3), softLimit(axis==3), negOrPos);
-                obj.stageCoarseXY.SetSoftLimits(axis(axis~=3), softLimit(axis~=3), negOrPos);
+                obj.stageCoarseZ.SetSoftLimits(phAxis(phAxis==3), softLimit(phAxis==3), negOrPos);
+                obj.stageCoarseXY.SetSoftLimits(phAxis(phAxis~=3), softLimit(phAxis~=3), negOrPos);
             end
         end
         
-        function pos = Pos(obj, axis)
+        function pos = Pos(obj, phAxis)
             % Query and return position of axis (x,y,z or 1 for x, 2 for y
             % and 3 for z)
             % Vectorial axis is possible.
-            axis = GetAxis(obj, axis);
-            if all(axis == 3) % Only Z Axis.
-                pos = obj.stageCoarseZ.Pos(axis);
-            elseif all(axis ~= 3) % No Z Axis.
-                pos = obj.stageCoarseXY.Pos(axis);
+            phAxis = GetAxis(obj, phAxis);
+            if all(phAxis == 3) % Only Z Axis.
+                pos = obj.stageCoarseZ.Pos(phAxis);
+            elseif all(phAxis ~= 3) % No Z Axis.
+                pos = obj.stageCoarseXY.Pos(phAxis);
             else % Mixture.
-                pos(axis==3) = obj.stageCoarseZ.Pos(axis(axis==3));
-                pos(axis~=3) = obj.stageCoarseXY.Pos(axis(axis~=3));
+                pos(phAxis==3) = obj.stageCoarseZ.Pos(phAxis(phAxis==3));
+                pos(phAxis~=3) = obj.stageCoarseXY.Pos(phAxis(phAxis~=3));
             end
         end
         
-        function vel = Vel(obj, axis)
+        function vel = Vel(obj, phAxis)
             % Query and return velocity of axis (x,y,z or 1 for x, 2 for y
             % and 3 for z)
             % Vectorial axis is possible.
-            axis = GetAxis(obj, axis);
-            if all(axis == 3) % Only Z Axis.
-                vel = obj.stageCoarseZ.Vel(axis);
-            elseif all(axis ~= 3) % No Z Axis.
-                vel = obj.stageCoarseXY.Vel(axis);
+            phAxis = GetAxis(obj, phAxis);
+            if all(phAxis == 3) % Only Z Axis.
+                vel = obj.stageCoarseZ.Vel(phAxis);
+            elseif all(phAxis ~= 3) % No Z Axis.
+                vel = obj.stageCoarseXY.Vel(phAxis);
             else % Mixture.
-                if axis(end) ~= 3; obj.sendError('Last axis is not Z, unsupported'); end
-                velZ = obj.stageCoarseZ.Vel(axis(axis==3));
-                velXY = obj.stageCoarseXY.Vel(axis(axis~=3));
+                if phAxis(end) ~= 3; obj.sendError('Last axis is not Z, unsupported'); end
+                velZ = obj.stageCoarseZ.Vel(phAxis(phAxis==3));
+                velXY = obj.stageCoarseXY.Vel(phAxis(phAxis~=3));
                 vel = [velXY, velZ];
             end
         end
         
-        function Move(obj, axis, pos)
+        function Move(obj, phAxis, pos)
             % Absolute change in position (pos) of axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
-            axis = GetAxis(obj, axis);
-            if all(axis == 3) % Only Z Axis.
-                obj.stageCoarseZ.Move(axis, pos);
-            elseif all(axis ~= 3) % No Z Axis.
-                obj.stageCoarseXY.Move(axis, pos);
+            phAxis = GetAxis(obj, phAxis);
+            if all(phAxis == 3) % Only Z Axis.
+                obj.stageCoarseZ.Move(phAxis, pos);
+            elseif all(phAxis ~= 3) % No Z Axis.
+                obj.stageCoarseXY.Move(phAxis, pos);
             else % Mixture.
-                obj.stageCoarseZ.Move(axis(axis==3), pos(axis==3));
-                obj.stageCoarseXY.Move(axis(axis~=3), pos(axis~=3));
+                obj.stageCoarseZ.Move(phAxis(phAxis==3), pos(phAxis==3));
+                obj.stageCoarseXY.Move(phAxis(phAxis~=3), pos(phAxis~=3));
             end
         end
         
-        function RelativeMove(obj, axis, change)
+        function RelativeMove(obj, phAxis, change)
             % Relative change in position (pos) of axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
-            axis = GetAxis(obj, axis);
-            if all(axis == 3) % Only Z Axis.
-                obj.stageCoarseZ.RelativeMove(axis, change);
-            elseif all(axis ~= 3) % No Z Axis.
-                obj.stageCoarseXY.RelativeMove(axis, change);
+            phAxis = GetAxis(obj, phAxis);
+            if all(phAxis == 3) % Only Z Axis.
+                obj.stageCoarseZ.RelativeMove(phAxis, change);
+            elseif all(phAxis ~= 3) % No Z Axis.
+                obj.stageCoarseXY.RelativeMove(phAxis, change);
             else % Mixture.
-                obj.stageCoarseZ.RelativeMove(axis(axis==3), change(axis==3));
-                obj.stageCoarseXY.RelativeMove(axis(axis~=3), change(axis~=3));
+                obj.stageCoarseZ.RelativeMove(phAxis(phAxis==3), change(phAxis==3));
+                obj.stageCoarseXY.RelativeMove(phAxis(phAxis~=3), change(phAxis~=3));
             end
         end
         
@@ -188,18 +188,18 @@ classdef (Sealed) ClassPIM686M501 < ClassStage
             obj.stageCoarseXY.Halt();
         end
         
-        function SetVelocity(obj, axis, vel)
+        function SetVelocity(obj, phAxis, vel)
             % Absolute change in velocity (vel) of axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
-            axis = GetAxis(obj, axis);
-            if all(axis == 3) % Only Z Axis.
-                obj.stageCoarseZ.SetVelocity(axis, vel);
-            elseif all(axis ~= 3) % No Z Axis.
-                obj.stageCoarseXY.SetVelocity(axis, vel);
+            phAxis = GetAxis(obj, phAxis);
+            if all(phAxis == 3) % Only Z Axis.
+                obj.stageCoarseZ.SetVelocity(phAxis, vel);
+            elseif all(phAxis ~= 3) % No Z Axis.
+                obj.stageCoarseXY.SetVelocity(phAxis, vel);
             else % Mixture.
-                obj.stageCoarseZ.SetVelocity(axis(axis==3), vel(axis==3));
-                obj.stageCoarseXY.SetVelocity(axis(axis~=3), vel(axis~=3));
+                obj.stageCoarseZ.SetVelocity(phAxis(phAxis==3), vel(phAxis==3));
+                obj.stageCoarseXY.SetVelocity(phAxis(phAxis~=3), vel(phAxis~=3));
             end
         end
         

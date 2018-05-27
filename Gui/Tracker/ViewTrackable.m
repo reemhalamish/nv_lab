@@ -181,7 +181,7 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
 %     end
 
     methods (Access = protected)
-        function leg = newLegend(obj,axes,labels)
+        function leg = newLegend(obj, gAxes, labels)
             % This function is introduced for the legend workaround
             % It creates legend in given axes with given labels, before any
             % data is given, so that displaying it later will nor reshuffle
@@ -192,7 +192,7 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
             end
             
             warning off MATLAB:legend:IgnoringExtraEntries
-            leg = legend(axes, labels, 'Location', 'northeast');
+            leg = legend(gAxes, labels, 'Location', 'northeast');
             obj.legend1.Visible = 'off';
             warning on MATLAB:legend:IgnoringExtraEntries
         end

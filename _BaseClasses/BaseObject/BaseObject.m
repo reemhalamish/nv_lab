@@ -79,7 +79,7 @@ classdef BaseObject < HiddenMethodsHandle & PropertiesDisplaySorted
                 error('No object named "%s" exists!', objName)
             end
             baseObject = allBaseObjects(objName);
-            assert(length(baseObject) == 1); % found only one object
+            assert(isscalar(baseObject)); % found only one object
         end
         
         function addObject(baseObject)

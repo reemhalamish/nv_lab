@@ -48,17 +48,19 @@ classdef LaserSourceOnefiveKatana05 < LaserPartAbstract & SerialControlled
         end
         
         function disconnect(obj)
-            if strcmp(obj.status, 'closed')
-                obj.open;
-            end
+            obj.open;
             obj.query(obj.COMMAND_POWER_GIVE_CONTROL);
             obj.close;
         end
 
         function delete(obj)
             try
-                obj.disconnect;
+                if strcmp(obj.status, 'closed')
+                    obj.disconnect;
+                end
             catch
+                msg = sprintf('Could not disconnect %s upon deletion!', obj.name);
+                obj.sendWarning(msg)
             end
         end
     end

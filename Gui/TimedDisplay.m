@@ -40,10 +40,11 @@ classdef TimedDisplay < handle
     
     methods
         function hideAfterTime(obj)
+            % Initialize timer
             obj.exitTimersIfNeeded();
-            
-            obj.show;
             obj.mTimer = timer('TimerFcn', @(x,y)obj.hide, 'StartDelay', obj.delayHideTime);
+            % Start
+            obj.show;
             start(obj.mTimer);
         end
         
@@ -86,8 +87,8 @@ classdef TimedDisplay < handle
             end
         end
         
-		% clears the timer (if it exists)
-        function exitTimersIfNeeded(obj)
+		function exitTimersIfNeeded(obj)
+            % Clears the timer (if it exists)
             try
                 if (isobject(obj.mTimer))
                     % if it was running from a previous error
@@ -95,7 +96,9 @@ classdef TimedDisplay < handle
                     delete(obj.mTimer);
                 end
             catch err
-                disp(err)
+                % We don't want an error within error.
+                % 
+                err2warning(err)
             end
         end
     end

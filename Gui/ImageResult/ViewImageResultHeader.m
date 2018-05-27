@@ -40,12 +40,11 @@ classdef ViewImageResultHeader < ViewHBox & EventListener
         % When events happen, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
-            if isfield(event.extraInfo, ImageScanResult.EVENT_IMAGE_UPDATED)
-                obj.updateAxes;
-            end
-            
-            if event.isError && strcmp(event.creator, ImageScanResult.NAME)
-                obj.updateAxes;
+            if strcmp(event.creator, ImageScanResult.NAME)
+                if isfield(event.extraInfo, ImageScanResult.EVENT_IMAGE_UPDATED) || ...
+                        event.isError
+                    obj.updateAxes;
+                end
             end
         end
     end

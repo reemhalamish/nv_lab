@@ -61,7 +61,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         %% Updating Image
         function update(obj, newStruct)
             % This function could be called in two cases:
-            % 1. When new data arrives. We then have structExtra.
+            % 1. When new data arrives. We then have newStruct.
             % 2. When ViewImageResultImage starts, and wants data to plot.
             %    Then, no structExtra will be available, but if there is
             %    available data, we still want to plot it.
@@ -75,22 +75,27 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                 obj.mLabelBot = newStruct.mLabelBot;
                 obj.mLabelLeft = newStruct.mLabelLeft;
                 
-                % In previous version we did not save mStageName and
+                % In a previous version we did not save mStageName and
                 % mAxesString. For compatability, we need:
-                try
+                if isfield(newStruct, 'mStageName')
                     obj.mStageName = newStruct.mStageName;
-                    obj.mAxesString = newStruct.mAxesString;
-                catch
+                    if isfield(newStruct, 'mAxesString')
+                        obj.mAxesString = newStruct.mAxesString;
+                    else
+                        obj.sendWarning('This should not have happenned...')
+                    end
+                else
                     % We are loading an old version, so maybe we can get
                     % missing parameters from current system
-                    
+                    obj.sendWarning(['Save file does not contain stage name.\n', ...
+                        'We keep using the old stage, and hope for the best.'])
                 end
             elseif ~obj.isDataAvailable
                 % No data is available, neither externally nor internally.
                 return
             end
             
-            % We need to calculate this, before sending event (so as to update the header):
+            % We need to calculate this before sending event (so as to update the header):
             if obj.colormapAuto
                 obj.colormapLimits = obj.calcColormapLimits(obj.mData);
             end
@@ -103,11 +108,11 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         function imagePostProcessing(obj)
             %%%% After plotting is done, we can make some slight changes
             
-            % plot style
+            % Plot style
             styleName = lower(obj.PLOT_STYLE_OPTIONS{obj.plotStyle});
             axis(obj.gAxes, styleName)
             
-            % colormap
+            % Colormap
             colormapName = obj.COLORMAP_OPTIONS{obj.colormapType};
             colormap(obj.gAxes, colormapName)
             
@@ -119,7 +124,8 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                 caxis(obj.gAxes, obj.colormapLimits);
             catch % There is a problem with the limits we tried to enforce
                 caxis(obj.gAxes, 'auto');
-                obj.sendWarning('Colorbar limits were problematic, and they were set automatically.');
+                obj.sendWarning(['Assigned colorbar limits were problematic.\n' ...
+                    'Limits were set automatically, instead.']);
             end
             
             % Get current stage position
@@ -134,7 +140,8 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                     obj.cursor = datacursormode(fig);
                     set(obj.cursor,'UpdateFcn',@obj.cursorMarkerDisplay);
                 end
-                obj.drawCrosshairs(axis(obj.gAxes),pos)
+                gLimits = axis(obj.gAxes);   % vector of [x_min x_max y_min y_max]
+                obj.drawCrosshairs(gLimits, pos)
             catch err
                 obj.sendWarning('Unable to set crosshairs');
                 err2warning(err)
@@ -506,8 +513,8 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             try
                 notes = SaveLoad.getInstance(Savable.CATEGORY_IMAGE).mNotes;
                 title(notes); % Set the notes as the figure title
-            catch
-                % There are no available notes, probably
+            catch err
+                EventStation.anonymousWarning(err.message)
             end
         end
         
@@ -545,7 +552,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             filename = [filename '.' ImageScanResult.IMAGE_FILE_SUFFIX];
             fullpath = PathHelper.joinToFullPath(folder, filename);
             
-            % Save jpg image
+            % Save png image
             saveas(figureInvis, fullpath);
             
             % close the figure
@@ -589,8 +596,8 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         function set.mStageName(obj, stageName)
             % The stage might have changed, and we need to start listening to it
             try
-                % We might not need to do anything, since we are using the
-                % same stage.
+                % We might not need to do anything, since we are not using
+                % the same stage.
                 if ~strcmp(stageName, obj.mStageName)
                     % Check that required stage is available
                     getObjByName(stageName);
@@ -619,8 +626,8 @@ classdef ImageScanResult < Savable & EventSender & EventListener
         end
         
         function tf = get.colormapAuto(obj)
-            % the second condition in this 'if' statement is odd, but we
-            % need it, for now. todo: check what's going on here
+            % The second condition in this 'if' statement is needed since
+            % true ~= 1, but we do want it to be accepted.
             if islogical(obj.colormapAuto) || obj.colormapAuto == 1
                 tf = obj.colormapAuto;
             else
@@ -756,8 +763,12 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                     stage = getObjByName(obj.mStageName);
                     physAxes = obj.mAxesString;
                     pos = stage.Pos(physAxes);
-                    obj.drawCrosshairs(axis(obj.gAxes),pos);
-                catch % Probably, there is nothing to draw on. Moving on
+                    gLimits = axis(obj.gAxes);   % vector of [x_min x_max y_min y_max]
+                    obj.drawCrosshairs(gLimits, pos)
+                catch err
+                    % Probably, there is nothing to draw on. Moving on!
+                    % For debugging purposes, we do show this warning.
+                    EventStation.anonymousWarning(err.message)
                 end
             end
         end

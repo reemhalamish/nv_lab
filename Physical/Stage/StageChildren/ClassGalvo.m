@@ -117,7 +117,7 @@ classdef ClassGalvo < ClassStage & NiDaqControlled
             % NiDaqControlled
                 % Names
                 stageNamesCells = cellfun(@(C) {strcat(C, '_x'), strcat(C, '_y')}, ...
-                    ClassGalvo.NEEDED_FIELDS_STAGE ,'UniformOutput', false);
+                    ClassGalvo.NEEDED_FIELDS_STAGE, 'UniformOutput', false);
                 channelNames = [stageNamesCells{:}, ClassGalvo.NEEDED_FIELDS_EXTRA{:}];
                 % Channel IDs
                 channels = [readPositionChannel; writePositionChannel; pulseChannel]';
@@ -432,9 +432,9 @@ function PrepareRescanLine(obj)
         
         
         
-        function task = PrepareVoltageTask(obj, axis)
+        function task = PrepareVoltageTask(obj, phAxis)
             nidaq = getObjByName(NiDaq.NAME);
-            channel = getChannel(obj, 'WritePosition', axis);
+            channel = getChannel(obj, 'WritePosition', phAxis);
             task = nidaq.prepareVoltageOutputTask(channel);
         end
         
@@ -449,7 +449,7 @@ function PrepareRescanLine(obj)
             nidaq.endTask(task);
         end
         
-        function WriteVoltage(obj, axis, voltage, task)
+        function WriteVoltage(obj, phAxis, voltage, task)
             % Setting the voltage.
             % Diffrent channels correspond to diffrent axes.
             nidaq = getObjByName(NiDaq.NAME);
@@ -460,7 +460,7 @@ function PrepareRescanLine(obj)
             
             if task == 0 % either according to prev. condition, or as input parameter
                 tfClose = true;
-                task = PrepareVoltageTask(obj, axis);
+                task = PrepareVoltageTask(obj, phAxis);
                 nidaq.startTask(task);
             else
                 tfClose = false;
@@ -473,11 +473,11 @@ function PrepareRescanLine(obj)
             end
         end
         
-        function voltage = readVoltage(obj, what, axis)
+        function voltage = readVoltage(obj, what, phAxis)
             % Getting the voltage.
             % Diffrent channels for diffrent axes.
-            axis = GetAxis(obj, axis);
-            channel = getChannel(obj, what, axis);
+            phAxis = GetAxis(obj, phAxis);
+            channel = getChannel(obj, what, phAxis);
             
             % Parameters for reading
             numSampsPerChan = obj.ITERATIONS_NUM;
@@ -489,12 +489,12 @@ function PrepareRescanLine(obj)
             
             voltage = mean(voltage);
             % Scaling
-            m = obj.outputVoltageScalingFactor(axis);
-            n = obj.outputVoltageOffset(axis);
+            m = obj.outputVoltageScalingFactor(phAxis);
+            n = obj.outputVoltageOffset(phAxis);
             voltage = (voltage)/m - n ;
         end
         
-        function channel = getChannel(obj, what, axis)
+        function channel = getChannel(obj, what, phAxis)
             % Get relevant Nidaq channel
             if strcmp(what, 'Pulse')
                 channel = obj.pulseChannel;
@@ -502,40 +502,40 @@ function PrepareRescanLine(obj)
                 return
             end
             
-            axis = GetAxis(obj, axis);
-            if ~ismember(axis, [1 2])
-                obj.sendError(sprintf('Only x & y (1 & 2) axes are supported, %d was given', axis));
+            phAxis = GetAxis(obj, phAxis);
+            if ~ismember(phAxis, [1 2])
+                obj.sendError(sprintf('Only x & y (1 & 2) axes are supported, %d was given', phAxis));
             end
             switch what
                 case 'ReadPosition'
-                    channel = obj.readPositionChannel{axis};
+                    channel = obj.readPositionChannel{phAxis};
 %                 case 'ReadInternalCommand'
 %                     channel = obj.readInternalCommandChannel{axis};
 %                 case 'ReadError'
 %                     channel = obj.readErrorChannel{axis};
                 case 'WritePosition'
-                    channel = obj.writePositionChannel(axis);
+                    channel = obj.writePositionChannel(phAxis);
             end
             channel = char(channel);
         end
         
-        function angle = GetAngle(obj, axis)
+        function angle = GetAngle(obj, phAxis)
             % returns the mechanical angle in dergrees.
             % angle range is between -20 to 20 degrees.
-            voltage = readVoltage(obj, 'ReadPosition', axis);
+            voltage = readVoltage(obj, 'ReadPosition', phAxis);
             angle = voltage*obj.voltToAngleScaling;
             
             % This is a workaround, for dummy NiDaq: we read from the write
             % channel, since no physical movement has happenned
             nidaq = getObjByName(NiDaq.NAME);
             if ~nidaq.dummyMode; return; end
-            voltage = readVoltage(obj, 'WritePosition', axis);
+            voltage = readVoltage(obj, 'WritePosition', phAxis);
             magicNum = 0.495; % to make things work
             angle = magicNum *voltage * obj.voltToAngleScaling;
 
         end
         
-        function MoveAngle(obj, axis, angle, task)
+        function MoveAngle(obj, phAxis, angle, task)
             % setting the mechanical angle of a given axis.
             % translating the mechanical angle to input voltage.
             if nargin==3
@@ -543,18 +543,18 @@ function PrepareRescanLine(obj)
             end
             voltage = angle*obj.angleToVoltScaling;
             
-            WriteVoltage(obj, axis, voltage, task)
+            WriteVoltage(obj, phAxis, voltage, task)
         end
         
-        function posInMicrons = GetPositionXY(obj, axis)
+        function posInMicrons = GetPositionXY(obj, phAxis)
             % Returns the position in microns for axes x&y / 1&2
-            angle = GetAngle(obj, axis);
+            angle = GetAngle(obj, phAxis);
             % Translating the mechanical angle to the optical angle after
             % the lenses
             opticAngle = angle * obj.mechanicalAngleToOpticAngle; % The incident angle in the 1st lens
             opticAngleAfterLenses = opticAngle * (obj.lens1/obj.lens2);
             
-            currentaxis = GetAxis(obj, axis);
+            currentaxis = GetAxis(obj, phAxis);
             if (currentaxis==1)
                 opticAngleAfterLenses=opticAngleAfterLenses * obj.xfac;
             elseif (currentaxis==2)
@@ -582,16 +582,16 @@ function PrepareRescanLine(obj)
             % y, 3 for z)
             posInMicrons = zeros(size(axisName));
             for i=1:length(axisName)
-                axis = GetAxis(obj, axisName(i));
-                if axis == 3
+                phAxis = GetAxis(obj, axisName(i));
+                if phAxis == 3
                     posInMicrons(i) = GetPositionZ(obj);
                 else
-                    posInMicrons(i) = GetPositionXY(obj, axis);
+                    posInMicrons(i) = GetPositionXY(obj, phAxis);
                 end
             end
         end
         
-        function MoveXY(obj, axis, posInMicrons, task)
+        function MoveXY(obj, phAxis, posInMicrons, task)
             % Moving the beam to a given position on axes x&y (1&2)
             if nargin==3
                 task = 0;
@@ -604,14 +604,14 @@ function PrepareRescanLine(obj)
             opticAngleBeforeLenses = opticAngleInDegree/(obj.lens1/obj.lens2);
             mechanicalAngle = opticAngleBeforeLenses/obj.mechanicalAngleToOpticAngle;
             
-            currentaxis = GetAxis(obj, axis);
+            currentaxis = GetAxis(obj, phAxis);
             if (currentaxis==1)
                 mechanicalAngle=mechanicalAngle / obj.xfac;
             elseif (currentaxis==2)
                 mechanicalAngle=mechanicalAngle / obj.yfac;
             end
             
-            MoveAngle(obj, axis, mechanicalAngle, task);
+            MoveAngle(obj, phAxis, mechanicalAngle, task);
         end
         
         function MoveZ(obj, posInMicrons)
@@ -625,14 +625,14 @@ function PrepareRescanLine(obj)
                 task = 0;
             end
             for i=1:length(axisName)
-                axis = GetAxis(obj, axisName(i));
-                if axis == 2 % the y axis of the Galvo is opposite than expected
+                phAxis = GetAxis(obj, axisName(i));
+                if phAxis == 2 % the y axis of the Galvo is opposite than expected
                     posInMicrons(i) = -1*posInMicrons(i);
                 end
-                if axis == 3
+                if phAxis == 3
                     MoveZ(obj, posInMicrons(i));
                 else
-                    MoveXY(obj, axis,posInMicrons(i), task);
+                    MoveXY(obj, phAxis, posInMicrons(i), task);
                 end
             end
         end
@@ -645,17 +645,17 @@ function PrepareRescanLine(obj)
             Move(obj, axisName, pos + change);
         end
         
-        function [inputVoltage, outputVoltage, error] = TestVoltage(obj, axis)
+        function [inputVoltage, outputVoltage, error] = TestVoltage(obj, phAxis)
             inputVoltage = -10:0.5:10;
-            axis = GetAxis(obj, axis);
+            phAxis = GetAxis(obj, phAxis);
             a = zeros(1, obj.ITERATIONS_NUM);
             outputVoltage = zeros(size(inputVoltage));
             error = zeros(size(inputVoltage));
             factor = obj.voltToAngleScaling/obj.angleToVoltScaling;
             for i=1:length(inputVoltage)
-                WriteVoltage(obj, axis, inputVoltage(i))
+                WriteVoltage(obj, phAxis, inputVoltage(i))
                 for j=1:N
-                    a(j)= readVoltage(obj, 'ReadPosition', axis);
+                    a(j)= readVoltage(obj, 'ReadPosition', phAxis);
                 end
                 outputVoltage(i) = mean(a)*factor;
                 error(i) = std(a)*factor/sqrt(N);
@@ -723,11 +723,11 @@ function PrepareRescanLine(obj)
             thetaYZ = 0;
         end
         
-        function vel = Vel(obj, axis)
+        function vel = Vel(obj, phAxis)
             % Query and return velocity of axis (x,y,z or 1 for x, 2 for y
             % and 3 for z)
             % Vectorial axis is possible.
-            axisIndex = GetAxisIndex(obj, axis);
+            axisIndex = GetAxisIndex(obj, phAxis);
             vel = obj.curVel(axisIndex);
         end
         
@@ -738,14 +738,14 @@ function PrepareRescanLine(obj)
             binaryButtonState = 0;
         end
         
-        function SetSoftLimits(obj, axis, softLimit, negOrPos)
+        function SetSoftLimits(obj, phAxis, softLimit, negOrPos)
             % Set the new soft limits:
             % if negOrPos = 0 -> then softLimit = lower soft limit
             % if negOrPos = 1 -> then softLimit = higher soft limit
             % This is because each time this function is called only one of
             % the limits updates
-            CheckAxis(obj, axis)
-            axisIndex = GetAxisIndex(obj, axis);
+            CheckAxis(obj, phAxis)
+            axisIndex = GetAxisIndex(obj, phAxis);
             if ((softLimit >= obj.negRangeLimit(axisIndex)) && (softLimit <= obj.posRangeLimit(axisIndex)))
                 if negOrPos == 0
                     obj.negSoftRangeLimit(axisIndex) = softLimit;
@@ -769,7 +769,7 @@ function PrepareRescanLine(obj)
             obj.errorZAxisUnavailable;
         end
         
-        function SetVelocity(obj, axis, vel)
+        function SetVelocity(obj, phAxis, vel)
             % Absolute change in velocity (vel) of axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.

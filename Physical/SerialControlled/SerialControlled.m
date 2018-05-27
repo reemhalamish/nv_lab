@@ -46,7 +46,8 @@ classdef SerialControlled < matlab.mixin.SetGet
                 fopen(obj.s);
             catch error
                 if strcmp(error.identifier, 'MATLAB:serial:fopen:opfailed')
-                    % If the device is open by MATLAB, we can still make it
+                    % If the device was opened by MATLAB, we can probably
+                    % close it, and open a new connection
                     fclose(instrfind('Port', obj.port));
                     fopen(obj.s);
                 else

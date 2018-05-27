@@ -143,7 +143,7 @@ classdef ClassPIMicos < ClassStage
                             commandVariables=sprintf(', %s',tempVarargin{:});
                         end
                     end
-                    fprintf('Catched error while executing command %s(%d%s) - ', command, controllerID, commandVariables);
+                    fprintf('Caught error while executing command %s(%d%s) - ', command, controllerID, commandVariables);
                     switch error.identifier
                         case 'PIMicos:Interface7' % Interface timeout
                             fprintf('Interface error -7: Timeout error.\n');
@@ -206,7 +206,7 @@ classdef ClassPIMicos < ClassStage
                         fprintf('Error was unresolved after %d tries\n',tries);
                         obj.sendError(error)
                     end
-                    triesString = BooleanHelper.ifTrueElse(tries == 1,'time','times');
+                    triesString = BooleanHelper.ifTrueElse(tries == 1, 'time', 'times');
                     fprintf('Tried %d %s, Trying again...\n', tries, triesString);
                     pause(1);
                 end
@@ -268,7 +268,7 @@ classdef ClassPIMicos < ClassStage
                     [errorMessageRetrieved, errorMessage] = SendPICommandWithoutReturnCode(obj, 'PI_TranslateError', errorNumber, blanks(buffer), buffer);
                 end
                 
-                device = BooleanHelper.ifTrueElse(errorNumber > 0,'Controller','Interface');
+                device = BooleanHelper.ifTrueElse(errorNumber > 0,'Controller', 'Interface');
                 errorIdent = sprintf('PIMicos:%s%d', device, abs(errorNumber));
                 error(errorIdent, 'The following error was received while attempting to communicate with controller %d:\n%s Error %d - %s\n',...
                     axisID, device, errorNumber, errorMessage);
@@ -334,55 +334,55 @@ classdef ClassPIMicos < ClassStage
             end
         end
         
-        function axisIndex = GetAxisIndex(obj, axis)
+        function axisIndex = GetAxisIndex(obj, phAxis)
             % Converts x,y,z into the corresponding index for this
             % controller; if stage only has 'z' then z is 1.
-            axis = GetAxis(obj, axis);
-            CheckAxis(obj, axis)
-            axisIndex = zeros(size(axis));
-            for i=1:length(axis)
-                axisIndex(i) = strfind(obj.validAxes, obj.axesName(axis(i)));
+            phAxis = GetAxis(obj, phAxis);
+            CheckAxis(obj, phAxis)
+            axisIndex = zeros(size(phAxis));
+            for i=1:length(phAxis)
+                axisIndex(i) = strfind(obj.validAxes, obj.axesName(phAxis(i)));
                 if isempty(axisIndex(i))
                     obj.sendError('Invalid axis')
                 end
             end
         end
         
-        function [szAxes, zerosVector] = ConvertAxis(obj, axis)
+        function [szAxes, zerosVector] = ConvertAxis(obj, phAxis)
             % Returns the corresponding szAxes string needed to
             % communicate with PI controllers that are connected to
             % multiple axes. Also returns a vector containging zeros with
             % the length of the axes.
-            % 'axis' can be either a specific axis (x,y,z or 1 for x, 2 for y
-            % and 3 for z) or any vectorial combination of them.
-            axis = GetAxis(obj, axis);
-            szAxes = num2str(axis);
-            zerosVector = zeros(1, length(axis));
+            % 'phAxis' can be either a specific axis (x,y,z or 1 for x,
+            % 2 for y, and 3 for z) or any vectorial combination of them.
+            phAxis = GetAxis(obj, phAxis);
+            szAxes = num2str(phAxis);
+            zerosVector = zeros(1, length(phAxis));
         end
         
-        function CheckAxis(obj, axis)
+        function CheckAxis(obj, phAxis)
             % Checks that the given axis matches the connected stage.
-            % 'axis' can be either a specific axis (x,y,z or 1 for x, 2 for y
-            % and 3 for z) or any vectorial combination of them.
-            axis = GetAxis(obj, axis);
-            if ~isempty(setdiff(axis, GetAxis(obj, obj.validAxes)))
-                if length(axis) > 1
+            % 'phAxis' can be either a specific axis (x,y,z or 1 for x,
+            % 2 for y, and 3 for z) or any vectorial combination of them.
+            phAxis = GetAxis(obj, phAxis);
+            if ~isempty(setdiff(phAxis, GetAxis(obj, obj.validAxes)))
+                if length(phAxis) > 1
                     string = 'axis is';
                 else
                     string = 'axes are';
                 end
-                obj.sendError(sprintf('%s %s invalid for the %s controller.', upper(obj.axesName(axis)), string, obj.controllerModel));
+                obj.sendError(sprintf('%s %s invalid for the %s controller.', upper(obj.axesName(phAxis)), string, obj.controllerModel));
             end
         end
         
-        function CheckRefernce(obj, axis)
-            % Checks whether the given axis is referenced, and if not, asks
-            % for confirmation to refernce it.
-            axis = GetAxis(obj, axis);
-            refernced = IsRefernced(obj, axis);
+        function CheckRefernce(obj, phAxis)
+            % Checks whether the given (physical) axis is referenced, 
+            % and if not, asks for confirmation to refernce it.
+            phAxis = GetAxis(obj, phAxis);
+            refernced = IsRefernced(obj, phAxis);
             if ~all(refernced)
-                unreferncedAxesNames = obj.axesName(axis(refernced==0));
-                if length(unreferncedAxesNames) == 1
+                unreferncedAxesNames = obj.axesName(phAxis(refernced==0));
+                if isscalar(unreferncedAxesNames)
                     questionStringPart1 = sprintf('WARNING!\n%s axis is unreferenced.\n', unreferncedAxesNames);
                 else
                     questionStringPart1 = sprintf('WARNING!\n%s axes are unreferenced.\n', unreferncedAxesNames);
@@ -395,7 +395,7 @@ classdef ClassPIMicos < ClassStage
                 confirm = questdlg(questionString, 'Referencing Confirmation', referenceString, referenceCancelString, referenceCancelString);
                 switch confirm
                     case referenceString
-                        Refernce(obj, axis)
+                        Refernce(obj, phAxis)
                     case referenceCancelString
                         obj.sendError(sprintf('Referencing canceled for controller %s: %s', ...
                             obj.controllerModel, unreferncedAxesNames));
@@ -406,21 +406,21 @@ classdef ClassPIMicos < ClassStage
             end
         end
         
-        function refernced = IsRefernced(obj, axis)
+        function refernced = IsRefernced(obj, phAxis)
             % Check reference status for the given axis.
-            % 'axis' can be either a specific axis (x,y,z or 1 for x, 2 for y
+            % 'phAxis' can be either a specific axis (x,y,z or 1 for x, 2 for y
             % and 3 for z) or any vectorial combination of them.
-            CheckAxis(obj, axis)
-            [szAxes, zerosVector] = ConvertAxis(obj, axis);
+            CheckAxis(obj, phAxis)
+            [szAxes, zerosVector] = ConvertAxis(obj, phAxis);
             [~, refernced] = SendPICommand(obj, 'PI_qFRF', obj.ID, szAxes, zerosVector);
         end
         
-        function Refernce(obj, axis)
+        function Refernce(obj, phAxis)
             % Reference the given axis.
-            % 'axis' can be either a specific axis (x,y,z or 1 for x, 2 for y
+            % 'phAxis' can be either a specific axis (x,y,z or 1 for x, 2 for y
             % and 3 for z) or any vectorial combination of them.
-            CheckAxis(obj, axis)
-            [szAxes, zerosVector] = ConvertAxis(obj, axis);
+            CheckAxis(obj, phAxis)
+            [szAxes, zerosVector] = ConvertAxis(obj, phAxis);
             SendPICommand(obj, 'PI_FRF', obj.ID, szAxes);
             
             % Check if ready & if referenced succeeded
@@ -519,7 +519,7 @@ classdef ClassPIMicos < ClassStage
         function QueryPos(obj)
             % Queries the position and updates the internal variable.
             szAxes = ConvertAxis(obj, obj.validAxes);
-            [~,obj.curPos] = SendPICommand(obj,'PI_qPOS', obj.ID, szAxes, obj.curPos);
+            [~,obj.curPos] = SendPICommand(obj, 'PI_qPOS', obj.ID, szAxes, obj.curPos);
         end
         
         function QueryVel(obj)
@@ -528,19 +528,20 @@ classdef ClassPIMicos < ClassStage
             [~,obj.curVel] = SendPICommand(obj, 'PI_qVEL', obj.ID, szAxes, obj.curVel);
         end
         
-        function WaitFor(obj, what, axis)
+        function WaitFor(obj, what, phAxis)
             % Waits until a specific action, defined by what, is finished.
-            % 'axis' can be either a specific axis (x,y,z or 1 for x, 2 for y
-            % and 3 for z) or any vectorial combination of them.
-            % Current options for what:
+            % 'phAxis' can be either a specific (physical) axis (x,y,z or 
+            % 1 for x, 2 for y and 3 for z), or any vectorial combination
+            % of them.
+            % Current options for 'what':
             % MovementDone - Waits until movement is done.
             % onTarget - Waits until the stage reaches it's target.
             % ControllerReady - Waits until the controller is ready (Not
             % need for axis)
             % WaveGeneratorDone - Waits unti the wave generator is done.
             if nargin == 3
-                CheckAxis(obj, axis);
-                [szAxes, zeroVector] = ConvertAxis(obj, axis);
+                CheckAxis(obj, phAxis);
+                [szAxes, zeroVector] = ConvertAxis(obj, phAxis);
             end
             timer = tic;
             timeout = 30; % 30 second timeout
@@ -548,7 +549,7 @@ classdef ClassPIMicos < ClassStage
             while wait
                 drawnow % Needed in order to get input from GUI
                 if obj.forceStop % Checks if the user pressed the Halt Button
-                    HaltPrivate(obj);
+                    HaltPrivate(obj, phAxis);
                     break;
                 end
                 
@@ -607,69 +608,69 @@ classdef ClassPIMicos < ClassStage
             obj.sendWarning(sprintf('Scan not implemented for the %s controller.\n', obj.controllerModel));
         end
         
-        function MovePrivate(obj, axis, pos)
+        function MovePrivate(obj, phAxis, pos)
             % Absolute change in position (pos) of axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
             % Does not check if scan is running.
             % Does not move if HaltStage was triggered.
             % This function is the one used by all internal functions.
-            CheckAxis(obj, axis)
+            CheckAxis(obj, phAxis)
             
             if obj.forceStop % Doesn't move if forceStop is enabled
                 return
             end
             
             if obj.tiltCorrectionEnable
-                [axis, pos] = TiltCorrection(axis, pos);
+                [phAxis, pos] = TiltCorrection(phAxis, pos);
             end
             
-            if ~PointIsInRange(obj, axis, pos) % Check that point is in limits
+            if ~PointIsInRange(obj, phAxis, pos) % Check that point is in limits
                 obj.sendError('Move Command is outside the soft limits');
             end
             
-            CheckRefernce(obj, axis)
+            CheckRefernce(obj, phAxis)
             
-            szAxes = ConvertAxis(obj, axis);
+            szAxes = ConvertAxis(obj, phAxis);
             
             % Send the move command
             SendPICommand(obj, 'PI_MOV', obj.ID, szAxes, pos);
             
             % Wait for move command to finish
-            WaitFor(obj, 'onTarget', axis)
+            WaitFor(obj, 'onTarget', phAxis)
         end
 
-        function HaltPrivate(obj)
+        function HaltPrivate(obj, phAxis)
             % Halts the stage.
-            szAxes = ConvertAxis(obj, axis);
+            szAxes = ConvertAxis(obj, phAxis);
             SendPICommand(obj, 'PI_HLT', obj.ID, szAxes);
             AbortScan(obj)
             obj.sendWarning('Stage Halted!');
         end
         
-        function SetVelocityPrivate(obj, axis, vel)
+        function SetVelocityPrivate(obj, phAxis, vel)
             % Absolute change in velocity (vel) of axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Does not check if scan is running.
             % Vectorial axis is possible.
-            CheckAxis(obj, axis)
-            szAxes = ConvertAxis(obj, axis);
+            CheckAxis(obj, phAxis)
+            szAxes = ConvertAxis(obj, phAxis);
             SendPICommand(obj, 'PI_VEL', obj.ID, szAxes, vel);
         end
         
-        function [axis, pos] = TiltCorrection(obj, axis, pos)
+        function [phAxis, pos] = TiltCorrection(obj, phAxis, pos)
             % Corrects the movement axis & pos vectors according to the 
             % tilt angles: If x and/or y axes are given, then z also moves
             % according the tilt angles.
             % However, if also or only z axis is given, then no changes
             % occurs.
             % Assumes the stage has all three xyz axes.
-            axis = GetAxis(obj, axis);
-            if ~contains(obj.axesName(axis), 'z') % Only do something if there is no z axis
+            phAxis = GetAxis(obj, phAxis);
+            if ~contains(obj.axesName(phAxis), 'z') % Only do something if there is no z axis
                 QueryPos(obj);
                 pos = [pos, obj.curPos(3)]; % Adds the z position command, start by writing the current position (as the base)
-                for i=1:length(axis)
-                    switch obj.axesName(axis)
+                for i=1:length(phAxis)
+                    switch obj.axesName(phAxis)
                         case 'x'
                             dx = pos(i) - obj.curPos(1);
                             pos(end) = pos(end) + dx*tan(obj.tiltThetaXZ*pi/180); % Adds movements according to the angles
@@ -678,7 +679,7 @@ classdef ClassPIMicos < ClassStage
                             pos(end) = pos(end) + dy*tan(obj.tiltThetaYZ*pi/180); % Adds movements according to the angles
                     end
                 end
-                axis = [axis, 3]; % Add Z axis at the end
+                phAxis = [phAxis, 3]; % Add Z axis at the end
             end
         end
     end
@@ -721,43 +722,43 @@ classdef ClassPIMicos < ClassStage
             Initialization(obj);
         end
         
-        function ok = PointIsInRange(obj, axis, point)
+        function ok = PointIsInRange(obj, phAxis, point)
             % Checks if the given point is within the soft (and hard)
             % limits of the given axis (x,y,z or 1 for x, 2 for y and 3 for z).
             % Vectorial axis is possible.
-            CheckAxis(obj, axis)
-            axisIndex = GetAxisIndex(obj, axis);
+            CheckAxis(obj, phAxis)
+            axisIndex = GetAxisIndex(obj, phAxis);
             ok = all((point >= obj.negSoftRangeLimit(axisIndex)) & (point <= obj.posSoftRangeLimit(axisIndex)));
         end
         
-        function [negSoftLimit, posSoftLimit] = ReturnLimits(obj, axis)
+        function [negSoftLimit, posSoftLimit] = ReturnLimits(obj, phAxis)
             % Return the soft limits of the given axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
-            CheckAxis(obj, axis)
-            axisIndex = GetAxisIndex(obj, axis);
+            CheckAxis(obj, phAxis)
+            axisIndex = GetAxisIndex(obj, phAxis);
             negSoftLimit = obj.negSoftRangeLimit(axisIndex);
             posSoftLimit = obj.posSoftRangeLimit(axisIndex);
         end
         
-        function [negHardLimit, posHardLimit] = ReturnHardLimits(obj, axis)
+        function [negHardLimit, posHardLimit] = ReturnHardLimits(obj, phAxis)
             % Return the hard limits of the given axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
-            CheckAxis(obj, axis)
-            axisIndex = GetAxisIndex(obj, axis);
+            CheckAxis(obj, phAxis)
+            axisIndex = GetAxisIndex(obj, phAxis);
             negHardLimit = obj.negRangeLimit(axisIndex);
             posHardLimit = obj.posRangeLimit(axisIndex);
         end
         
-        function SetSoftLimits(obj, axis, softLimit, negOrPos)
+        function SetSoftLimits(obj, phAxis, softLimit, negOrPos)
             % Set the new soft limits:
             % if negOrPos = 0 -> then softLimit = lower soft limit
             % if negOrPos = 1 -> then softLimit = higher soft limit
             % This is because each time this function is called only one of
             % the limits updates
-            CheckAxis(obj, axis)
-            axisIndex = GetAxisIndex(obj, axis);
+            CheckAxis(obj, phAxis)
+            axisIndex = GetAxisIndex(obj, phAxis);
             if ((softLimit >= obj.negRangeLimit(axisIndex)) && (softLimit <= obj.posRangeLimit(axisIndex)))
                 if negOrPos == 0
                     obj.negSoftRangeLimit(axisIndex) = softLimit;
@@ -770,27 +771,27 @@ classdef ClassPIMicos < ClassStage
             end
         end
         
-        function pos = Pos(obj, axis)
+        function pos = Pos(obj, phAxis)
             % Query and return position of axis (x,y,z or 1 for x, 2 for y
             % and 3 for z)
             % Vectorial axis is possible.
-            CheckAxis(obj, axis)
+            CheckAxis(obj, phAxis)
             QueryPos(obj);
-            axisIndex = GetAxisIndex(obj, axis);
+            axisIndex = GetAxisIndex(obj, phAxis);
             pos = obj.curPos(axisIndex);
         end
         
-        function vel = Vel(obj, axis)
+        function vel = Vel(obj, phAxis)
             % Query and return velocity of axis (x,y,z or 1 for x, 2 for y
             % and 3 for z)
             % Vectorial axis is possible.
-            CheckAxis(obj, axis)
+            CheckAxis(obj, phAxis)
             QueryVel(obj);
-            axisIndex = GetAxisIndex(obj, axis);
+            axisIndex = GetAxisIndex(obj, phAxis);
             vel = obj.curVel(axisIndex);
         end
         
-        function Move(obj, axis, pos)
+        function Move(obj, phAxis, pos)
             % Absolute change in position (pos) of axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
@@ -818,10 +819,10 @@ classdef ClassPIMicos < ClassStage
                 end
             end
             
-            MovePrivate(obj, axis, pos);
+            MovePrivate(obj, phAxis, pos);
         end
         
-        function RelativeMove(obj, axis, change)
+        function RelativeMove(obj, phAxis, change)
             % Relative change in position (pos) of axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
@@ -829,10 +830,10 @@ classdef ClassPIMicos < ClassStage
                 obj.sendWarning(obj.WARNING_PREVIOUS_SCAN_CANCELLED);
                 AbortScan(obj);
             end
-            CheckAxis(obj, axis)
+            CheckAxis(obj, phAxis)
             QueryPos(obj);
-            axisIndex = GetAxisIndex(obj, axis);
-            Move(obj, axis, obj.curPos(axisIndex) + change);
+            axisIndex = GetAxisIndex(obj, phAxis);
+            Move(obj, phAxis, obj.curPos(axisIndex) + change);
         end
         
         function Halt(obj)
@@ -852,7 +853,7 @@ classdef ClassPIMicos < ClassStage
             obj.forceStop = 1;
         end
         
-        function SetVelocity(obj, axis, vel)
+        function SetVelocity(obj, phAxis, vel)
             % Absolute change in velocity (vel) of axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
@@ -860,8 +861,8 @@ classdef ClassPIMicos < ClassStage
                 obj.sendWarning('2D Scan is in progress, previous scan canceled');
                 AbortScan(obj);
             end
-            CheckAxis(obj, axis)
-            SetVelocityPrivate(obj, axis, vel);
+            CheckAxis(obj, phAxis)
+            SetVelocityPrivate(obj, phAxis, vel);
         end
         
         function ScanX(obj, x, y, z, nFlat, nOverRun, tPixel)
@@ -1131,7 +1132,7 @@ classdef ClassPIMicos < ClassStage
         function success = EnableTiltCorrection(obj, enable)
             % Enables the tilt correction according to the angles.
             if ~strcmp(obj.validAxes, obj.axesName)
-                string = BooleanHelper.ifTrueElse(length(obj.validAxes) == 1, 'axis', 'axes');
+                string = BooleanHelper.ifTrueElse(isscalar(obj.validAxes), 'axis', 'axes');
                 obj.sendWarning(sprintf('Controller %s has only %s %s, and can''t do tilt correction.', ...
                     obj.controllerModel, obj.validAxes, string));
                 success = 0;

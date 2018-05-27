@@ -119,9 +119,8 @@ classdef (Abstract) LaserPartAbstract < EventSender
             % we want to assert that newValueBool is logical, however
             % islogical would not work, since 0 and 1 are not logical,
             % yet they equal false and true.
-            logicalValues = [true, false];
-            assert(ismember(newValueLogical, logicalValues), ...
-                'Value must be either true or false! Nothing happenned.')
+            tf = ValidationHelper.isTrueOrFalse(newValueLogical);
+            assert(tf, 'Value must be either true or false! Nothing happenned.')
             obj.setEnabledRealWorld(newValueLogical);
             obj.sendEvent(struct('isEnabled', newValueLogical));
         end

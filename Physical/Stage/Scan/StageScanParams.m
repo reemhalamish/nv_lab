@@ -70,7 +70,7 @@ classdef StageScanParams < handle
             for i = 1 : length(objects_to_check_boolean)
                 funcParamName = objects_to_check_boolean{i};
                 funcParamValue = eval(funcParamName);
-                if funcParamValue ~= 0 && funcParamValue ~= 1
+                if ~ValidationHelper.isTrueOrFalse(funcParamValue)
                     EventStation.anonymousError('"%s" should be logical!', funcParamName);
                 end
             end
@@ -93,30 +93,30 @@ classdef StageScanParams < handle
             outStruct = jsondecode(jsonencode(obj));
         end
         
-        function wasChanged = updateByLimit(obj, axis, newLimNeg, newLimPos)
-            % axis - the axis to change
+        function wasChanged = updateByLimit(obj, phAxis, newLimNeg, newLimPos)
+            % phAxis - the axis to change
             % newLimNeg, newLimPos - the new limits to consider
             % supports vectorial axis!
             % NO INPUT CHECKS!
-            axis = ClassStage.getAxis(axis);
+            phAxis = ClassStage.getAxis(phAxis);
             oldFrom = obj.from;
             oldTo = obj.to;
             oldFixedPos = obj.fixedPos;
             
-            from_ = obj.from(axis);
+            from_ = obj.from(phAxis);
             from_(from_ > newLimPos) = newLimPos(from_ > newLimPos);
             from_(from_ < newLimNeg) = newLimNeg(from_ < newLimNeg);
-            obj.from(axis) = from_;
+            obj.from(phAxis) = from_;
             
-            to_ = obj.to(axis);            
+            to_ = obj.to(phAxis);            
             to_(to_ > newLimPos) = newLimPos(to_ > newLimPos);
             to_(to_ < newLimNeg) = newLimNeg(to_ < newLimNeg);
-            obj.to(axis) = to_;
+            obj.to(phAxis) = to_;
             
-            fixedPos_ = obj.fixedPos(axis);
+            fixedPos_ = obj.fixedPos(phAxis);
             fixedPos_(fixedPos_ > newLimPos) = newLimPos(fixedPos_ > newLimPos);
             fixedPos_(fixedPos_ < newLimNeg) = newLimNeg(fixedPos_ < newLimNeg);
-            obj.fixedPos(axis) = fixedPos_;
+            obj.fixedPos(phAxis) = fixedPos_;
             
             sameAsBefore = all(oldFrom == obj.from) ...
                 && all(oldTo == obj.to) ...
@@ -136,8 +136,8 @@ classdef StageScanParams < handle
             string = '';
             for i = 1 : ClassStage.SCAN_AXES_SIZE
                 if ~obj.isFixed(i)
-                    axis = ClassStage.SCAN_AXES(i);
-                    string = [string axis]; %#ok<AGROW>
+                    phAxis = ClassStage.SCAN_AXES(i);
+                    string = [string phAxis]; %#ok<AGROW>
                 end
             end
         end
@@ -147,8 +147,8 @@ classdef StageScanParams < handle
             string = '';
             for i = 1 : ClassStage.SCAN_AXES_SIZE
                 if obj.isFixed(i)
-                    axis = ClassStage.SCAN_AXES(i);
-                    string = [string axis]; %#ok<AGROW>
+                    phAxis = ClassStage.SCAN_AXES(i);
+                    string = [string phAxis]; %#ok<AGROW>
                 end
             end
         end
@@ -180,13 +180,13 @@ classdef StageScanParams < handle
             index = -1;  % if not found
         end
 
-        function axis = getFirstScanAxisVector(obj)
+        function phAxis = getFirstScanAxisVector(obj)
             obj.sendWarningIfNotScannable();
-            axis = obj.getScanAxisVector(obj.getFirstScanAxisIndex);
+            phAxis = obj.getScanAxisVector(obj.getFirstScanAxisIndex);
         end
         
-        function axis = getSecondScanAxisVector(obj)
-            axis = obj.getScanAxisVector(obj.getSecondScanAxisIndex);
+        function phAxis = getSecondScanAxisVector(obj)
+            phAxis = obj.getScanAxisVector(obj.getSecondScanAxisIndex);
         end
         
         function axisVector = getScanAxisVector(obj, axisIndex)

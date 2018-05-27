@@ -83,27 +83,27 @@ classdef (Sealed) ClassDummyStage  < ClassStage
         
         
         
-        function SetSoftLimits(obj, axis, softLimit, negOrPos)
+        function SetSoftLimits(obj, phAxis, softLimit, negOrPos)
             % Set the new soft limits:
             % if negOrPos = 0 -> then softLimit = lower soft limit
             % if negOrPos = 1 -> then softLimit = higher soft limit
             % This is because each time this function is called only one of
             % the limits updates
-            axis = obj.GetAxis(axis);
+            phAxis = obj.GetAxis(phAxis);
             if negOrPos == 0
-                obj.negSoftRangeLimit(axis) = softLimit;
+                obj.negSoftRangeLimit(phAxis) = softLimit;
             else
-                obj.posSoftRangeLimit(axis) = softLimit;
+                obj.posSoftRangeLimit(phAxis) = softLimit;
             end
         end
         
         
-        function SetVelocity(obj, axis, vel)
+        function SetVelocity(obj, phAxis, vel)
             % Absolute change in velocity (vel) of axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
-            axis = obj.GetAxis(axis);
-            obj.curVel(axis) = vel;
+            phAxis = obj.GetAxis(phAxis);
+            obj.curVel(phAxis) = vel;
         end
         
         function maxScanSize = ReturnMaxScanSize(obj, nDimensions)
@@ -117,31 +117,31 @@ classdef (Sealed) ClassDummyStage  < ClassStage
         function CloseConnection(obj)
         end
         
-        function Move(obj, axis, pos)
+        function Move(obj, phAxis, pos)
             % Absolute change in position (pos) of axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
-            axis = obj.GetAxis(axis);
+            phAxis = obj.GetAxis(phAxis);
             
-            if ~PointIsInRange(obj, axis, pos) % Check that point is in limits
+            if ~PointIsInRange(obj, phAxis, pos) % Check that point is in limits
                 obj.sendError('Move Command is outside the soft limits');
             end
             
-            obj.curPos(axis) = pos;
+            obj.curPos(phAxis) = pos;
         end
         
-        function RelativeMove(obj, axis, change)
+        function RelativeMove(obj, phAxis, change)
             % Relative change in position (pos) of axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
             
             % Check limits
-            axis = obj.GetAxis(axis);
-            [limNeg, limPos] = obj.ReturnLimits(axis);
-            newPos = obj.curPos(axis) + change;
+            phAxis = obj.GetAxis(phAxis);
+            [limNeg, limPos] = obj.ReturnLimits(phAxis);
+            newPos = obj.curPos(phAxis) + change;
             % Either move, or produce error
             if trinary(newPos, [limNeg limPos]) == 1    % i.e., value is within limits
-                obj.curPos(axis) = obj.curPos(axis) + change;
+                obj.curPos(phAxis) = obj.curPos(phAxis) + change;
             else
                 EventStation.anonymousWarning('Position must be between %d and %d! Stage will not move!', limNeg, limPos)
             end
@@ -512,46 +512,46 @@ classdef (Sealed) ClassDummyStage  < ClassStage
     end
     
     methods (Access = public)
-        function ok = PointIsInRange(obj, axis, point)
+        function ok = PointIsInRange(obj, phAxis, point)
             % Checks if the given point is within the soft (and hard)
             % limits of the given axis (x,y,z or 1 for x, 2 for y and 3 for z).
             % Vectorial axis is possible.
-            axis = obj.GetAxis(axis);
-            ok = ((point >= obj.negSoftRangeLimit(axis)) & (point <= obj.posSoftRangeLimit(axis)));
+            phAxis = obj.GetAxis(phAxis);
+            ok = ((point >= obj.negSoftRangeLimit(phAxis)) & (point <= obj.posSoftRangeLimit(phAxis)));
         end
         
-        function [negSoftLimit, posSoftLimit] = ReturnLimits(obj, axis)
+        function [negSoftLimit, posSoftLimit] = ReturnLimits(obj, phAxis)
             % Return the soft limits of the given axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
-            axis = obj.GetAxis(axis);
-            negSoftLimit = obj.negSoftRangeLimit(axis);
-            posSoftLimit = obj.posSoftRangeLimit(axis);
+            phAxis = obj.GetAxis(phAxis);
+            negSoftLimit = obj.negSoftRangeLimit(phAxis);
+            posSoftLimit = obj.posSoftRangeLimit(phAxis);
         end
         
-        function [negHardLimit, posHardLimit] = ReturnHardLimits(obj, axis)
+        function [negHardLimit, posHardLimit] = ReturnHardLimits(obj, phAxis)
             % Return the hard limits of the given axis (x,y,z or 1 for x,
             % 2 for y and 3 for z).
             % Vectorial axis is possible.
-            axis = obj.GetAxis(axis);
-            negHardLimit = obj.negRangeLimit(axis);
-            posHardLimit = obj.posRangeLimit(axis);
+            phAxis = obj.GetAxis(phAxis);
+            negHardLimit = obj.negRangeLimit(phAxis);
+            posHardLimit = obj.posRangeLimit(phAxis);
         end
         
-        function pos = Pos(obj, axis)
+        function pos = Pos(obj, phAxis)
             % Query and return position of axis (x,y,z or 1 for x, 2 for y
             % and 3 for z)
             % Vectorial axis is possible.
-            axis = obj.GetAxis(axis);
-            pos = obj.curPos(axis);
+            phAxis = obj.GetAxis(phAxis);
+            pos = obj.curPos(phAxis);
         end
         
-        function vel = Vel(obj, axis)
+        function vel = Vel(obj, phAxis)
             % Query and return velocity of axis (x,y,z or 1 for x, 2 for y
             % and 3 for z)
             % Vectorial axis is possible.
-            axis = obj.GetAxis(axis);
-            vel = obj.curVel(axis);
+            phAxis = obj.GetAxis(phAxis);
+            vel = obj.curVel(phAxis);
         end
         
         function binaryButtonState = ReturnJoystickButtonState(obj)

@@ -64,7 +64,7 @@ classdef ExpParameter < HiddenMethodsHandle & PropertiesDisplaySorted
                 case obj.TYPE_LOGICAL
                     isOk = ValidationHelper.isTrueOrFalse(newValue);
                 case obj.TYPE_DOUBLE
-                    isOk = isnumeric(newValue) && length(newValue) == 1;
+                    isOk = isnumeric(newValue) && isscalar(newValue);
                 case obj.TYPE_VECTOR_OF_DOUBLES
                     isOk = isnumeric(newValue);
             end

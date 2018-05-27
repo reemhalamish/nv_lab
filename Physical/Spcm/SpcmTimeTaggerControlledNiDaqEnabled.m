@@ -78,8 +78,25 @@ classdef SpcmTimeTaggerControlledNiDaqEnabled < Spcm & NiDaqControlled
         function [kcps, stdev] = readFromTime(obj)
             % Reads from the SPCM for the integration time and returns a
             % single point which is the kcps and also the standard error.
+
+%             % Actual reading from device
 %             niDaq = getObjByName(NiDaq.NAME);
-%             countsSPCM = double(niDaq.ReadDAQCounter(obj.counterTimeTask, obj.nTimeCounts, obj.counterIntegrationTime));
+%             try
+%                 countsSPCM = double(niDaq.ReadDAQCounter(obj.counterTimeTask, obj.nTimeCounts, obj.counterIntegrationTime));
+%             catch err
+%                 msg = err.message;
+%                 expression = '-200279'; % "The application is not able to keep up with the hardware acquisition."
+%                 if contains(msg, expression)
+%                     % There was NiDaq reset, we can now safely resume
+%                     err2warning(err);
+%                     countsSPCM = double(niDaq.ReadDAQCounter(obj.counterTimeTask, obj.nTimeCounts, obj.counterIntegrationTime));
+%                     % ^ This *should* work. If it doesn't, there might be a
+%                     % bigger problem, and we want to let the user know
+%                     % about it.
+%                 end
+%             end
+%             
+%             % Data processing
 %             countsSPCM = diff(countsSPCM);
 %             countsSPCM(countsSPCM<0) = countsSPCM(countsSPCM<0)+2^32; % If an overflow occured then the point would be negative, and we need to add 2^32.
 %             kiloCounts = countsSPCM/1000;

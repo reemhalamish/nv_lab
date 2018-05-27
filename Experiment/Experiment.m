@@ -34,7 +34,7 @@ classdef Experiment < EventSender & EventListener & Savable
         function obj = Experiment(expName)
             obj@EventSender(Experiment.NAME);
             obj@Savable(Experiment.NAME);
-            obj@EventListener(Tracker.NAME);
+            obj@EventListener({Tracker.NAME, StageScanner.NAME});
             obj.expName = expName;
             
             obj.mCurrentXAxisParam = ExpParameter('X axis', ExpParameter.TYPE_VECTOR_OF_DOUBLES, [], obj.NAME);
@@ -80,14 +80,32 @@ classdef Experiment < EventSender & EventListener & Savable
         end
     end
     
+    %%
+    methods
+        function run(obj) %#ok<*MANU>
+        end
+        
+        function pause(obj)
+        end
+        
+        function stop(obj)
+            sendEventStopped(obj);
+        end
+        
+        function sendEventStopped(obj); obj.sendEvent(struct(obj.EVENT_EXP_PAUSED,true));end
+    end
+    
     
     %% overridden from EventListener
     methods
         % When events happen, this function jumps.
         % Event is the event sent from the EventSender
-        function onEvent(obj, event) %#ok<INUSL>
-            if isfield(event.extraInfo, Tracker.EVENT_TRACKER_ENDED)
+        function onEvent(obj, event)
+            if isfield(event.extraInfo, Tracker.EVENT_TRACKER_FINISHED)
                 % todo - stuff
+            elseif isfield(event.extraInfo, StageScanner.EVENT_SCAN_STARTED)
+                obj.stop;
+                obj.sendEventStopped;
             end
         end
     end
@@ -136,15 +154,19 @@ classdef Experiment < EventSender & EventListener & Savable
         end
     end
     
+    %%
     methods (Static)
         function obj = init
-            % Creates a default Experiment, if needed.
+            % Creates a default Experiment.
             try
-                obj = getObjByName(Experiment.NAME);
-                return
+                % Logic is reversed (without a clean way out):
+                % if the try block succeeds, then we need to output a
+                % warning.
+                getObjByName(Experiment.NAME);
+                EventStation.anonymousWarning('Deleting Previous experiment')
             catch
-                obj = Experiment('');
             end
+            obj = Experiment('');
         end
         
         function tf = current(newExpName)

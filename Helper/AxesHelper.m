@@ -6,7 +6,7 @@ classdef AxesHelper
     end
     
     methods (Static)
-        function fillAxes(axesFig, data, dimNumber, firstAxisVector, secondAxisOptionalVector, bottomLabel, leftLabel, stdev)
+        function fillAxes(gAxes, data, dimNumber, firstAxisVector, secondAxisOptionalVector, bottomLabel, leftLabel, stdev)
             % fills axes with data - usefull for displaying the scan results on GUI views
             %
             %
@@ -21,25 +21,25 @@ classdef AxesHelper
             switch dimNumber
                 case 1
                     if exist('stdev','var') && length(data)==length(stdev)
-                        errorbar(axesFig, firstAxisVector, data, stdev)
+                        errorbar(gAxes, firstAxisVector, data, stdev)
                     else
-                        plot(axesFig, firstAxisVector, data);
+                        plot(gAxes, firstAxisVector, data);
                     end
                     
-                    xlabel(axesFig,bottomLabel);
-                    ylabel(axesFig,leftLabel);
+                    xlabel(gAxes,bottomLabel);
+                    ylabel(gAxes,leftLabel);
                 case 2
                     % todo
                     imagesc(...
                         data, ...
                         'XData', firstAxisVector, ...
                         'YData', secondAxisOptionalVector, ...
-                        'Parent', axesFig);
-                    xlabel(axesFig,bottomLabel);
-                    ylabel(axesFig,leftLabel);
-                    axis(axesFig,'xy','tight','normal')
-                    axis(axesFig,'manual')
-                    c = colorbar('peer', axesFig, 'location', 'EastOutside');   % todo: peer is outdated
+                        'Parent', gAxes);
+                    xlabel(gAxes,bottomLabel);
+                    ylabel(gAxes,leftLabel);
+                    axis(gAxes, 'xy', 'tight', 'normal')
+                    axis(gAxes, 'manual')
+                    c = colorbar('peer', gAxes, 'location', 'EastOutside');   % todo: peer is outdated
                     xlabel(c, 'kcps')
                 otherwise
                     EventStation.anonymousWarning('Can''t understand and display %d-dimensional scan!', dimNumber);

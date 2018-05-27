@@ -63,8 +63,8 @@ classdef (Abstract) Spcm < EventSender
                 warning('Another instance of the SPCM already exists')
                 return
             catch
-                % We hope to get here, since this means we are not creating
-                % an object that already exists
+                % We actually hope to get here, since this means we are not
+                % creating an object that already exists
             end
             
             % Create new object

@@ -67,28 +67,28 @@ classdef (Sealed) ClassPIM501 < ClassPIMicos
     end
     
     methods (Access = protected) % Overwrite ClassPIMicos functions
-        function [szAxes, zerosVector] = ConvertAxis(obj, axis)
+        function [szAxes, zerosVector] = ConvertAxis(obj, phAxis)
             % Returns the corresponding szAxes string needed to
             % communicate with PI controllers that are connected to
             % multiple axes. Also returns a vector containging zeros with
             % the length of the axes.
-            % 'axis' can be either a specific axis (x,y,z or 1 for x, 2 for y
-            % and 3 for z) or any vectorial combination of them.
-            CheckAxis(obj, axis);
+            % 'phAxis' can be either a specific axis (x,y,z or 1 for x,
+            % 2 for y, and 3 for z) or any vectorial combination of them.
+            CheckAxis(obj, phAxis);
             szAxes = '1';
             zerosVector = 0;
         end
         
-        function Refernce(obj, axis)
+        function Refernce(obj, phAxis)
             % Reference the given axis.
-            % 'axis' can be either a specific axis (x,y,z or 1 for x, 2 for y
+            % 'phAxis' can be either a specific axis (x,y,z or 1 for x, 2 for y
             % and 3 for z) or any vectorial combination of them.
-            CheckAxis(obj, axis)
-            [szAxes, zerosVector] = ConvertAxis(obj, axis);
+            CheckAxis(obj, phAxis)
+            [szAxes, zerosVector] = ConvertAxis(obj, phAxis);
             SendPICommand(obj, 'PI_FPL', obj.ID, szAxes);
             
             % Check if ready & if referenced succeeded
-            WaitFor(obj, 'ControllerReady', axis)
+            WaitFor(obj, 'ControllerReady', phAxis)
             [~, refernced] = SendPICommand(obj, 'PI_qFRF', obj.ID,szAxes, zerosVector);
             if (~all(refernced))
                 errorMsg = sprintf('Referencing failed for controller %s with ID %d: Reason unknown.', ...

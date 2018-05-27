@@ -19,11 +19,11 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
             obj.stageName = stageName;
             
             %%%% Scan panel init %%%%
-            panelScan = uix.Panel('Parent', parent.component,'Title', 'Scan', 'Padding', 5);
+            panelScan = uix.Panel('Parent', parent.component, 'Title', 'Scan', 'Padding', 5);
             vboxMain = uix.VBox('Parent', panelScan, 'Spacing', 5, 'Padding', 0);
             
             obj.btnScan = uicontrol(obj.PROP_BUTTON_BIG_GREEN{:}, 'Parent', vboxMain, 'String', 'Scan');
-            obj.btnStopScan = uicontrol(obj.PROP_BUTTON_BIG_RED{:},'Parent', vboxMain,'String', 'Stop Scan');
+            obj.btnStopScan = uicontrol(obj.PROP_BUTTON_BIG_RED{:}, 'Parent', vboxMain, 'String', 'Stop Scan');
             hboxPixelTime = uix.HBox('Parent', vboxMain, 'Spacing', 3, 'Padding', 0);
             uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxPixelTime, 'String', 'Pixel time', 'FontSize', 8);
             obj.edtPixelTime = uicontrol(obj.PROP_EDIT{:}, 'Parent', hboxPixelTime);

@@ -88,7 +88,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             obj.scanStruct = struct([]);
         end
         
-        function axis = SwitchXYAxis(obj, axis, type) %#ok<INUSL>
+        function phAxis = SwitchXYAxis(obj, phAxis, type) %#ok<INUSL>
             % This function replaces axis X & Y for both strings and
             % integers.
             % This function switches between the x & y axes for the stage
@@ -96,11 +96,11 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             % orienation as the other stages.
             switch type
                 case 'szAxes'
-                    axis = strrep(strrep(strrep(axis, '1', '9'), '2', '1'), '9', '2');
+                    phAxis = strrep(strrep(strrep(phAxis, '1', '9'), '2', '1'), '9', '2');
                 case 'integer'
-                    axis(axis==1) = 9;
-                    axis(axis==2) = 1;
-                    axis(axis==9) = 2;
+                    phAxis(phAxis==1) = 9;
+                    phAxis(phAxis==2) = 1;
+                    phAxis(phAxis==9) = 2;
             end
         end
     end
@@ -126,7 +126,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             Initialization@ClassPIMicos(obj)
         end
         
-        function [szAxes, zerosVector] = ConvertAxis(obj, axis)
+        function [szAxes, zerosVector] = ConvertAxis(obj, phAxis)
             % This function switches between the x & y axes for the stage
             % so that it will be a right handed system with the same
             % orienation as the other stages.
@@ -135,9 +135,9 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             % communicate with PI controllers that are connected to
             % multiple axes. Also returns a vector containging zeros with
             % the length of the axes.
-            % 'axis' can be either a specific axis (x,y,z or 1 for x, 2 for y
-            % and 3 for z) or any vectorial combination of them.
-            [szAxes, zerosVector] = ConvertAxis@ClassPIMicos(obj, axis);
+            % 'phAxis' can be either a specific axis (x,y,z or 1 for x,
+            % 2 for y, and 3 for z) or any vectorial combination of them.
+            [szAxes, zerosVector] = ConvertAxis@ClassPIMicos(obj, phAxis);
             szAxes = SwitchXYAxis(obj, szAxes, 'szAxes');
         end
         
@@ -162,10 +162,10 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             end
         end
         
-        function CheckRefernce(obj, axis)
+        function CheckRefernce(obj, phAxis)
             % Checks whether the given axis is referenced, and if not, asks
             % for confirmation to refernce it.
-            refernced = IsRefernced(obj, axis);
+            refernced = IsRefernced(obj, phAxis);
             if ~all(refernced)
                 questionString = sprintf('PI P562 fine stage is not zeroed.\nFailure to AutoZero will mean that the stage will not be able to use its full range.\nNote that this will Move all axes!\nDo you want to AutoZero the stage?');
                 referenceString = sprintf('AutoZero');
@@ -182,20 +182,20 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
             end
         end
         
-        function refernced = IsRefernced(obj, axis)
+        function refernced = IsRefernced(obj, phAxis)
             % Check AutoZero status for the given axis.
-            % 'axis' can be either a specific axis (x,y,z or 1 for x, 2 for y
-            % and 3 for z) or any vectorial combination of them.
-            [szAxes, zerosVector] = ConvertAxis(obj, axis);
+            % 'phAxis' can be either a specific axis (x,y,z or 1 for x,
+            % 2 for y, and 3 for z) or any vectorial combination of them.
+            [szAxes, zerosVector] = ConvertAxis(obj, phAxis);
             [~, refernced] = SendPICommand(obj, 'PI_qATZ', obj.ID, szAxes, zerosVector);
         end
         
-        function Refernce(obj, axis)
+        function Refernce(obj, phAxis)
             % Does an AutoZero procedure on the given axis, it is
             % recommended to do the AutoZero on all axes at once.
-            % 'axis' can be either a specific axis (x,y,z or 1 for x, 2 for y
-            % and 3 for z) or any vectorial combination of them.
-            [szAxes, zerosVector] = ConvertAxis(obj, axis);
+            % 'phAxis' can be either a specific axis (x,y,z or 1 for x,
+            % 2 for y, and 3 for z) or any vectorial combination of them.
+            [szAxes, zerosVector] = ConvertAxis(obj, phAxis);
             SendPICommand(obj, 'PI_ATZ', obj.ID, szAxes, zerosVector, zerosVector+1);
             
             % Check if ready & if AutoZero succeeded
@@ -205,8 +205,8 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
                 obj.sendError(sprintf('AutoZero failed for controller %s with ID %d: Reason unknown.', ...
                     obj.controllerModel, obj.ID));
             end
-            MovePrivate(obj, axis, 100*ones(size(axis))); % Go back to the center
-            WaitFor(obj, 'onTarget', axis)
+            MovePrivate(obj, phAxis, 100*ones(size(phAxis))); % Go back to the center
+            WaitFor(obj, 'onTarget', phAxis)
         end
         
         function PrepareScanInOneDimension(obj, scanAxisVector, nFlat, nOverRun, tPixel, scanAxis)

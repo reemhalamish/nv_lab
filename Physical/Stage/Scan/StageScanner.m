@@ -53,12 +53,12 @@ classdef StageScanner < EventSender & EventListener & Savable
         function sendEventScanUpdated(obj, scanResults)
             axis1 = obj.mStageScanParams.getFirstScanAxisVector;
             axis2 = obj.mStageScanParams.getSecondScanAxisVector;
-            axes = {axis1, axis2};
+            phAxes = {axis1, axis2};
             scanAxes = obj.mStageScanParams.getScanAxes;
             stageName = obj.mStageName;
             botLabel = obj.getBottomScanLabel;
             leftLabel = obj.getLeftScanLabel;
-            extra = EventExtraScanUpdated(scanResults, axes, scanAxes, stageName, botLabel, leftLabel);
+            extra = EventExtraScanUpdated(scanResults, phAxes, scanAxes, stageName, botLabel, leftLabel);
             obj.sendEvent(struct(obj.EVENT_SCAN_UPDATED, extra));
         end
         
@@ -79,7 +79,6 @@ classdef StageScanner < EventSender & EventListener & Savable
             
             obj.mCurrentlyScanning = true;
             obj.sendEventScanStarting();
-            % todo here the tracker will need to catch this!
             
             spcm = getObjByName(Spcm.NAME);
             spcm.setSPCMEnable(true);
@@ -120,7 +119,7 @@ classdef StageScanner < EventSender & EventListener & Savable
         
         
         function kcpsScanMatrix = scan(obj, stage, spcm, scanParams, kcpsScanMatrixOptional)
-            % scan the stage.
+            % Scan the stage.
             % stage - an object deriving from ClassStage
             % spcm - an object deriving from Spcm
             % scanParams - the scan parameters. an object deriving from StageScanParams
@@ -164,8 +163,8 @@ classdef StageScanner < EventSender & EventListener & Savable
             
             %%%% move to location %%%%
             pos = scanParams.fixedPos;
-            axes = stage.availableAxes;
-            stage.move(axes, pos);
+            phAxes = stage.availableAxes;
+            stage.move(phAxes, pos);
             
             %%%% try to scan %%%%
             scanOk = false;
@@ -529,8 +528,8 @@ classdef StageScanner < EventSender & EventListener & Savable
         function value = dummyScanGaussian(obj,scanParams)
             pos = scanParams.fixedPos;
             stage = getObjByName(obj.mStageName);
-            axes = stage.availableAxes;
-            stage.move(axes, pos);
+            phAxes = stage.availableAxes;
+            stage.move(phAxes, pos);
             
             X = scanParams.getScanAxisVector(1);
             Y = scanParams.getScanAxisVector(2);
@@ -572,7 +571,6 @@ classdef StageScanner < EventSender & EventListener & Savable
         function obj = init
             try
                 obj = getObjByName(StageScanner.NAME);
-                return
             catch
                 obj = StageScanner;
                 addBaseObject(obj);
@@ -684,7 +682,7 @@ classdef StageScanner < EventSender & EventListener & Savable
                     return
                 end
             end
-            if ~isfield(savedStruct,'scan')
+            if ~isfield(savedStruct, 'scan')
                 savedStruct.scan = [];
                 obj.sendWarning('No scan results found. Loading only scan parameters');
             end

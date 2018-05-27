@@ -10,7 +10,7 @@ classdef EventSender < BaseObject
     %                                                       %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    properties (Constant)
+    properties (Constant, Hidden)
         ERROR_MESSAGE_PHYSICAL = 'Something in the real world just crashed. Sorry'
     end
     

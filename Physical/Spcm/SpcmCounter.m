@@ -39,8 +39,6 @@ classdef SpcmCounter < Experiment
             obj.integrationTimeMillisec = obj.INTEGRATION_TIME_DEFAULT_MILLISEC;
             obj.records = obj.DEFAULT_EMPTY_STRUCT;
             obj.isOn = false;
-            
-            obj.startListeningTo(StageScanner.NAME);
         end
         
         function sendEventReset(obj); obj.sendEvent(struct(obj.EVENT_SPCM_COUNTER_RESET,true));end
@@ -60,10 +58,7 @@ classdef SpcmCounter < Experiment
                 while obj.isOn
                     % creating data to be saved
                     [kcps, std] = spcm.readFromTime;
-                    %%%% replace with obj.newRecord(time,kcps,std)
-                    time = obj.records(end).time + integrationTime/1000;
-                    obj.records(end + 1) = struct('time', time, 'kcps', kcps, 'std', std);
-                    %%%% (upto here)
+                    obj.newRecord(kcps, std);
                     obj.sendEventUpdated;
                     if integrationTime ~= obj.integrationTimeMillisec
                         integrationTime = obj.integrationTimeMillisec;
@@ -79,20 +74,12 @@ classdef SpcmCounter < Experiment
             catch err
                 obj.stop;
                 
-                msg = err.message;
-                expression = '-200279'; % "The application is not able to keep up with the hardware acquisition."
-                if contains(msg, expression)
-                    % There was NiDaq reset, we can now safely resume
-                    err2warning(err);
-                    obj.run;
-                else
-                    % We wrap things up, and send error
-                    spcm.clearTimeRead;
-                    spcm.setSPCMEnable(false);
-                    
-                    obj.sendEventStopped;
-                    rethrow(err);
-                end
+                % We wrap things up, and send error
+                spcm.clearTimeRead;
+                spcm.setSPCMEnable(false);
+                
+                obj.sendEventStopped;
+                rethrow(err);
             end
         end
         
@@ -105,14 +92,21 @@ classdef SpcmCounter < Experiment
             obj.sendEventReset;
         end
         
-        function newRecord(obj, time, kpcs, std) %#ok<INUSD>
+        function newRecord(obj, kcps, std)
             % creates new record in a struct of the type "record" =
             % record.{time,kcps,std}, with proper validation.
+            integrationTime = obj.integrationTimeMillisec / 1000;
+            time = obj.records(end).time + integrationTime;
+            if kcps < 0 || std < 0 || kcps < std
+                recordNum = length(obj.records);
+                EventStation.anonymousWarning('Invalid values in time %d (record #%i)', time, recordNum)
+            end
+            obj.records(end + 1) = struct('time', time, 'kcps', kcps, 'std', std);
         end
         
         function [time,kcps,std] = getRecords(obj,lenOpt)
             lenRecords = length(obj.records);
-            if ~exist('lenOpt','var')
+            if ~exist('lenOpt', 'var')
                 lenOpt = lenRecords;
             end
             
@@ -149,16 +143,5 @@ classdef SpcmCounter < Experiment
             end
         end
     end
-    
-    %% overridden from EventListener
-    methods
-        % When events happen, this function jumps.
-        % event is the event sent from the EventSender
-        function onEvent(obj, event)
-            if isfield(event, StageScanner.EVENT_SCAN_STARTED)
-                obj.stop;
-                obj.sendEventStopped;
-            end
-        end
-    end
+
 end

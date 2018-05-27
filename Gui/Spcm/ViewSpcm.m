@@ -94,7 +94,7 @@ classdef ViewSpcm < ViewVBox & EventListener
             obj.refresh;
             
             %%%% Define size %%%%
-            if ~exist('heightOpt','var') ||  ~exist('widthOpt','var')
+            if ~exist('heightOpt', 'var') ||  ~exist('widthOpt', 'var')
                 obj.height = 500;
                 obj.width = 850;
             else
@@ -118,7 +118,7 @@ classdef ViewSpcm < ViewVBox & EventListener
                 obj.edtIntegrationTime.String = spcmCount.integrationTimeMillisec;
                 
                 if spcmCount.isOn
-                    set(obj.btnStartStop,'BackgroundColor', 'red', ...
+                    set(obj.btnStartStop, 'BackgroundColor', 'red', ...
                         'String', 'Stop', ...
                         'Callback', @obj.btnStopCallback);
                     return
@@ -127,7 +127,7 @@ classdef ViewSpcm < ViewVBox & EventListener
             
             % If we got here, it means the counter is not running (either
             % available but off, or unavailable)
-            set(obj.btnStartStop,'BackgroundColor', 'green', ...
+            set(obj.btnStartStop, 'BackgroundColor', 'green', ...
                 'String', 'Start', ...
                 'Callback', @obj.btnStartCallback);
         end
@@ -205,8 +205,8 @@ classdef ViewSpcm < ViewVBox & EventListener
                 
                 obj.vAxes.Children.HitTest = 'off'; % So as not to be interacted by "marker" cursor
                 
-                set(obj.vAxes,'XLim',[-inf, inf]);  % Creates smooth "sweep" of data
-                drawnow;                            % consider using animatedline
+                set(obj.vAxes, 'XLim', [-inf, inf]);	% Creates smooth "sweep" of data
+                drawnow;                                % consider using animatedline
             else
                 obj.refresh;
             end

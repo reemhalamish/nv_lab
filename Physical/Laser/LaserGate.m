@@ -77,14 +77,8 @@ classdef LaserGate < Savable % Needs to be EventSender
         
         function set.isOn(obj, newVal)
             tf = logical(newVal);
-                        
-            % Maybe it isn't possible
             tfAom = obj.isAomAvail;
             tfSource = obj.isSourceAvail && obj.source.canSetEnabled;
-            if ~tfAom && ~tfSource
-                errMsg = sprintf('On/off state of %s can''t be set!', obj.name);
-                EventStation.anonymousError(errMsg);
-            end
             
             switch tf
                 case true
@@ -92,11 +86,15 @@ classdef LaserGate < Savable % Needs to be EventSender
                     if tfAom; obj.aomSwitch.isEnabled = true; end
                     if tfSource; obj.source.isEnabled = true; end
                 case false
-                    % turn off only AOM, if possible
+                    % It might not be possible at all. If it is:
                     if tfAom
+                        % Turn off only AOM, if possible
                         obj.aomSwitch.isEnabled = false;
+                    elseif tfSource
+                        % Second best thing
+                        obj.source.isEnabled = false;
                     else
-                        obj.source.isEnabled = true;
+                        EventStation.anonymousError('%s can''t be turned off!', obj.name);
                     end
                 otherwise
                     % tf could not be converted to logical
@@ -106,9 +104,10 @@ classdef LaserGate < Savable % Needs to be EventSender
         end
         
         function isOn = get.isOn(obj)
-            % source is off only if it is available & set to be off
-            aomSwitchIsOn = obj.aomSwitch.isEnabled;
+            % Source is off only if it is available & set to be off
             sourceIsOn = ~(obj.isSourceAvail && ~obj.source.isEnabled);
+            aomSwitchIsOn = obj.aomSwitch.isEnabled;
+            
             isOn = aomSwitchIsOn && sourceIsOn;
         end
         

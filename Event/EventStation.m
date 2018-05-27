@@ -157,7 +157,17 @@ classdef EventStation < handle
             end
             for k = 1 : length(listenersForSender)
                 listener = listenersForSender{k};
+                if ~isvalid(listener) % listener might not have been deleted properly, and not removed as a listener.
+                    removeListener(obj, listener, eventSender)
+                    if JsonInfoReader.getJson.debugMode; fprintf('Deleting EventListener of type %s\n', class(listener)); end
+                    continue
+                end
+                try
                     listener.onEvent(event);
+                catch err
+                    obj.anonymousWarning('%s could not perform onEventTask! skipping.', class(listener))
+                    err2warning(err);
+                end
             end
             
             for i = 1 : length(obj.listenersForAllEvents)

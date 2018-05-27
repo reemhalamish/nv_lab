@@ -177,8 +177,8 @@ classdef ViewTrackablePosition < ViewTrackable
             dp = diff([p_1;pos]);
             plot(obj.vAxes1, t, dp); % plots each column (x,y,z) against the time
             drawnow;
-            axes = num2cell(obj.stageAxes);     % Odd, but this usefully turns 'xyz' into {'x', 'y', 'z'}
-            set(obj.legend1, 'String', axes, 'Visible', 'on');
+            axesLetters = num2cell(obj.stageAxes);     % Odd, but this usefully turns 'xyz' into {'x', 'y', 'z'}
+            set(obj.legend1, 'String', axesLetters, 'Visible', 'on');
             
             kcps = cell2mat(history.value);
             plot(obj.vAxes2,t,kcps);

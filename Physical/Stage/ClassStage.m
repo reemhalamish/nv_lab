@@ -97,7 +97,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                                 removeObjIfExists(oldStage);
                             catch
                                 % This is actually the simple case, despite
-                                % the use of syntax.
+                                % what syntax might suggest.
                             end
                                 
                             
@@ -145,27 +145,27 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             end
         end
         
-        function axis = getAxis(axis)
+        function phAxis = getAxis(phAxis)
             % Converts x,y,z into the corresponding numeric value (1,2,3).
             % If already in numeric value it does nothing.
-            tempAxis = zeros(size(axis)); % Needed because axis could be of type string
-            for i=1:length(axis)
-                index = axis(i);
+            tempAxis = zeros(size(phAxis)); % Needed because axis could be of type string
+            for i=1:length(phAxis)
+                index = phAxis(i);
                 if (index < 1 || index > 3)
-                    index = strfind(ClassStage.SCAN_AXES, lower(axis(i)));
+                    index = strfind(ClassStage.SCAN_AXES, lower(phAxis(i)));
                     if isempty(index) || (index < 1 || index > 3)
-                        EventStation.anonymousError(['Unknown axis: ' axis(i)]);
+                        EventStation.anonymousError(['Unknown axis: ' phAxis(i)]);
                     end
                 end
                 tempAxis(i) = index;
             end
-            axis = tempAxis;
+            phAxis = tempAxis;
         end
         
-        function string = GetLetterFromAxis(axis)
+        function string = GetLetterFromAxis(phAxis)
             % Returns a letter from an axis. supports vectorial axis
-            axis = ClassStage.getAxis(axis);
-            string = ClassStage.SCAN_AXES(axis);
+            phAxis = ClassStage.getAxis(phAxis);
+            string = ClassStage.SCAN_AXES(phAxis);
         end
         
     end  % methods (static, public)
@@ -184,46 +184,47 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         end
         
         function initScanParams(obj)
-            axis = ClassStage.getAxis(obj.availableAxes);
-            [limNeg, limPos] = obj.ReturnLimits(axis);
+            phAxis = ClassStage.getAxis(obj.availableAxes);
+            [limNeg, limPos] = obj.ReturnLimits(phAxis);
             obj.scanParams = StageScanParams;
-            obj.scanParams.from(axis) = limNeg;
-            obj.scanParams.to(axis) = limPos;
+            obj.scanParams.from(phAxis) = limNeg;
+            obj.scanParams.to(phAxis) = limPos;
             obj.scanParams.isFixed = ones(1, ClassStage.SCAN_AXES_SIZE);    % all fixed except what the stage supports (look 3 lines below)
-            obj.scanParams.isFixed(axis) = false;
-            obj.scanParams.fixedPos(axis) = obj.Pos(axis);
+            obj.scanParams.isFixed(phAxis) = false;
+            obj.scanParams.fixedPos(phAxis) = obj.Pos(phAxis);
             obj.scanParams.fastScan = obj.hasFastScan;
         end
         
         % wrapper for the static method getAxis
-        function axes = GetAxis(~, axis)
-            axes = ClassStage.getAxis(axis);
+        function phAxes = GetAxis(~, phAxis)
+            phAxes = ClassStage.getAxis(phAxis);
         end
         
     end
     
     methods (Abstract, Access = public)
-        ok = PointIsInRange(obj, axis, point)
-        % Checks if the given point is within the soft (and hard)
-        % limits of the given axis (x,y,z or 1 for x, 2 for y and 3 for z).
+        ok = PointIsInRange(obj, phAxis, point)
+        % Checks if the given point is within the soft (and hard) limits of
+        % the given (physical) axis (x,y,z or 1 for x, 2 for y,
+        % and 3 for z).
         % Vectorial axis is possible.
         
-        [negSoftLimit, posSoftLimit] = ReturnLimits(obj, axis)
+        [negSoftLimit, posSoftLimit] = ReturnLimits(obj, phAxis)
         % Return the soft limits of the given axis (x,y,z or 1 for x,
         % 2 for y and 3 for z).
         % Vectorial axis is possible.
         
-        [negHardLimit, posHardLimit] = ReturnHardLimits(obj, axis)
+        [negHardLimit, posHardLimit] = ReturnHardLimits(obj, phAxis)
         % Return the hard limits of the given axis (x,y,z or 1 for x,
         % 2 for y and 3 for z).
         % Vectorial axis is possible.
         
-        pos = Pos(obj, axis)
+        pos = Pos(obj, phAxis)
         % Query and return position of axis (x,y,z or 1 for x, 2 for y
         % and 3 for z)
         % Vectorial axis is possible.
         
-        vel = Vel(obj, axis)
+        vel = Vel(obj, phAxis)
         % Query and return velocity of axis (x,y,z or 1 for x, 2 for y
         % and 3 for z)
         % Vectorial axis is possible.
@@ -243,14 +244,14 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         % Classes that have multiple stages need to add a 'stage' argument
         % to the end of every function.
         
-        SetSoftLimits(obj, axis, softLimit, negOrPos)
+        SetSoftLimits(obj, phAxis, softLimit, negOrPos)
         % Set the new soft limits:
         % if negOrPos = 0 -> then softLimit = lower soft limit
         % if negOrPos = 1 -> then softLimit = higher soft limit
         % This is because each time this function is called only one of
         % the limits updates
         
-        SetVelocity(obj, axis, vel)
+        SetVelocity(obj, phAxis, vel)
         % Absolute change in velocity (vel) of axis (x,y,z or 1 for x,
         % 2 for y and 3 for z).
         % Vectorial axis is possible.
@@ -261,12 +262,12 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
         Reconnect(obj)
         % Reconnects the controller.
         
-        Move(obj, axis, pos)
+        Move(obj, phAxis, pos)
         % Absolute change in position (pos) of axis (x,y,z or 1 for x,
         % 2 for y and 3 for z).
         % Vectorial axis is possible.
         
-        RelativeMove(obj, axis, change)
+        RelativeMove(obj, phAxis, change)
         % Relative change in position (pos) of axis (x,y,z or 1 for x,
         % 2 for y and 3 for z).
         % Vectorial axis is possible.
@@ -485,34 +486,33 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             % move to this position
             params = obj.scanParams;
             obj.sanityCheckForScanRange(params);
-            axes = obj.SCAN_AXES(find(params.isFixed)); %#ok<FNDSB>
+            phAxes = obj.SCAN_AXES(find(params.isFixed)); %#ok<FNDSB>
             fixedPos = params.fixedPos(find(params.isFixed)); %#ok<FNDSB>
-            if isempty(axes)
+            if isempty(phAxes)
                 obj.sendError('At least one axis needs to be fixed for this operation')
             else
-                obj.move(axes, fixedPos);
+                obj.move(phAxes, fixedPos);
             end
         end
         
-        function move(obj, axis, pos)
+        function move(obj, phAxis, pos)
             % Calls Move, sends an event. Listens to errors to send errorEvent
             try
-                obj.Move(axis, pos);
+                obj.Move(phAxis, pos);
                 obj.sendEventPositionChanged;
             catch matlabError
                 obj.sendError(matlabError.message);
             end
         end
         
-        function relativeMove(obj, axis, change)
+        function relativeMove(obj, phAxis, change)
             % Calls RelativeMove, sends an event. Listens to errors to send errorEvent.
             % Vectorial axis is possible
             try
-                obj.RelativeMove(axis, change);
+                obj.RelativeMove(phAxis, change);
                 obj.sendEventPositionChanged;
             catch matlabError
-                rethrow(matlabError)
-                % obj.sendError(matlabError.message);
+                obj.sendError(matlabError.message);
             end
         end
         
@@ -582,19 +582,19 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
     %% setters and getters
     methods
         function set.scanParams(obj, newValue)
-            % validates the input, sets the newValue, sends an event
+            % Validates the input, sets the newValue, sends an event
             if isa(newValue, 'StageScanParams')
                 [newLimNeg, newLimPos] = obj.ReturnLimits(obj.availableAxes);
                 newValue.updateByLimit(obj.availableAxes, newLimNeg, newLimPos);
                 obj.scanParams = newValue;
                 obj.sendEventScanParamsChanged();
             else
-                obj.sendWarning('Can only put object of type "StageScanParams"! Ignoring');
+                obj.sendWarning('Can only assign object of type "StageScanParams"! Ignoring');
             end
         end
         
         function set.stepSize(obj, newValue)
-            % validates the input, sets the newValue, sends an event
+            % Validates the input, sets the newValue, sends an event
             if ~isnumeric(newValue)
                 obj.sendError('Step size must be numeric!');
             end
@@ -605,26 +605,27 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             obj.stepSize = newValue;
             obj.sendEvent(struct(obj.EVENT_STEP_SIZE_CHANGED, true));
         end
-        function setLim(obj, newValue, axis, zeroForLowerOneForUpper)
-            % validates the input, sets the newValue, sends an event
+        function setLim(obj, newValue, pAxis, zeroForLowerOneForUpper)
+            % Validates the input, sets the newValue, sends an event
             %
-            % new value - the new lower limit
-            % axis - the axis in whitch to control
-            % zeroForLowerOneForUpper - 0 will set the lower limit. 1 for upper
+            % new value - double. Value of new limit
+            % pAxis - array of chars or doubles. Physical axis to control
+            % zeroForLowerOneForUpper - 0 will set the lower limit. 1 - the upper one
             try
-                axis = obj.GetAxis(axis);
+                pAxis = obj.GetAxis(pAxis);
 
-                %%%% input checks - that I'm in the relevant limits %%%%
-                [lowerSoftLim, upperSoftLim] = obj.ReturnLimits(axis);
-                [lowerHardLim, upperHardLim] = obj.ReturnHardLimits(axis);
+                %%% Input checks %%%
+                % (#1) Are we still in the relevant limits? %%%
+                [lowerSoftLim, upperSoftLim] = obj.ReturnLimits(pAxis);
+                [lowerHardLim, upperHardLim] = obj.ReturnHardLimits(pAxis);
                 
                 if zeroForLowerOneForUpper == 0
-                    % lower lim should be in [hardLowerLim, softUpperLim]
+                    % Lower limit should be in [hardLowerLim, softUpperLim]
                     if any(newValue < lowerHardLim) || any(newValue > upperSoftLim)
                         error('New value is out of limits! limits: [%d, %d]', lowerHardLim, upperSoftLim)
                     end
                 elseif zeroForLowerOneForUpper == 1
-                    % upper lim should be in [softLowerLim, hardUpperLim]
+                    % Upper limit should be in [softLowerLim, hardUpperLim]
                     if any(newValue < lowerSoftLim) || any(newValue > upperHardLim)
                         error('New value out of limits! limits: [%d, %d]', lowerSoftLim, upperHardLim)
                     end
@@ -632,10 +633,8 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                     error('Parameter "zeroForLowerOneForUpper" should only be 0 or 1')
                 end
                 
-                
-                
-                %%%% another check - if need to move the stage %%%%
-                stagePos = obj.Pos(axis);
+                % (#2) Do we need to move the stage?
+                stagePos = obj.Pos(pAxis);
                 
                 if zeroForLowerOneForUpper
                     [newLimNeg, newLimPos] = deal(lowerSoftLim, newValue);
@@ -643,14 +642,14 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                     [newLimNeg, newLimPos] = deal(newValue, upperSoftLim);
                 end
                 if ~ValidationHelper.isInBorders(stagePos, newLimNeg, newLimPos)
-                    % need to ask the user if to move the stage or revert
+                    % Ask the user whether to move the stage or to revert
                     
                     if zeroForLowerOneForUpper
                         msgLimUpperOrLower = 'upper';
                     else
                         msgLimUpperOrLower = 'lower';
                     end
-                    msgAxis = ClassStage.GetLetterFromAxis(axis);
+                    msgAxis = ClassStage.GetLetterFromAxis(pAxis);
                     msgStagePos = num2str(obj.Pos(ClassStage.SCAN_AXES));
                     msg = sprintf(...
                         ['You are about to change the %s limit to %d in axis %s.\n', ...
@@ -666,29 +665,29 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
                         msgAxis, ...
                         newValue);
                         
-                    if ~QuestionUserYesNo('confirm limits change', msg)
-                        % stop and don't do anything.
-                        error('user canceled the operation');
+                    if ~QuestionUserYesNo('Confirm limit change', msg)
+                        % Stop and don't do anything.
+                        error('User canceled the operation.');
                     else
                         needToMoveStage = true;
                     end
                     
-                else % if the new limits WILL NOT change the stage position
+                else % The new limits DO NOT change the stage position
                     needToMoveStage = false;
                 end
                 
-                %%%% actual work %%%%
-                obj.SetSoftLimits(axis, newValue, zeroForLowerOneForUpper);
+                %%%% Actual work %%%%
+                obj.SetSoftLimits(pAxis, newValue, zeroForLowerOneForUpper);
                 obj.sendEventLimitsChanged();
                 
-                [newLimNeg, newLimPos] = obj.ReturnLimits(axis);
-                scanParamsChanged = obj.scanParams.updateByLimit(axis, newLimNeg, newLimPos);
+                [newLimNeg, newLimPos] = obj.ReturnLimits(pAxis);
+                scanParamsChanged = obj.scanParams.updateByLimit(pAxis, newLimNeg, newLimPos);
                 if scanParamsChanged
                     obj.sendEventScanParamsChanged();
                 end
                 
                 if needToMoveStage
-                    obj.move(axis, newValue);  % this will send an event by itself
+                    obj.move(pAxis, newValue);  % This will send an event by itself
                 end
                 
             catch matlabError

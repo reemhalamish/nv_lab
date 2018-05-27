@@ -11,7 +11,7 @@
         end
         
         function bool = isTrueOrFalse(value)
-            bool = (value == 1 || value == 0 || islogical(value));
+            bool = (isequal(value, false) || isequal(value, true)); % isequal(1, true) == true
         end
         
         function bool = isValuePositiveInteger(inputValue)

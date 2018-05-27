@@ -61,13 +61,13 @@ classdef TrackablePosition < Trackable % & StageScanner
             end
             
             % We also need these:
-            axes = stage.getAxis(stage.availableAxes);
+            phAxes = stage.getAxis(stage.availableAxes);
             obj.mScanParams = StageScanParams;
             obj.mLaserName = LaserGate.GREEN_LASER_NAME;
             
             % Set default tracking properties
-            obj.initialStepSize = obj.INITIAL_STEP_VECTOR(axes);
-            obj.minimumStepSize = obj.MINIMUM_STEP_VECTOR(axes);
+            obj.initialStepSize = obj.INITIAL_STEP_VECTOR(phAxes);
+            obj.minimumStepSize = obj.MINIMUM_STEP_VECTOR(phAxes);
             obj.thresholdFraction = obj.THRESHOLD_FRACTION;
             obj.pixelTime = obj.PIXEL_TIME;
             obj.nMaxIterations = obj.NUM_MAX_ITERATIONS;
@@ -79,20 +79,18 @@ classdef TrackablePosition < Trackable % & StageScanner
             obj.resetAlgorithm;
             obj.isCurrentlyTracking = true;
             stage = getObjByName(obj.mStageName);
+            
             spcm = getObjByName(Spcm.NAME);
             spcm.setSPCMEnable(true);
-            try
-                laser = getObjByName(obj.mLaserName);
-                laser.isOn = true;
-            catch err
-                disp(err.message)
-            end    % If it fails, it means that laser is already on
+            
+            laser = getObjByName(obj.mLaserName);
+            laser.isOn = true;
             
             %%%% Get initial position and signal value, for history %%%%
             % Set parameters for scan
-            axes = stage.getAxis(stage.availableAxes);
+            phAxes = stage.getAxis(stage.availableAxes);
             sp = obj.mScanParams;
-            sp.fixedPos = stage.Pos(axes);
+            sp.fixedPos = stage.Pos(phAxes);
             sp.isFixed = true(size(sp.isFixed));    % all axes are fixed on initalization
             sp.pixelTime = obj.pixelTime;
             scanner = StageScanner.init;
@@ -145,9 +143,9 @@ classdef TrackablePosition < Trackable % & StageScanner
         
         function str = textOutput(obj)
             stage = getObjByName(obj.mStageName);
-            axes = stage.getAxis(stage.availableAxes);
+            phAxes = stage.getAxis(stage.availableAxes);
             
-            if all(obj.stepSize <= obj.MINIMUM_STEP_VECTOR(axes))
+            if all(obj.stepSize <= obj.MINIMUM_STEP_VECTOR(phAxes))
                 str = sprintf('Local maximum was found in %u steps', obj.stepNum);
             elseif obj.stopFlag
                 str = 'Operation terminated by user';
@@ -286,16 +284,16 @@ classdef TrackablePosition < Trackable % & StageScanner
             % of gradient ascent.
             stage = getObjByName(obj.mStageName);
             spcm = getObjByName(Spcm.NAME);
-            axes = stage.getAxis(stage.availableAxes);
-            len = length(axes);
+            phAxes = stage.getAxis(stage.availableAxes);
+            len = length(phAxes);
             scanner = StageScanner.init;
             
             % Initialize scan parameters for search
             sp = obj.mScanParams;
-            sp.fixedPos = stage.Pos(axes);
+            sp.fixedPos = stage.Pos(phAxes);
             sp.pixelTime = obj.pixelTime;
             
-            while ~obj.stopFlag && any(obj.stepSize > obj.MINIMUM_STEP_VECTOR(axes)) && ~obj.isDivergent
+            while ~obj.stopFlag && any(obj.stepSize > obj.MINIMUM_STEP_VECTOR(phAxes)) && ~obj.isDivergent
                 if obj.stepSize(obj.currAxis) > obj.MINIMUM_STEP_VECTOR(obj.currAxis)
                     obj.stepNum = obj.stepNum + 1;
                     pos = sp.fixedPos(obj.currAxis);

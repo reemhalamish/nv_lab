@@ -28,7 +28,7 @@ classdef ViewLoad < ViewVBox & EventListener
             obj.category = saveLoadCategory;
             
             %%%% UI elements init   %%%%
-            greyOut = {'Enable','off'};
+            greyOut = {'Enable', 'off'};
             
             hboxLoadImageButtonRow = uix.HBox('Parent', obj.component, 'Spacing', 5);
             obj.btnLoad = uicontrol(obj.PROP_BUTTON_SMALL{:}, 'Parent', hboxLoadImageButtonRow, 'string', 'Load...');
@@ -41,7 +41,7 @@ classdef ViewLoad < ViewVBox & EventListener
             hboxSecondRow = uix.HBox('Parent', obj.component, 'Spacing', 15);
             
             vboxSecondRowFirstCol = uix.VBox('Parent', hboxSecondRow, 'Spacing', 5);
-            loadRadioPanel = uix.Panel('Parent', vboxSecondRowFirstCol,'Title','Load folder', 'Padding', 5);
+            loadRadioPanel = uix.Panel('Parent', vboxSecondRowFirstCol, 'Title', 'Load folder', 'Padding', 5);
             vboxRadioButtons = uix.VBox('Parent', loadRadioPanel, 'Spacing', 5);
             obj.radioLoadAuto = uicontrol(obj.PROP_RADIO{:}, 'Parent', vboxRadioButtons, 'string', 'Autosave');
             obj.radioLoadManual = uicontrol(obj.PROP_RADIO{:}, 'Parent', vboxRadioButtons, 'string', 'Last saved');
@@ -143,7 +143,7 @@ classdef ViewLoad < ViewVBox & EventListener
             try 
                 saveLoad.loadPreviousFile();
             catch e
-                warning(e.message)
+                err2warning(e)
             end
         end
         
@@ -152,7 +152,7 @@ classdef ViewLoad < ViewVBox & EventListener
             try
                 saveLoad.loadNextFile();
             catch e
-                warning(e.message)
+                err2warning(e)
             end
         end
         
@@ -161,7 +161,7 @@ classdef ViewLoad < ViewVBox & EventListener
             try
                 saveLoad.loadLastFile();
             catch e
-                warning(e.message)
+                err2warning(e)
             end
         end
         

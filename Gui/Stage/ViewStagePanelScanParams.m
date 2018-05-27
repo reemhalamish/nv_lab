@@ -123,12 +123,12 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             % index - int. [1 to length(obj.stageAxes)] which view was changed
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
-            axis = ClassStage.getAxis(obj.stageAxes(index));
+            phAxis = ClassStage.getAxis(obj.stageAxes(index));
             edtNumPointsI = obj.edtNumPoints(index);
             if ValidationHelper.isValuePositiveInteger(edtNumPointsI.String)
-                scanParams.numPoints(axis) = str2double(edtNumPointsI.String);
+                scanParams.numPoints(phAxis) = str2double(edtNumPointsI.String);
             else
-                edtNumPointsI.String = scanParams.numPoints(axis);
+                edtNumPointsI.String = scanParams.numPoints(phAxis);
                 obj.sendError('Number of points isn''t a positive integer! reverting');
             end
             
@@ -138,9 +138,9 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             % index - int. [1 to length(obj.stageAxes)] which view was changed
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
-            axis = ClassStage.getAxis(obj.stageAxes(index));
+            phAxis = ClassStage.getAxis(obj.stageAxes(index));
             cbx = obj.cbxFixed(index);
-            scanParams.isFixed(axis) = cbx.Value;
+            scanParams.isFixed(phAxis) = cbx.Value;
             obj.colorifyFixed(index);
         end
         
@@ -169,9 +169,9 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             valueLimHalf = round(str2double(valueLimStr)/2, signifDigits);
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
-            axis = ClassStage.getAxis(obj.stageAxes(index));
-            from = scanParams.fixedPos(axis) - valueLimHalf;
-            to = scanParams.fixedPos(axis) + valueLimHalf;
+            phAxis = ClassStage.getAxis(obj.stageAxes(index));
+            from = scanParams.fixedPos(phAxis) - valueLimHalf;
+            to = scanParams.fixedPos(phAxis) + valueLimHalf;
             obj.edtFrom(index).String = from;
             obj.edtTo(index).String = to;
             obj.edtFromChangedCallback(index);
@@ -182,50 +182,50 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             % index - int. [1 to length(obj.stageAxes)] which view was changed
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
-            axis = ClassStage.getAxis(obj.stageAxes(index));
+            phAxis = ClassStage.getAxis(obj.stageAxes(index));
             viewFrom = obj.edtFrom(index);
             if ~ValidationHelper.isStringValueANumber(viewFrom.String)
-                viewFrom.String = scanParams.from(axis);
+                viewFrom.String = scanParams.from(phAxis);
                 obj.sendError('Only numbers can be accepted! Reverting.');
             end
             from = str2double(viewFrom.String);
-            [lowerBound, upperBound] = stage.ReturnLimits(axis);
+            [lowerBound, upperBound] = stage.ReturnLimits(phAxis);
             if ~ValidationHelper.isInBorders(from, lowerBound, upperBound)
                 warningMsg = sprintf( ...
                     '"from" (index: %s) is not in bounds! Reverting.\n(bounds: [%d, %d])', ...
                     obj.stageAxes(index), ...
                     lowerBound, ...
                     upperBound);
-                from = scanParams.from(axis);
+                from = scanParams.from(phAxis);
                 obj.sendWarning(warningMsg);
             end
 
-            [viewFrom.String, scanParams.from(axis)] = StringHelper.formatNumber(from);
+            [viewFrom.String, scanParams.from(phAxis)] = StringHelper.formatNumber(from);
         end
         
         function edtToChangedCallback(obj, index)
             % index - int. [1 to length(obj.stageAxes)] which view was changed
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
-            axis = ClassStage.getAxis(obj.stageAxes(index));
+            phAxis = ClassStage.getAxis(obj.stageAxes(index));
             viewTo = obj.edtTo(index);
             if ~ValidationHelper.isStringValueANumber(viewTo.String)
-                viewTo.String = scanParams.to(axis);
+                viewTo.String = scanParams.to(phAxis);
                 obj.sendError('Only numbers can be accepted! Reverting.');
             end
             to = str2double(viewTo.String);
-            [lowerBound, upperBound] = stage.ReturnLimits(axis);
+            [lowerBound, upperBound] = stage.ReturnLimits(phAxis);
             if ~ValidationHelper.isInBorders(to, lowerBound, upperBound)
                 warningMsg = sprintf( ...
                     '"to" (index: %s) is not in bounds! Reverting.\n(bounds: [%d, %d])', ...
                     obj.stageAxes(index), ...
                     lowerBound, ...
                     upperBound);
-                to = scanParams.to(axis);                
+                to = scanParams.to(phAxis);                
                 obj.sendWarning(warningMsg);
             end
             
-            [viewTo.String, scanParams.to(axis)] = StringHelper.formatNumber(to);
+            [viewTo.String, scanParams.to(phAxis)] = StringHelper.formatNumber(to);
             
         end
         
@@ -233,14 +233,14 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             % index - int. [1 to length(obj.stageAxes)] which view was changed
             stage = getObjByName(obj.stageName);
             scanParams = stage.scanParams;
-            axis = ClassStage.getAxis(obj.stageAxes(index));
+            phAxis = ClassStage.getAxis(obj.stageAxes(index));
             viewFixed = obj.edtFixedPos(index);
             if ~ValidationHelper.isStringValueANumber(viewFixed.String)
-                viewFixed.String = StringHelper.formatNumber(scanParams.fixedPos(axis));
+                viewFixed.String = StringHelper.formatNumber(scanParams.fixedPos(phAxis));
                 obj.sendError('Only numbers can be accepted! reverting.');
             end
             fixedPos = str2double(viewFixed.String);
-            [lowerBound, upperBound] = stage.ReturnLimits(axis);
+            [lowerBound, upperBound] = stage.ReturnLimits(phAxis);
             if ~ValidationHelper.isInBorders(fixedPos, lowerBound, upperBound)
                 warningMsg = sprintf( ...
                     '"fixedPos" (index: %s) is not in bounds! Setting it to the bound...\n(bounds: [%d, %d])', ...
@@ -255,15 +255,15 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
                 end
             end
             
-            [viewFixed.String, scanParams.fixedPos(axis)] = StringHelper.formatNumber(fixedPos);
+            [viewFixed.String, scanParams.fixedPos(phAxis)] = StringHelper.formatNumber(fixedPos);
         end
         
         function colorifyFixed(obj, index)
            % index - int. [1 to length(obj.stageAxes)] which view was changed
-           axis = ClassStage.getAxis(obj.stageAxes(index));
+           phAxis = ClassStage.getAxis(obj.stageAxes(index));
            stage = getObjByName(obj.stageName);
            scanParams = stage.scanParams;
-           axisIsFixed = scanParams.isFixed(axis);
+           axisIsFixed = scanParams.isFixed(phAxis);
            
            obj.recolor( ...     % Grays out if second parameter is true, reverts -- if false
                [obj.edtFrom(index), obj.edtTo(index), obj.edtNumPoints(index)], ...
@@ -276,8 +276,8 @@ classdef ViewStagePanelScanParams < GuiComponent & EventListener & EventSender
             scanParams = stage.scanParams;
             
             for i = 1 : length(obj.stageAxes)
-                axis = obj.stageAxes(i);
-                axisIndex = ClassStage.getAxis(axis);
+                phAxis = obj.stageAxes(i);
+                axisIndex = ClassStage.getAxis(phAxis);
                 
                 % Notice the difference:
                 % i - index for the views
