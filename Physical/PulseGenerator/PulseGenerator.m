@@ -68,6 +68,8 @@ classdef PulseGenerator < EventSender
             try
                 getObjByName(PulseGenerator.NAME);
             catch
+                % Decision: We want a new PG only if no other instance
+                % already exists.
                 PulseGenerator(struct);
             end
             

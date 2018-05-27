@@ -27,15 +27,15 @@ classdef SwitchPbControlled < EventSender & EventListener
         
         function set.isEnabled(obj, newValue)
             % newValue - logical (i.e. true \ false \ 1 \ 0)
-            if ((isnumeric(newValue) && (newValue == 0 || newValue == 1)) ...
-                    || islogical(newValue))
+            if isequal(newValue, false) || isequal(newValue, true) % isequal(1, true) == true
+                newValue = logical(newValue);
                 obj.isEnabled = newValue;
                 pb = getObjByName(PulseBlaster.NAME);
                 pb.switchOnly(obj.name, newValue);
                 obj.sendEvent(struct('isEnabled', newValue));
                 % ^ let everyone know about the success! :)
             else
-                error('Can''t set "isEnabled" to something other than (true \ false \ 1 \ 0). aborting');
+                error('Can''t set "isEnabled" to something other than (true \ false \ 1 \ 0). Aborting');
             end
         end
     end

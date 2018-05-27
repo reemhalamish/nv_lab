@@ -32,8 +32,8 @@ classdef SwitchPsControlled < EventSender & EventListener
         
         function set.isEnabled(obj, newValue)
             % newValue - logical (i.e. true \ false \ 1 \ 0)
-            if ((isnumeric(newValue) && (newValue == 0 || newValue == 1)) ...
-                    || islogical(newValue))
+            if isequal(newValue, false) || isequal(newValue, true) % isequal(1, true) == true
+                newValue = logical(newValue);
                 obj.isEnabled = newValue;
                 PG = getObjByName(PulseGenerator.NAME);
                 ps = PG.pulseStreamer;

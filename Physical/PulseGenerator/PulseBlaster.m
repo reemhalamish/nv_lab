@@ -473,13 +473,13 @@ classdef PulseBlaster < EventSender
             RX_PHASE_REGS  = 3;
             PHASE_REGS_0   = 3;
             
-            status = calllib(obj.PBl_LIB_NAME,'pb_start_programming',PULSE_PROGRAM);
+            status = calllib(obj.PBl_LIB_NAME, 'pb_start_programming',PULSE_PROGRAM);
         end
         function status = PBesrStop(obj)
-            status = calllib(obj.PBl_LIB_NAME,'pb_stop');
+            status = calllib(obj.PBl_LIB_NAME, 'pb_stop');
         end
         function status = PBesrStopProgramming(obj)
-            status = calllib(obj.PBl_LIB_NAME,'pb_stop_programming');
+            status = calllib(obj.PBl_LIB_NAME, 'pb_stop_programming');
         end
         
     end

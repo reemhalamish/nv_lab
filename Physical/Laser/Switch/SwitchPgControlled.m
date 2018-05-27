@@ -20,20 +20,26 @@ classdef SwitchPgControlled < EventSender & EventListener
         function obj = SwitchPgControlled(name, pgChannel)
             % name - the nickname of the object
             % pgChannel - vector of chars. the channel that PS will work with
+            %             ^ When new PG is implemented: 'Channel. PG will
+            %               work with *this*.'
             PG = getObjByName(PulseGenerator.NAME);
             obj@EventSender(name);
             obj@EventListener(PG.NAME);
             BaseObject.addObject(obj);  % so it can be reached by BaseObject.getByName()
             
-%             pg.addNewChannel(name, pgChannel);     in the meanwhile, this is not needed
+            %             pg.addNewChannel(name, pgChannel);     in the meanwhile, this is not needed
             obj.channel = pgChannel;
+%             % When new PG is implemented:
+%             assert(pgChannel.isDigital, 'Switch channels must be of type Digital');
+%             PG.registerChannel(pgChannel);
+%             obj.channel = pgChannel.name;
             obj.isEnabled = false;
         end
         
         function set.isEnabled(obj, newValue)
             % newValue - logical (i.e. true \ false \ 1 \ 0)
-            if (isnumeric(newValue) && (newValue == 0 || newValue == 1)) ...
-                    || islogical(newValue)
+            if ValidationHelper.isTrueOrFalse(newValue)
+                newValue = logical(newValue);
                 obj.isEnabled = newValue;
                 PG = getObjByName(PulseGenerator.NAME);
                 if newValue

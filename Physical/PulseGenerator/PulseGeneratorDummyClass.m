@@ -94,7 +94,7 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
             end
             newChannels = obj.ChannelValuesFromNames(newEvent);
             try
-                if length(newDuration) > 1 || isempty(newDuration)
+                if ~isscalar(newDuration)
                     error('Invalid input duration')
                 end
                 if newDuration < obj.minDuration || newDuration > obj.maxDuration
@@ -117,7 +117,7 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
             
             [~, newEvent] = obj.ChannelValuesFromNames(newEvent); todo = 'maybe will not work'
             try
-                if length(newDuration) > 1 || isempty(newDuration) || length(newTime) > 1 || isempty(newTime)
+                if ~isscalar(newDuration) || ~isscalar(newTime)
                     error('Invalid input duration / initial time')
                 end
                 if newDuration < obj.minDuration || newDuration > obj.maxDuration
@@ -182,14 +182,14 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
         function changeSequence(obj,index,what,newValue)
             index = obj.indexFromNickname(index);
             switch lower(what)
-                case {'duration','t'}
+                case {'duration', 't'}
                     if newValue < obj.minDuration || newValue > obj.maxDuration
                         EventStation.anonymousError(...
                             'Duration must be between %s and %s', ...
                             num2str(obj.minDuration), num2str(obj.maxDuration))
                     end
                     obj.durationPrivate(index) = newValue;
-                case {'sequence','event','pb'}
+                case {'sequence', 'event', 'pb'}
                     newChannels = obj.ChannelValuesFromNames(newValue);
                     obj.sequencePrivate{index} = newChannels;
                 otherwise
@@ -271,14 +271,14 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
     end
     
     methods (Access = private)
-        function [chanNum,chanIndex] = ChannelValuesFromNames(obj,names)
-            % inputs: a cell of chars / a char / a vector of integers. In
-            % the former two - converts the name to the correspondin PB
-            % channel number/s (chenNum). In the latter - check values are OK and returns them. In empty - chenNum = [];
-            % Also returns a vector with 1 for the channels detected, and 0
-            % elsewere.
-            chanIndex = zeros(length(obj.channelValues),1);
-            if nargin<2 || isempty(names) || isequal(names,'')
+        function [chanNum, chanIndex] = ChannelValuesFromNames(obj, names)
+            % Inputs: a cell of chars / a char / a vector of integers.
+            % In the former two - converts the name to the correspondin PB
+            %   channel number/s (chanNum).
+            % In the latter - checks that values are OK and returns them. In empty - chanNum = []; Also returns a
+            % vector with 1 for the channels detected, and 0 elsewere.
+            chanIndex = zeros(length(obj.channelValues), 1);
+            if nargin < 2 || isempty(names) || isequal(names, '')
                 chanNum = [];
             else
                 switch class(names)
@@ -286,7 +286,7 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
                         index = 1;
                         chanNum = zeros(size(names));
                         for k = 1:length(names)
-                            p = strcmp(names{k},obj.channelNames)';                         
+                            p = strcmp(names{k}, obj.channelNames)';                         
                             if ~nnz(p)
                                 warning('Unknown PB channelname %s',names{k})
                             else
@@ -296,13 +296,13 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
                             end
                         end
                     case 'char'
-                        p = strcmp(names,obj.channelNames);
+                        p = strcmp(names, obj.channelNames);
                         chanNum = obj.channelValues(p);
                         chanIndex(:) = p;
                     case 'double'
-                        if sum(rem(names,1))
+                        if sum(rem(names, 1))
                             EventStation.anonymousError('Input must be an integer')
-                        elseif sum(names<0) || sum(names > 16)
+                        elseif sum(names < 0) || sum(names > 16)
                             EventStation.anonymousError('Value out of range')
                         end                     
                         chanNum = names;
@@ -322,7 +322,7 @@ classdef (Sealed) PulseGeneratorDummyClass < handle
         function index = indexFromNickname(obj,nickname)
             if isnumeric(nickname)
                 index = nickname;
-            elseif isa(nickname,'char')
+            elseif isa(nickname, 'char')
                 index = strcmp(nickname,obj.nicknamePrivate);
             else
                 EventStation.anonymousError('Unknown kind')
