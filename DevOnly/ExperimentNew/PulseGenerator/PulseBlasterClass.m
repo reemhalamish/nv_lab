@@ -1,4 +1,4 @@
-classdef (Sealed) PulseBlasterClass < handle
+classdef (Sealed) PulseBlasterClass < PulseGenerator
     
     properties (Constant, Hidden)
         MAX_REPEATS = 1e6;       	% int. Maximum value for obj.repeats
@@ -11,193 +11,33 @@ classdef (Sealed) PulseBlasterClass < handle
     end
     
     properties (Constant, Access = private) 
-        frequencyPrivate=500; %in MHz ( == 500e6 Hz)
-    end
-    
-    properties (Access = private)        
-        minDuration = 0;
-        maxDuration = 1e5;
-        maxRepeats=1e6;
-    end
-    
-    methods (Static, Access = public) % Get instance constructor
-        function obj = GetInstance()
-            % Returns a singelton instance.
-            persistent localObj
-            if isempty(localObj) || ~isvalid(localObj)
-                localObj = PulseBlasterClass();
-                localObj.Initialize;
-            end
-            obj = localObj;
-            % addBaseObject(obj)
-        end
+        frequencyPrivate = 500; %in MHz ( == 500e6 Hz)
     end
     
     methods (Access = private)
-        function obj= PulseBlasterClass()
+        function obj = PulseBlasterClass()
+            obj@PulseGenerator;
             % Private default constructor.
-            %call Initialization(obj)?
         end
     end
     methods (Access = public)
         
-        function Initialize(obj)
+        function Initialize(obj, path)
             if ~libisloaded('mypbesr')
                 disp('Matlab: Load spinapi.dll')
                 
                 % Added by Sungkun
                 % spinapi.h C:\Program Files\SpinCore\SpinAPI\dll
                 % spinapi.dll C:\Program Files\SpinCore\SpinAPI\dll
-                funclist = loadlibrary('C:\SpinCore\SpinAPI\dll\spinapi64.dll','C:\SpinCore\SpinAPI\dll\spinapi.h','alias','mypbesr');
+                dllPath = [PathHelper.appendBackslashIfNeeded(path), 'spinapi64.dll'];
+                hPath = [PathHelper.appendBackslashIfNeeded(path), 'spinapi64.h'];
+                funclist = loadlibrary(dllPath, hPath, 'alias','mypbesr');
             end
             obj.newSequence;
         end
     end
-    methods % prepare and run
-        function channelNames = get.channelNames(obj)
-            channelNames = obj.channelNamesPrivate;
-        end
-        function channelValues = get.channelValues(obj)
-            channelValues = obj.channelValuesPrivate;
-        end
-        function duration = get.duration(obj)
-            duration = obj.durationPrivate;
-        end
-        function time = get.time(obj)
-            time = cumsum(obj.durationPrivate);
-        end
-        function nickname = get.nickname(obj)
-            nickname = obj.nicknamePrivate;
-        end
-        
-        function sequence = get.sequence(obj)
-            sequence = obj.sequencePrivate;
-        end
-        function repeats = get.repeats(obj)
-            repeats = obj.repeatsPrivate;
-        end
-        function setRepeats(obj,newVal)
-            if newVal<1 || newVal> obj.maxRepeats
-                error('Value out of range')
-            end
-            obj.repeatsPrivate = newVal;
-        end
-    end
+
     methods
-        function newSequence(obj)
-            obj.durationPrivate = []; %mus
-            obj.nicknamePrivate = {};
-            obj.sequencePrivate = [];
-        end
-        function newSequenceLine(obj,newEvent,newDuration,nickname)
-            if nargin<4 || isempty(nickname)
-                nickname = {''};
-            end
-            [~,newChannels] = obj.ChannelValuesFromNames(newEvent);
-            if length(newDuration) > 1 || isempty(newDuration)
-                error('invalid input duration')
-            end
-            if newDuration < obj.minDuration || newDuration > obj.maxDuration
-                error('Duration must be between %s and %s',num2str(obj.minDuration),num2str(obj.maxDuration))
-            end
-            try
-                tempDuration = [obj.durationPrivate,newDuration];
-                tempSequence = [obj.sequencePrivate,newChannels];
-                tempNickname = [obj.nicknamePrivate,nickname];
-            catch err
-                rethrow(err)
-            end
-            obj.durationPrivate = tempDuration;
-            obj.sequencePrivate = tempSequence;
-            obj.nicknamePrivate = tempNickname;
-        end
-        function addEventAtGivenTime(obj,newTime,newEvent,newDuration) %no nickname here!
-            minTime = -1000; 
-            maxTime = max(1e4,sum(obj.duration)*2);
-            dif = 1e-10;
-            
-            %newNickname = {''};
-            
-            [~,newEvent] = obj.ChannelValuesFromNames(newEvent);
-            if length(newDuration) > 1 || isempty(newDuration) || length(newTime) > 1 || isempty(newTime)
-                error('invalid input duration / initial time')
-            end
-            if newDuration < obj.minDuration || newDuration > obj.maxDuration
-                error('Duration must be between %s and %s',num2str(obj.minDuration),num2str(obj.maxDuration))
-            end
-            if newTime < minTime || newTime > maxTime
-                error('Duration must be between %s and %s \mus',num2str(minTime),num2str(maxTime))
-            end
-            try
-                localDuration= obj.durationPrivate;
-                localSequence = obj.sequencePrivate;
-                localNickname = obj.nicknamePrivate;
-                ch = size(localSequence,1); % number of PB channels in the system
-                %%%%%%%%%%%%%%%%
-                if newTime<0 % add a new empty line, and continue
-                    localDuration = [abs(newTime), localDuration];
-                    localSequence = [zeros(ch,1),localSequence];
-                    localNickname = [localNickname,{''}];
-                    newTime = 0;
-                end              
-                k = 1;
-                while k <=length(localDuration) && newDuration > dif
-                    tInitial = sum(localDuration(1:k-1));
-                    tFinal = tInitial + localDuration(k);
-                    if newTime - tInitial < dif
-                        if newDuration < localDuration(k) %Split event and run again
-                            localSequence = localSequence(:,[1:k,k:end]);
-                            localDuration = [localDuration(1:k-1), newDuration, localDuration(k) - newDuration, localDuration(k+1:end)];
-                            localNickname = [localNickname(1:k-1),{'changed'},{'changed'},localNickname(k+1:end)];
-                        else %add the part needed, and pass the reminder to the next event
-                            localSequence(:,k) = (localSequence(:,k) + newEvent ~= 0);
-                            newDuration = newDuration - localDuration(k);
-                            newTime = newTime + localDuration(k);
-                            k = k +1;
-                        end
-                    else
-                        if newTime - tFinal < -dif % separate the original event into two parts, and continues
-                            localSequence = localSequence(:,[1:k,k:end]);
-                            localDuration = [localDuration(1:k-1), newTime-tInitial,tFinal-newTime, localDuration(k+1:end)];%split the k'th event time. changes will be made in the last one
-                            localNickname = [localNickname(1:k-1), {'changed'}, {'changed'}, localNickname(k+1:end)];
-                        end
-                        k = k + 1;
-                    end
-                end
-                tFinal = sum(localDuration);
-                %if newTime - tFinal > 0
-                if newDuration
-                    if newTime - tFinal > 0
-                        localDuration = [localDuration, newTime - tFinal];
-                        localSequence = [localSequence,zeros(ch,1)];
-                        localNickname = [localNickname,{''}];
-                    end
-                    localDuration = [localDuration, newDuration];
-                    localSequence = [localSequence,newEvent];
-                    localNickname = [localNickname,{''}];                  
-                end              
-            catch err
-                rethrow(err)
-            end
-            obj.durationPrivate = localDuration;
-            obj.sequencePrivate = localSequence;
-            obj.nicknamePrivate = localNickname;          
-        end
-        function changeSequence(obj,index,what,newValue)
-            index = obj.indexFromNickname(index);
-            switch lower(what)
-                case {'duration','t'}
-                    if newValue < obj.minDuration || newValue > obj.maxDuration
-                        error('Duration must be between %s and %s',num2str(obj.minDuration),num2str(obj.maxDuration))
-                    end
-                    obj.durationPrivate(index) = newValue;
-                case {'sequence','event','pb'}
-                    [~,newChannels] = obj.ChannelValuesFromNames(newValue);
-                    obj.sequencePrivate(:,index) = newChannels;
-                otherwise
-                    error('Unknown option')
-            end
-        end
         function setChannelNameAndValue(obj,names,values)
             if size(names)~=size(values)
                 error('inputs must be of the same size')
@@ -222,20 +62,22 @@ classdef (Sealed) PulseBlasterClass < handle
     
     methods
         
-        function On(obj,channels)
-            % OutPuts - channels to be opened (0,1,2,,,,), as a double
-            % vector
-            if (~PBisReady())
-                obj.PBesrInit();%initialize PBesr
+        function on(obj, channelNames)
+            % Turns on channels named (channelNames)
+            % Returns error if not all were turned on
+            if (~obj.PBisReady())
+                obj.PBesrInit(); % initialize PBesr
                 obj.PBesrSetClock();
             end
             
-            channels = obj.ChannelValuesFromNames(channels); %converts from a cell of names to channel numbers, if needed
+            channels = obj.channelName2Address(channelNames); % converts from a cell of names to channel numbers, if needed
             if isempty(channels)
                 channels = 0;
             else
-                if sum(rem(channels,1)) || min(channels) <0 || max(channels)> obj.maxPBchannel;
-                    error('Input must be integers from 0 to %f', obj.maxPBchannel)
+                minChan = min(obj.AVAILABLE_ADDRESSES); % Probably 0, but just in case
+                maxChan = max(obj.AVAILABLE_ADDRESSES);
+                if sum(rem(channels,1)) || min(channels) < minChan || max(channels)> maxChan
+                    error('Input must be valid channels! Ignoring.')
                 end
                 channels = sum(2.^channels);
             end
@@ -250,11 +92,11 @@ classdef (Sealed) PulseBlasterClass < handle
             obj.PBesrStop();
             obj.PBesrStart();
         end
-        function Off(obj)
-            obj.On([]);
+        function off(obj)
+            obj.on([]);
         end
         
-        function Run(obj)
+        function run(obj)
             uploadSequence(obj)
             % function RunPBSequence
             if (~obj.PBisReady())
@@ -267,7 +109,26 @@ classdef (Sealed) PulseBlasterClass < handle
             obj.PBesrStart(); %start pulsing. it will start pulse sequence which were progammed/loaded to PBESR card before.
         end
         
-        function [PB] = uploadSequence(obj)%,events,duration,channels,repeats)
+        function validateSequence(obj)
+            if isempty(obj.sequencePrivate)
+                error('Upload sequence')
+            end
+            
+            pulses = obj.sequence.pulses;
+            for i = 1:length(pulses)
+                onCh = pulses(i).getOnChannels;
+                mNames = obj.channelNames;
+                for j = 1:length(onCh)
+                    chan = onCh{j};
+                    if ~contains(mNames, chan)
+                        errMsg = sprintf('Channel %s could not be found! Aborting.', chan);
+                        obj.sendError(errMsg)
+                    end
+                end
+            end
+        end
+        
+        function [PB] = sendToHardware(obj)%,events,duration,channels,repeats)
             %duration: event duration, in ns;
             %channels: a vector of the channel numbers
             %events: a (logical) matrix of length(channels) * length(duration).
@@ -315,9 +176,7 @@ classdef (Sealed) PulseBlasterClass < handle
             %end
             
             %PBevents=sum(diag(2.^(0:size(events,1)-1))*(events~=0),1); % convert events to logics
-            if isempty(obj.sequencePrivate)
-                error('Upload sequence')
-            end
+
             PBevents=(2.^(obj.channelValuesPrivate))*logical(obj.sequencePrivate); % convert events to logics
             duration = (obj.duration'*1e3);
             PB=[PBevents',duration]; %conver duration in ns to \mus
@@ -407,9 +266,9 @@ classdef (Sealed) PulseBlasterClass < handle
             a=1;
             if strcmp(CMD(1,2),CONTINUE)
                 % fixed this error, jhodges, 9 Oct 2008
-                %% Old Code
-                %%AuxCMD(a,:) = CMD{1,:};
-                %%AuxCMD(a,1) = LOOP;
+                %%% Old Code
+                %%%AuxCMD(a,:) = CMD{1,:};
+                %%%AuxCMD(a,1) = LOOP;
                 
                 % if first command in sequence is a contiune, change it to a LOOP
                 AuxCMD(a,:) = [CMD{1,1},LOOP,obj.repeats,CMD{1,4},CMD{1,5}];
@@ -530,7 +389,7 @@ classdef (Sealed) PulseBlasterClass < handle
         function [j]= Index(obj,channel)
             %recives either channel's name or number
             %returnes the channels location in channelPrivate
-            if iscell(channel);
+            if iscell(channel)
                 I=find(strcmp(channel,obj.NamePrivate));
                 j=obj.channelPrivate(I);
             elseif isnumeric(channel)
@@ -727,15 +586,15 @@ classdef (Sealed) PulseBlasterClass < handle
         %             % PBesrSetClock(400);
         %         end
         function status = PBesrInit(obj)
-            status = calllib('mypbesr','pb_init');
+            status = calllib('mypbesr', 'pb_init');
         end
         
-        function [ValidCMD] = ValidateCMD(obj,CMD,ClockTime)
+        function [ValidCMD] = ValidateCMD(obj, CMD, ClockTime)
             % checks the CMD structure for erroneously short instruction delays due to
             % rounding errors in building the pulse sequence via matlab
             
             a = 1;
-            for k = 1:size(CMD,1),
+            for k = 1:size(CMD, 1)
                 
                 % 1 ns is the minimum delay until next instruction
                 if CMD{k,4} > 1
@@ -782,7 +641,7 @@ classdef (Sealed) PulseBlasterClass < handle
                     % Due to a peculiarity in the PB to CMD logic, we can end up
                     % having LONG_DELAY types with only 1 multiplier.  These should be
                     % made into continue delays
-                    if strcmp(CMD{k,2},'LONG_DELAY') && (CMD{k,3} == 1)
+                    if strcmp(CMD{k,2}, 'LONG_DELAY') && (CMD{k,3} == 1)
                         ValidCMD{a,1} = CMD{k,1};
                         ValidCMD{a,2} = 'CONTINUE';
                         ValidCMD{a,3} = 0;
@@ -810,30 +669,30 @@ classdef (Sealed) PulseBlasterClass < handle
             status = calllib('mypbesr','pb_read_status');
         end
         
-        function s = CMD2PBI(obj,CMD)
+        function s = CMD2PBI(obj, CMD)
             % converts a CMD structure to pulse blaster interpreter code for debugging
             s = '';
-            for k=1:size(CMD,1),
-                flags = dec2hex(CMD{k,1},6);
+            for k = 1:size(CMD,1)
+                flags = dec2hex(CMD{k,1}, 6);
                 delay = CMD{k,4};
                 inst = CMD{k,2};
                 inst_opt = CMD{k,3};
                 flag_opt = CMD{k,5};
                 
-                if strcmp(flag_opt,'ON'),
+                if strcmp(flag_opt, 'ON')
                     ON = hex2dec('E00000');
-                    flags = bitor(ON,CMD{k,1});
+                    flags = bitor(ON, CMD{k,1});
                     flags = dec2hex(flags);
                 end
                 
-                s = [s,sprintf('0x%s,\t%0.3fns,\t%s,\t%d\n',flags,delay,inst,inst_opt)];
+                s = [s,sprintf('0x%s,\t%0.3fns,\t%s,\t%d\n', flags, delay, inst, inst_opt)];
             end
         end
         
     end
     
     methods
-        function CallPBON(obj,OutPuts)
+        function CallPBON(obj, OutPuts)
             %This Function receives a Binary number
             
             %Outputs file
@@ -846,84 +705,25 @@ classdef (Sealed) PulseBlasterClass < handle
             status = dos([path file]);
         end
     end
-    methods (Access = private)
-        %         function num = ChannelValuesFromNames(obj,names)
-        %             num = zeros(length(obj.channelNames),1);
-        %             if nargin<2 || isempty(names) || isequal(names,'')
-        %                 return
-        %             end
-        %             if isa(names,'cell')
-        %                 for k = 1:length(names)
-        %                     p = strcmp(names{k},obj.channelNames);
-        %                     if isempty(p)
-        %                         error('Unknown PB channelname %s',names{k})
-        %                     end
-        %                     num(p) = 1;
-        %                 end
-        %             elseif isa(names,'char')
-        %                 p = strcmp(names,obj.channelNames);
-        %                 num(p) = 1;
-        %             else
-        %                 error('Input must be numeric or a cell of chars')
-        %             end
-        %         end
-        function [chanNum,chanIndex] = ChannelValuesFromNames(obj,names)
-            % inputs: a cell of chars / a char / a vector of integers. In
-            % the former two - converts the name to the correspondin PB
-            % channel number/s (chenNum). In the latter - check values are OK and returns them. In empty - chenNum = [];
-            % Also returns a vector with 1 for the channels detected, and 0
-            % elsewere.
-            chanIndex = zeros(length(obj.channelValues),1);
-            if nargin<2 || isempty(names) || isequal(names,'')
-                chanNum = [];
-            else
-                switch class(names)
-                    case 'cell'
-                        index = 1;
-                        for k = 1:length(names)
-                            p = strcmp(names{k},obj.channelNames)';                         
-                            if ~nnz(p)
-                                warning('Unknown PB channelname %s',names{k})
-                            else
-                                chanNum(index) = obj.channelValues(p);
-                                chanIndex = chanIndex + p;
-                                index = index + 1;
-                            end
-                        end
-                    case 'char'
-                        p = strcmp(names,obj.channelNames);
-                        chanNum = obj.channelValues(p);
-                        chanIndex(:) = p;
-                    case 'double'
-                        if sum(rem(names,1))
-                            error('input must be an integer')
-                        elseif sum(names<0) || sum(names > 16)
-                            error('Value out of range')
-                        end                     
-                        chanNum = names;
-                        for k = 1:length(chanNum)
-                            p = (chanNum(k) == obj.channelValues);
-                            if ~nnz(p)
-                                warning('Channel # %u was not found in PB class',chanNum(k))
-                            else
-                                chanIndex = chanIndex + p;
-                            end
-                        end
-                    otherwise
-                        error('Unknown class')
+    
+    %% Get instance constructor
+    methods (Static, Access = public)
+        function obj = GetInstance(struct)
+            % Returns a singelton instance.
+            try
+                obj = getObjByName(PulseGenerator.NAME_PULSE_BLASTER);
+            catch
+                % None exists, so we create a new one
+                missingField = FactoryHelper.usualChecks(struct, PulseBlasterClass.NEEDED_FIELDS);
+                if ~isnan(missingField)
+                    error('Error while creating a PulseBlaster object: missing field "%s"!', missingField);
                 end
-            end
-        end
-        function index = indexFromNickname(obj,nickname)
-            if isnumeric(nickname)
-                index = nickname;
-            elseif isa(nickname,'char')
-                index = strcmp(nickname,obj.nicknamePrivate);
-            else
-                error('unknown kind')
-            end
-            if isempty(index) || ~nnz(index)
-                    error('index not found')
+                
+                obj = PulseBlasterClass();
+                path = struct.libPathName;
+                Initialize(obj, path)
+                
+                addBaseObject(obj)
             end
         end
     end

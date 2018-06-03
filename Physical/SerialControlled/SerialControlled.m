@@ -111,9 +111,13 @@ classdef SerialControlled < matlab.mixin.SetGet
             % tokens specified in the regex.
             obj.sendCommand(command);
             string = obj.readAll;
-            if exist('regex', 'var')
+            if exist('regex', 'var') && ~isempty(string)
                 string = regexp(string, regex, 'tokens', 'once');    % returns cell of strings
-                string = cell2mat(string);
+                if ~isempty(string) %cell2mat can't handle a 0x0 cell array
+                    string = cell2mat(string);
+                else
+                    string = '';
+                end
             end
         end
     end

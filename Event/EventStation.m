@@ -165,7 +165,7 @@ classdef EventStation < handle
                 try
                     listener.onEvent(event);
                 catch err
-                    obj.anonymousWarning('%s could not perform onEventTask! skipping.', class(listener))
+                    obj.anonymousWarning('%s could not perform onEventTask! Skipping.', class(listener))
                     err2warning(err);
                 end
             end

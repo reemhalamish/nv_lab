@@ -26,11 +26,11 @@ classdef Sequence < handle
         end
         
         % Get methods
-        function t = duration(obj)
+        function time = duration(obj)
             if isempty(obj.pulses)
-                t = 0;
+                time = 0;
             else
-                t = sum([obj.pulses.duration]);
+                time = sum([obj.pulses.duration]);
             end
         end
         
@@ -41,7 +41,7 @@ classdef Sequence < handle
         
         function names = nicknames(obj)
             names = {obj.pulses.nickname};
-            names = unique(names);  % todo: check if needed.
+            names = unique(names);
         end
     end
 
@@ -58,23 +58,23 @@ classdef Sequence < handle
             % between the sequence and the new pulse.
             
             assert(isa(pulse, 'Pulse'))
-            p = Sequence(pulse);    % Dummy singleton Sequence of duration time
+            p = Sequence(pulse);    % Sequence of a single pulse
             pulseDuration = p.duration;
             seqDuration = obj.duration;
             
             % Timeline visualization of cases:
-            % (each |###| represents a pulse)
+            % (each |##| represents a pulse)
             %                 0                seqDuration  
-            % obj = ----------|###|#####|##|###|-------------
+            % obj = ----------|###|#####|##|###|------------
             %                 |                |
-            %              t  |                |
-            % (1): --------|####|--------------|-------------
-            %        t        |                |
-            % (2): --|####|---|----------------|-------------
-            %                 |                |    t
-            % (3): -----------|----------------|----|####|---
-            %                 |              t |
-            % (4): -----------|--------------|####|----------
+            %              time                |                       0   |time|            seqDuration+|time|  
+            % (1): --------|####|--------------|------------  -->  ----|####|###|#####|##|###|-------------------------
+            %        time     |                |                       0       |time|            seqDuration+|time|  
+            % (2): --|####|---|----------------|------------  -->  ----|####|---|###|#####|##|###|---------------------
+            %                 |                |    time               0                sD   time
+            % (3): -----------|----------------|----|####|--  -->  ----|###|#####|##|###|----|####|--------------------
+            %                 |              time                      0              time    seqDuration+pulseDuration
+            % (4): -----------|--------------|####|---------  -->  ----|###|#####|##|#|####|##|------------------------
             
             if time <= 0 && pulseDuration >= abs(time) %     (1)
                     obj = p + obj;
@@ -117,7 +117,7 @@ classdef Sequence < handle
         function [S1, S2] = splitByTime(obj, time)
             assert(isscalar(time), 'Currently, we Can''t split by vector of times. Sorry!')
             
-            if time > obj.duration || time < Pulse.MINIMUM_DURATION
+            if time >= obj.duration || time <= 0
                 error('Sequence could not be split in requested time')
             end
             pulseEdges = obj.edgeTimes;
@@ -144,18 +144,22 @@ classdef Sequence < handle
         function change(obj, nickname, what, newValue)
             index = obj.indexFromNickname(nickname);
             p = obj.pulses(index);
-            switch lower(what)
-                case {'duration', 't'}
-                    p.duration = newValue;  % setter will take care of validation
-                case {'sequence', 'event', 'pb'}
-                    % Decision: for now, pulse enables adding or removing
-                    % individual channels. This function, however, always
-                    % removes everything, and then adds *only* the
-                    % requested channels.
-                    p.clear();
-                    p.setLevels(newValue);  % We assume, for now, only digital cahnnels.
-                otherwise
-                    error('Unknown option')
+            % Maybe p is an array of multiple pulses, and we are then
+            % forced to use a loop to handle it.
+            for i = 1:length(p)
+                switch lower(what)
+                    case {'duration', 't'}
+                        p(i).duration = newValue;  % setter will take care of validation
+                    case {'sequence', 'event', 'pb'}
+                        % Decision: for now, pulse enables adding or removing
+                        % individual channels. This function, however, always
+                        % removes everything, and then adds *only* the
+                        % requested channels.
+                        p(i).clear();
+                        p(i).setLevels(newValue);  % We assume, for now, only digital cahnnels.
+                    otherwise
+                        error('Unknown option')
+                end
             end
         end
     end

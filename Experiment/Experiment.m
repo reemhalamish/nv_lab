@@ -159,9 +159,9 @@ classdef Experiment < EventSender & EventListener & Savable
         function obj = init
             % Creates a default Experiment.
             try
-                % Logic is reversed (without a clean way out):
-                % if the try block succeeds, then we need to output a
-                % warning.
+                % Current algoritmic logic is reversed here (without a
+                % clean way out): if the try block SUCCEEDS, we need to
+                % output a warning.
                 getObjByName(Experiment.NAME);
                 EventStation.anonymousWarning('Deleting Previous experiment')
             catch

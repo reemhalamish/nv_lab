@@ -26,8 +26,8 @@ classdef AxesHelper
                         plot(gAxes, firstAxisVector, data);
                     end
                     
-                    xlabel(gAxes,bottomLabel);
-                    ylabel(gAxes,leftLabel);
+                    xlabel(gAxes, bottomLabel);
+                    ylabel(gAxes, leftLabel);
                 case 2
                     % todo
                     imagesc(...
@@ -35,8 +35,8 @@ classdef AxesHelper
                         'XData', firstAxisVector, ...
                         'YData', secondAxisOptionalVector, ...
                         'Parent', gAxes);
-                    xlabel(gAxes,bottomLabel);
-                    ylabel(gAxes,leftLabel);
+                    xlabel(gAxes, bottomLabel);
+                    ylabel(gAxes, leftLabel);
                     axis(gAxes, 'xy', 'tight', 'normal')
                     axis(gAxes, 'manual')
                     c = colorbar('peer', gAxes, 'location', 'EastOutside');   % todo: peer is outdated

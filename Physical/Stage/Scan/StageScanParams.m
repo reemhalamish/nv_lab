@@ -108,7 +108,7 @@ classdef StageScanParams < handle
             from_(from_ < newLimNeg) = newLimNeg(from_ < newLimNeg);
             obj.from(phAxis) = from_;
             
-            to_ = obj.to(phAxis);            
+            to_ = obj.to(phAxis);
             to_(to_ > newLimPos) = newLimPos(to_ > newLimPos);
             to_(to_ < newLimNeg) = newLimNeg(to_ < newLimNeg);
             obj.to(phAxis) = to_;

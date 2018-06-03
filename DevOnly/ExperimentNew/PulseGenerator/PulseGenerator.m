@@ -42,11 +42,11 @@ classdef (Abstract) PulseGenerator < EventSender
         end
         
         function uploadSequence(obj)
-            seq = obj.sequence;
             validateSequence(obj)
             
             % We might need to add some blank time @ end of sequence, for
             % synchroniztion purposes
+            seq = obj.sequence;
             t = obj.sequencePeriodMultiple;
             remainder = rem(seq.duration, t);       % returns NaN if t==0; returns 0 if duration is multiple of t
             if ~isnan(remainder) && remainder ~= 0  % That is, we need to add a dummy pulse
@@ -54,8 +54,7 @@ classdef (Abstract) PulseGenerator < EventSender
                 seq.addPulse(p);
             end
             
-            repeatedSeq = obj.repeats * seq;
-            obj.sendToHardware(repeatedSeq);
+            obj.sendToHardware;
             obj.sequenceInMemory = true;
         end
     end
@@ -163,14 +162,14 @@ classdef (Abstract) PulseGenerator < EventSender
             if iscell(name)
                 % find for each name seperately
                 len = length(name);
-                address = cell(0, len);
+                address = -ones(0, len);
                 for i = 1:len
                     index = find(strcmp(name{i}, obj.channelNames));
                     if ~isempty(index)
-                        address{i} = obj.channels(index).address;
+                        address(i) = obj.channels(index).address;
                     end
                 end
-                invalidNum = sum(isempty(address));
+                invalidNum = sum(address < 0);
                 if invalidNum ~= 0
                     msg = sprintf('%d channels could not be found', invalidNum);
                     obj.sendWarning(msg);
@@ -179,8 +178,8 @@ classdef (Abstract) PulseGenerator < EventSender
                 % simpler case: only one name
                 index = find(strcmp(name, obj.channelNames)); % Should return the index of the channel in obj.channels
                 if isempty(index)
-                    obj.sendWarning('Could not find requested channel(s)');
-                    address = '';
+                    obj.sendWarning('Could not find requested channel!');
+                    address = -1;
                 else
                     address = obj.channels(index).address;
                 end
@@ -213,7 +212,7 @@ classdef (Abstract) PulseGenerator < EventSender
     
     %%
     methods (Static)
-        function obj = getInstance(struct)
+        function obj = create(struct)
             type = PulseGenerator.generatorType(struct);
             switch type
                 case 'dummy'
@@ -238,4 +237,3 @@ classdef (Abstract) PulseGenerator < EventSender
         end
     end
 end
-

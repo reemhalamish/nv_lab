@@ -6,7 +6,7 @@ classdef (Sealed) PulseStreamerClass < PulseGenerator
         MAX_PULSES = 10e6;          % int. Maximum number of pulses in acceptable sequences
         MAX_DURATION = Inf;         % double. Maximum duration of pulse.
         
-        AVAILABLE_ADDRESSES = 1:8;	% List of all available physical addresses.
+        AVAILABLE_ADDRESSES = 0:8;	% List of all available physical addresses.
                                     % Should be either vector of doubles or cell of char arrays
         NEEDED_FIELDS = {'ipAddress', 'debugPath'}
     end
@@ -86,7 +86,7 @@ classdef (Sealed) PulseStreamerClass < PulseGenerator
             % settings for sequence generation
             numberOfSequences = length(obj.sequence.pulses);
             sequences = [];
-            for i=1:numberOfSequences
+            for i = 1:numberOfSequences
                 p = obj.sequence.pulses(i);
                 onChannels = obj.name2index(p.onChannels);
                 newSequence = P(p.duration * 1e3, onChannels, 0, 0);
@@ -122,8 +122,8 @@ classdef (Sealed) PulseStreamerClass < PulseGenerator
         end
     end
     
-    %%
-    methods (Static, Access = public) % Get instance constructor
+    %% Get instance constructor
+    methods (Static, Access = public)
         function obj = getInstance(struct)
             % Returns a singelton instance.
             try

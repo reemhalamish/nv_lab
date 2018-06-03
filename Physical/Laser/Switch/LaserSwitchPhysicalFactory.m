@@ -25,10 +25,10 @@ classdef LaserSwitchPhysicalFactory
             
             switch lower(struct.classname)
                 case {'pulsegenerator', 'pulsestreamer', 'pulseblaster'}
-                    switchPhysicalPart = SwitchPgControlled(partName, struct.switchChannelName);
+%                     switchPhysicalPart = SwitchPgControlled(partName, struct.switchChannelName);
 %                     After PG is properly implemented, we want:
-%                     switchChannel = Channel.Digital(struct.switchChannelName, struct.switchChannel);
-%                     switchPhysicalPart = SwitchPgControlled(partName, switchChannel);
+                    switchChannel = Channel.Digital(struct.switchChannelName, struct.switchChannel);
+                    switchPhysicalPart = SwitchPgControlled(partName, switchChannel);
                 otherwise
                     EventStation.anonymousError(...
                         'Can''t create a %s-class fast switch for laser "%s" - unknown classname! Aborting.', ...

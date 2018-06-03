@@ -10,6 +10,27 @@ classdef Experiment < EventSender & EventListener & Savable
         mCurrentYAxisParam		% ExpParameter in charge of axis y (which has name and value)
     end
     
+    properties
+       averages 
+       repeats 
+       track  %initialize tracking
+       trackThreshhold % change in signal that will start the tracker
+       laserInitializationDuration% laser initialization in pulsed experiments
+       laserOnDelay     %in \mus
+       laserOffDelay    %in \mus
+       mwOnDelay        %in \mus
+       mwOffDelay       %in \mus
+       detectionDuration % detection windows, in \mus
+       
+       greenLaserPower % in V
+    end
+    
+    properties (Access = private)
+        stopFlag = 0;
+        pauseFlag = 0; % 0 -> new signal will be acquired. 1 --> signal will be required.
+        pausedAverage = 0; 
+    end
+    
     properties (Constant)
         NAME = 'Experiment'
         
@@ -18,6 +39,10 @@ classdef Experiment < EventSender & EventListener & Savable
         EVENT_EXP_PAUSED = 'experimentPaused'   % when the experiment stops from running
         EVENT_PLOT_ANALYZE_FIT = 'plot_analyzie_fit'        % when the experiment wants the plot to draw the fitting-function-analysis
         EVENT_PARAM_CHANGED = 'experimentParameterChanged'  % when one of the sequence params \ general params is changed
+        
+        % All of the currently known experiments
+        AVAILABLE_EXPERIMENTS = {'', ... % Default experiment
+            'ESR', 'Echo', 'Rabi', 'T1'};
         
         % Exception handling
         EXCEPTION_ID_NO_EXPERIMENT = 'getExp:noExp';
@@ -37,11 +62,10 @@ classdef Experiment < EventSender & EventListener & Savable
             obj@EventListener({Tracker.NAME, StageScanner.NAME});
             obj.expName = expName;
             
-            obj.mCurrentXAxisParam = ExpParameter('X axis', ExpParameter.TYPE_VECTOR_OF_DOUBLES, [], obj.NAME);
-            obj.mCurrentYAxisParam = ExpParameter('Y axis', ExpParameter.TYPE_VECTOR_OF_DOUBLES, [], obj.NAME);
+            obj.mCurrentXAxisParam = ExpParamDoubleVector('X axis', [], obj.expName);
+            obj.mCurrentYAxisParam = ExpParamDoubleVector('Y axis', [], obj.expName);
             
-            % To be overridden by Trackable
-            obj.mCategory = Savable.CATEGORY_EXPERIMENTS; 
+            obj.mCategory = Savable.CATEGORY_EXPERIMENTS; % will be overridden in Trackable
             
             % copy parameters from previous experiment (if exists) and replace its base object
             prevExp = replaceBaseObject(obj);   % in base object map

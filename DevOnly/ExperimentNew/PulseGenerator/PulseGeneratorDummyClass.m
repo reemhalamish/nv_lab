@@ -51,7 +51,12 @@ classdef (Sealed) PulseGeneratorDummyClass < PulseGenerator
             for i = 1:length(address)
                 ind = (mAddresses == address(i));
                 if isempty(ind)
-                    warnMsg = sprintf('Channel ''%s'' could not be found! Ignoring.', channel{i});
+                    format = 'Channel ''%s'' could not be found! Ignoring.';
+                    if iscell(channel)
+                        warnMsg = sprintf(format, channel{i});
+                    else
+                        warnMsg = sprintf(format, channel);
+                    end
                     obj.sendWarning(warnMsg);
                     continue
                 end
