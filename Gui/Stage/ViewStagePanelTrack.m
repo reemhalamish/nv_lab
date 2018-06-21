@@ -2,7 +2,7 @@ classdef ViewStagePanelTrack < GuiComponent & EventListener
     %VIEWSTAGEPANELTRACK
     
     properties (Constant)
-        TRACKABLE_POSITION_NAME = Tracker.TRACKABLE_POSITION_NAME;
+        TRACKABLE_POSITION_NAME = TrackablePosition.EXP_NAME;
     end
     
     properties
@@ -15,7 +15,7 @@ classdef ViewStagePanelTrack < GuiComponent & EventListener
     methods
         function obj = ViewStagePanelTrack(parent, controller, stage, laser) %#ok<INUSD>
             obj@GuiComponent(parent, controller);
-            obj@EventListener(Tracker.TRACKABLE_POSITION_NAME)
+            obj@EventListener(TrackablePosition.EXP_NAME)
             
             obj.mStageName = stage.name;
 
@@ -72,7 +72,7 @@ classdef ViewStagePanelTrack < GuiComponent & EventListener
         % event is the event sent from the EventSender
         function onEvent(obj, event)
             if (isfield(event.extraInfo, Tracker.EVENT_CONTINUOUS_TRACKING_CHANGED) ...
-                    && strcmp(event.creator.expName,obj.TRACKABLE_POSITION_NAME)) ...
+                    && strcmp(event.creator.EXP_NAME, obj.TRACKABLE_POSITION_NAME)) ...
                     || event.isError
                 
                 obj.refresh();

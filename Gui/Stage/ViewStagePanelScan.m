@@ -121,6 +121,14 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
             if event.isError || isfield(event.extraInfo, ClassStage.EVENT_SCAN_PARAMS_CHANGED)
                 obj.refresh();
             end
+            
+            if isfield(event.extraInfo, Experiment.EVENT_EXP_RESUMED) ...
+                    || isfield(event.extraInfo, Experiment.EVENT_EXP_PAUSED)
+                % When experiments run, we can't scan
+                exp = event.creator;
+                isScanPossible = ~exp.isOn;
+                obj.btnScan.Enable = BooleanHelper.boolToOnOff(isScanPossible);
+            end
         end
     end
 end

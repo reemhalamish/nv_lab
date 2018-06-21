@@ -21,13 +21,16 @@ classdef SpcmCounter < Experiment
         integrationTimeMillisec     % float, in milliseconds
     end
     
+    properties (Constant, Hidden)
+        EXP_NAME = 'SpcmCounter'
+    end
+    
     properties (Constant)
         EVENT_SPCM_COUNTER_RESET = 'SpcmCounterReset';
         EVENT_SPCM_COUNTER_STARTED = 'SpcmCounterStarted';
         EVENT_SPCM_COUNTER_UPDATED = 'SpcmCounterUpdated';
         EVENT_SPCM_COUNTER_STOPPED = 'SpcmCounterStopped';
         
-        COUNTER_NAME = 'SpcmCounter';
         INTEGRATION_TIME_DEFAULT_MILLISEC = 100;
         DEFAULT_EMPTY_STRUCT = struct('time', 0, 'kcps', NaN, 'std', NaN);
         ZERO_STRUCT = struct('time', 0, 'kcps', 0, 'std', 0);    %redundant?
@@ -35,7 +38,7 @@ classdef SpcmCounter < Experiment
     
     methods
         function obj = SpcmCounter
-            obj@Experiment(SpcmCounter.COUNTER_NAME);
+            obj@Experiment();
             obj.integrationTimeMillisec = obj.INTEGRATION_TIME_DEFAULT_MILLISEC;
             obj.records = obj.DEFAULT_EMPTY_STRUCT;
             obj.isOn = false;
@@ -85,6 +88,7 @@ classdef SpcmCounter < Experiment
         
         function stop(obj)
             obj.isOn = false;
+            pause((obj.integrationTimeMillisec + 1) / 1000);    % Let me finish what I was doing
         end
         
         function reset(obj)
@@ -131,12 +135,20 @@ classdef SpcmCounter < Experiment
         end
     end
     
+    methods
+        % Needed for class Experiment. Do nothing (for now?)
+        function plotResults(obj) %#ok<MANU>
+        end
+        
+        function loadSequence(obj) %#ok<MANU>
+        end
+    end
+    
     methods (Static)
         function init
             try
-                obj = getExpByName(SpcmCounter.COUNTER_NAME);
+                obj = getExpByName(SpcmCounter.EXP_NAME);
                 obj.stop;
-                pause((obj.integrationTimeMillisec + 1) / 1000);
             catch
                 % There was no such object, so we create one
                 SpcmCounter;

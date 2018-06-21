@@ -25,6 +25,10 @@ classdef TrackablePosition < Trackable % & StageScanner
         nMaxIterations
     end
     
+    properties (Constant, Hidden)
+        EXP_NAME = 'trackablePosition';
+    end
+    
     properties (Constant)
         EVENT_STAGE_CHANGED = 'stageChanged'
         
@@ -46,8 +50,7 @@ classdef TrackablePosition < Trackable % & StageScanner
     
     methods
         function obj = TrackablePosition(stageName)
-            expName = Tracker.TRACKABLE_POSITION_NAME;
-            obj@Trackable(expName);
+            obj@Trackable(TrackablePosition.EXP_NAME);
             
             % Get stage
             if exist('stageName', 'var')

@@ -3,8 +3,6 @@ classdef ViewTrackablePosition < ViewTrackable
     %   
     
     properties (SetAccess = protected)
-        trackableName = Tracker.TRACKABLE_POSITION_NAME;
-        
         stageAxes       % string. The axes of the stage this trackable uses
         laserPartNames	% cell. names of laser parts that can set their value (power)
         uiStageName     % text-view. Shows the name of the current stage
@@ -30,7 +28,7 @@ classdef ViewTrackablePosition < ViewTrackable
     
     methods
         function obj = ViewTrackablePosition(parent, controller)
-            obj@ViewTrackable(Tracker.TRACKABLE_POSITION_NAME, parent, controller)
+            obj@ViewTrackable(TrackablePosition.EXP_NAME, parent, controller)
             
             % Set parameters for graphic axes
             obj.vAxes1.YLabel.String = obj.LEFT_LABEL1;
@@ -40,7 +38,7 @@ classdef ViewTrackablePosition < ViewTrackable
             
             %%%% Get objects we will work with: %%%%
             % first and foremost: the trackable experiment
-            trackablePos = getExpByName(obj.trackableName);
+            trackablePos = getExpByName(TrackablePosition.EXP_NAME);
             % list of all available stages
             stages = ClassStage.getScannableStages;
             stagesNames = cellfun(@(x) x.name, stages, 'UniformOutput', false);
@@ -168,7 +166,7 @@ classdef ViewTrackablePosition < ViewTrackable
         %    Dubbed: totalRefresh.
         
         function update(obj) % (#1)
-            trackablePos = getExpByName(obj.trackableName);
+            trackablePos = getExpByName(TrackablePosition.EXP_NAME);
             history = trackablePos.convertHistoryToStructToSave;
             t = cell2mat(history.time);
             pos = cell2mat(history.position);
@@ -192,7 +190,7 @@ classdef ViewTrackablePosition < ViewTrackable
         end
         
         function refresh(obj) % (#2)
-            trackablePos = getExpByName(obj.trackableName);
+            trackablePos = getExpByName(TrackablePosition.EXP_NAME);
             stage = getObjByName(trackablePos.mStageName);
             
             % If tracking is currently performed, Start/Stop should be "Stop"
@@ -222,7 +220,7 @@ classdef ViewTrackablePosition < ViewTrackable
         
         function totalRefresh(obj) % (#3)
             %%% "Under the hood" %%%
-            trackablePos = getExpByName(obj.trackableName);
+            trackablePos = getExpByName(TrackablePosition.EXP_NAME);
             stage = getObjByName(trackablePos.mStageName);
             obj.stageAxes = stage.availableAxes;
             
@@ -253,7 +251,7 @@ classdef ViewTrackablePosition < ViewTrackable
     methods (Access = protected)
         % From parent class
         function btnStartCallback(obj, ~, ~)
-            trackablePos = getExpByName(obj.trackableName);
+            trackablePos = getExpByName(TrackablePosition.EXP_NAME);
             try
                 trackablePos.startTrack;
             catch err
@@ -262,12 +260,12 @@ classdef ViewTrackablePosition < ViewTrackable
             end
         end
         function btnStopCallback(obj, ~, ~)
-            trackablePos = getExpByName(obj.trackableName);
+            trackablePos = getExpByName(TrackablePosition.EXP_NAME);
             trackablePos.stopTrack;
             obj.refresh;
         end
         function btnResetCallback(obj, ~, ~)
-            trackablePos = getExpByName(obj.trackableName);
+            trackablePos = getExpByName(TrackablePosition.EXP_NAME);
             trackablePos.resetTrack;
             obj.refresh;
             cla(obj.vAxes1)
@@ -275,14 +273,14 @@ classdef ViewTrackablePosition < ViewTrackable
             obj.legend1.Visible = 'off';
         end
         function cbxContinuousCallback(obj, ~, ~)
-            trackablePos = getExpByName(obj.trackableName);
+            trackablePos = getExpByName(TrackablePosition.EXP_NAME);
             trackablePos.isRunningContinuously = obj.cbxContinuous.Value;
         end
         function btnStartStopCallback(obj, ~, ~)
             % If tracking is being performed, Start/Stop should be "Stop"
             % and reset should be disabled, and the opposite should happen
             % otherwise
-            trackablePos = getExpByName(obj.trackableName);
+            trackablePos = getExpByName(TrackablePosition.EXP_NAME);
             obj.btnStartStopChangeMode(obj.btnStartStop, trackablePos.isCurrentlyTracking);
             obj.btnReset.Enable = BooleanHelper.boolToOnOff(~trackablePos.isCurrentlyTracking);
         end
@@ -293,12 +291,12 @@ classdef ViewTrackablePosition < ViewTrackable
         % Unique to class
         function uiStageNameCallback(obj)
             newStageName = obj.uiStageName;
-            trackablePos = getObjByName(obj.trackableName);
+            trackablePos = getObjByName(TrackablePosition.EXP_NAME);
             trackablePos.mStageName = newStageName;
         end
         function edtInitStepSizeCallback(obj, index)
             edt = obj.edtInitStepSize(index);   % For brevity
-            trackablePos = getExpByName(obj.trackableName);
+            trackablePos = getExpByName(TrackablePosition.EXP_NAME);
             
             if ~ValidationHelper.isStringValueInBorders(edt.String, ...
                     trackablePos.minimumStepSize(index), inf)
@@ -310,7 +308,7 @@ classdef ViewTrackablePosition < ViewTrackable
         end
         function edtMinStepSizeCallback(obj, index)
             edt = obj.edtMinStepSize(index);   % For brevity
-            trackablePos = getExpByName(obj.trackableName);
+            trackablePos = getExpByName(TrackablePosition.EXP_NAME);
             
             if ~ValidationHelper.isStringValueInBorders(edt.String, ...
                     0, trackablePos.initialStepSize(index))
@@ -325,7 +323,7 @@ classdef ViewTrackablePosition < ViewTrackable
             obj.refresh;
         end
         function edtPixelTimeCallback(obj, ~, ~)
-            trackablePos = getExpByName(obj.trackableName);
+            trackablePos = getExpByName(TrackablePosition.EXP_NAME);
             if ~ValidationHelper.isValuePositive(obj.edtPixelTime.String)
                 obj.edtPixelTime.String = StringHelper.formatNumber(trackablePos.pixelTime);
                 obj.showWarning('Pixel time has to be a positive number! Reverting.');
@@ -369,7 +367,7 @@ classdef ViewTrackablePosition < ViewTrackable
                     obj.refresh;    % check values of all devices (level 2 refresh)
                 end
             % Besides that, we only want to listen to trackablePos
-            if ~isprop(creator, 'expName') || ~strcmp(creator.expName, obj.trackableName)
+            if ~isprop(creator, 'EXP_NAME') || ~strcmp(creator.EXP_NAME, TrackablePosition.EXP_NAME)
                 
                 return
             end

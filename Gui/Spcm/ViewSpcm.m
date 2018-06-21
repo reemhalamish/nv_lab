@@ -70,6 +70,8 @@ classdef ViewSpcm < ViewVBox & EventListener
                 'Callback', @obj.edtIntegrationTimeCallback);
             vboxIntegrationTime.Heights = [-1 -1];
             
+            hboxControls.Widths = [-1, -1, -1.5];
+            
             % Wrap Panel %
             panelWrap = uix.Panel('Parent', hboxButtons, ...
                 'Title', 'Wrap');
@@ -89,7 +91,7 @@ classdef ViewSpcm < ViewVBox & EventListener
                 vboxWrapNumber.Heights = [-1 -1];
             hboxWrapMain.Widths = [15 -1];
             
-            hboxButtons.Widths = [-3 -1.5];
+            hboxButtons.Widths = [-3 -1];
 
             obj.refresh;
             
@@ -113,7 +115,7 @@ classdef ViewSpcm < ViewVBox & EventListener
         end
         
         function refresh(obj)
-            if Experiment.current(SpcmCounter.COUNTER_NAME)
+            if Experiment.current(SpcmCounter.EXP_NAME)
                 spcmCount = getObjByName(Experiment.NAME);
                 obj.edtIntegrationTime.String = spcmCount.integrationTimeMillisec;
                 
@@ -172,7 +174,7 @@ classdef ViewSpcm < ViewVBox & EventListener
     
     methods (Static)
         function spcmCounter = getCounter
-            if Experiment.current(SpcmCounter.COUNTER_NAME)
+            if Experiment.current(SpcmCounter.EXP_NAME)
                 spcmCounter = getObjByName(Experiment.NAME);
             else
                 spcmCounter = SpcmCounter;
@@ -187,7 +189,7 @@ classdef ViewSpcm < ViewVBox & EventListener
         function onEvent(obj, event)
             % We're listening to all experiments, but only care if the
             % experiment is an SPCM counter.
-            if ~Experiment.current(SpcmCounter.COUNTER_NAME)
+            if ~Experiment.current(SpcmCounter.EXP_NAME)
                 return
             end
             
