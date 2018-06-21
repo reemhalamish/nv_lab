@@ -14,15 +14,22 @@ classdef PathHelper
             if ~ischar(nvLabFolderPath); EventStation.anonymousError('Can''t find NV Lab folder!!'); end
         end
         
-        function devOrProdString = SetupMode
+        function modeString = SetupMode
             % Determines whether to use dev(elopment) or prod(uction)
             % folder for saving and loading, according to json
             jsonStruct = JsonInfoReader.getJson();
-            isDev = strcmp(jsonStruct.setupNumber, '999');  % The only setup in dev mode is 999, all else are in prod.
-            devOrProdString = BooleanHelper.ifTrueElse(isDev, 'dev', 'prod');
+            if strcmp(JsonInfoReader.setupNumber, '999')  % The only setup in dev mode is 999, all else are in prod.
+                modeString = 'dev';
+            elseif jsonStruct.debugMode
+                modeString = 'beta';
+            else
+                modeString = 'prod';
+            end
         end
         
         function folderString = recuresiveFindFolder(startingPositionPath, folderNameToSearchString)
+            % Recursively finds and returns the full path of a one folder
+            % within another (== starting position)
             startingPositionPath = PathHelper.appendBackslashIfNeeded(startingPositionPath);
             folderString = nan;  % if nothing will be found later on
             
@@ -112,15 +119,26 @@ classdef PathHelper
             [~, fileName] = folderAndFile{:};
         end
         
-        function allFileNames = getAllFilesInFolder(inputFolder, optionalSuffix)
+        function varargout = getAllFilesInFolder(inputFolder, optionalSuffix)
             %%% Returns names of all relevant files in a folder
             %
-            % allFilesInFolder - cell of strings - files in full path
-            % optionalSuffix - optional string. if exists, only filenames
-            %                   that end with the pattern will be returned 
+            % FILENAMES = getAllFilesInFolder(INPUTFOLDER) returns all
+            % files in folder, with their full path
             %
-            % allFiles - struct array
+            % [FOLDER, FILENAMES] = getAllFilesInFolder(INPUTFOLDER)
+            % returns FILENAMES without prepending the path
             %
+            % __ = getAllFilesInFolder(INPUTFOLDER, SUFFIX) returns only
+            % files that end with SUFFIX
+            %
+            %
+            % INPUTFOLDER - cell of strings
+            % SUFFIX - string (char array)
+            % FILENAMES - struct array
+            %
+            narginchk(1,2)
+            nargoutchk(1,2)
+            
             if ~exist('optionalSuffix', 'var')
                 optionalSuffix = '';
             end
@@ -136,11 +154,24 @@ classdef PathHelper
                 fileName = allFilesInFolder(i).name;
                 fullPath = [inputFolder fileName];
                 if PathHelper.isFileExists(fullPath) && endsWith(fullPath, optionalSuffix)
-                    temp{i} = fullPath;
+                    temp{i} = fileName;
                     isRelevant(i) = true;
                 end
+                if strcmp(optionalSuffix, '') && endsWith(fullPath, '.ini')  % To remove Google Drive's 'desktop.ini'
+                    isRelevant(i) = false;
+                end
             end
+            
             allFileNames = temp(isRelevant);
+            switch nargout
+                case 1
+                    varargout{1} = cellfun(@(x) [inputFolder, x], ...
+                        allFileNames, 'UniformOutput', false);
+                case 2
+                    varargout{1} = inputFolder;
+                    varargout{2} = allFileNames;
+            end
+            
         end
         
         function fullpath = joinToFullPath(folder, fileName)
@@ -150,7 +181,7 @@ classdef PathHelper
             % filename = 'myfile.txt'
             % fullpath ----> 'c:\reem\myfile.txt'
             %
-            % See also MATLAB native function "fullfile" 
+            % See also MATLAB's native function "fullfile" 
             
             folder = PathHelper.appendBackslashIfNeeded(folder);
             fullpath = sprintf('%s%s', folder, fileName);

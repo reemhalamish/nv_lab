@@ -26,6 +26,10 @@ classdef LaserSourceOnefiveKatana05 < LaserPartAbstract & SerialControlled
             obj@LaserPartAbstract(name);
             obj@SerialControlled(port);
 
+            obj.minValue = 0;
+            obj.maxValue = 10;
+            obj.units = 'mA';
+            
             obj.set(...
                 'BaudRate', 38400, ...
                 'DataBits', 8, ...
@@ -69,7 +73,7 @@ classdef LaserSourceOnefiveKatana05 < LaserPartAbstract & SerialControlled
     methods (Access = protected)
         function setEnabledRealWorld(obj, newBoolValue)
             % Validating value is assumed to have been done
-            errToken = '(Error 100)';
+            errToken = '(Error 100)'; % switch is off
             if newBoolValue
                 err = obj.query(obj.COMMAND_ON, errToken);
             else

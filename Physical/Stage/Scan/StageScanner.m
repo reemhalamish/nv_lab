@@ -91,18 +91,24 @@ classdef StageScanner < EventSender & EventListener & Savable
             % kcps = kilo counts per second
             
             while (stage.scanParams.continuous && obj.mCurrentlyScanning)
-                %Yoav: Should not update during scan, probably next
-                %line should stay commented
-%                 obj.mStageScanParams = stage.scanParams.copy;
                 kcpsScanMatrix = obj.scan(stage, spcm, obj.mStageScanParams, kcpsScanMatrix);
                 drawnow; % todo check what happens if removing this line
             end
+            
+            if isempty(kcpsScanMatrix)  % Maybe scan did not happen at all
+                spcm.setSPCMEnable(false);
+                obj.mCurrentlyScanning = false;
+                return
+            end
+            
             toc(timerVal)
             
             spcm.setSPCMEnable(false);
             obj.mScan = kcpsScanMatrix;
 
-            scanStoppedManually = ~obj.mCurrentlyScanning; % maybe someone has changed this boolean meanwhile
+            scanStoppedManually = ~obj.mCurrentlyScanning;  % maybe someone has changed this boolean meanwhile
+            obj.mCurrentlyScanning = false;                 % So when events are sent, they will know we are done.
+            
             if scanStoppedManually
                 obj.sendEventScanStopped();
             else
@@ -114,7 +120,6 @@ classdef StageScanner < EventSender & EventListener & Savable
             %    struct, and (if needed) will autosave it.
             
             stage.sendEventPositionChanged;
-            obj.mCurrentlyScanning = false;
         end
         
         
@@ -171,7 +176,7 @@ classdef StageScanner < EventSender & EventListener & Savable
             for trial = 1:StageScanner.TRIALS_AMOUNT_ON_ERROR
                 try
                     spcm.prepareReadByTime(scanParams.pixelTime);
-                    kcps = spcm.readFromTime();
+                    [kcps, ~] = spcm.readFromTime();
                     spcm.clearTimeRead;
                     if kcps == 0
                         obj.sendError('No Signal Detected!')

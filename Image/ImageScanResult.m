@@ -754,8 +754,8 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             if isfield(event.extraInfo, ClassStage.EVENT_POSITION_CHANGED) ...
                     && strcmp(event.creator.name, obj.mStageName)
                 
-                % If scanner is running, and there is no point in updating
-                % crosshairs would really delay it
+                % If scanner is running, and there is no point in updating.
+                % Crosshairs would really delay it
                 scanner = getObjByName(StageScanner.NAME);
                 if scanner.mCurrentlyScanning; return; end
                 
@@ -763,8 +763,8 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                     stage = getObjByName(obj.mStageName);
                     physAxes = obj.mAxesString;
                     pos = stage.Pos(physAxes);
-                    gLimits = axis(obj.gAxes);   % vector of [x_min x_max y_min y_max]
-                    obj.drawCrosshairs(gLimits, pos)
+                    limits = axis(obj.gAxes);   % vector of [x_min x_max y_min y_max]
+                    obj.drawCrosshairs(limits, pos)
                 catch err
                     % Probably, there is nothing to draw on. Moving on!
                     % For debugging purposes, we do show this warning.

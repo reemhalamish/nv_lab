@@ -37,7 +37,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
     
     methods (Static, Access = public) % Get instance constructor
         function stages = getStages()
-            % Return an instance of cell{all the stages}
+            % Return an instance of cell{all stages}
             
             persistent stagesCellContainer
             if isempty(stagesCellContainer) || ~isvalid(stagesCellContainer)
@@ -802,8 +802,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             indentation = 5;
             for i = 1:n
                 axLetter = obj.availableAxes(i);
-                axNum = obj.getAxis(axLetter);
-                position = savedStruct.position(axNum);
+                position = savedStruct.position(i);
                 axisString = sprintf('%s axis: %.3f', axLetter, position);
                 string = sprintf('%s\n%s', string, ...
                     StringHelper.indent(axisString, indentation));

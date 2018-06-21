@@ -113,6 +113,16 @@ classdef (Abstract) Savable < BaseObject
             Savable.removeSavable(obj);
         end
     end
+
+    methods (Access = protected)
+        % This function allows removing objects which are savable, but
+        % saved somewhere else.
+        % !! Caution !! Misusing this function might lead to loss of
+        %               valuable data
+        function dontSaveMe(obj)
+            Savable.removeSavable(obj);
+        end
+    end
     
     
     methods (Static, Access = {?SaveLoad})

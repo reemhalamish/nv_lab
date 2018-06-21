@@ -17,6 +17,14 @@ classdef JsonInfoReader
             end
         end
         
+        function setupNum = setupNumber()
+            jsonStruct = JsonInfoReader.getJson;
+            setupNum = jsonStruct.setupNumber;
+            if ~ischar(setupNum)
+                setupNum = num2str(setupNum);
+            end  
+        end
+        
         function [f, minim, maxim, units] = getFunctionFromLookupTable(tabl)
             % Creates linear interpolation from lookup table.
             %

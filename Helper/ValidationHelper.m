@@ -63,6 +63,15 @@
             bool = ValidationHelper.isStringValueInBorders(stringValues, 0, inf);
         end
         
+        function bool = isValidVector(val, maxLength)
+            % Checks whether 'val' is a vector (that is, a Nx1 or 1xN
+            % matrix) and makes sure it isn't longer than 'maxLength'
+            s = size(val);
+            bool = (length(s) == 2) ...   % MATLAB arrays are always at least 2-dimensional. Shouldn't be more, though
+                && (min(s) == 1) ...      % One of the dimensions is of length 1
+                && (max(s) <= maxLength); % The other one is not TOO long
+        end
+        
     end
     
 end

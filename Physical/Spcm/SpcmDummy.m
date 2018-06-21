@@ -35,14 +35,12 @@ classdef SpcmDummy < Spcm
             end
             pause(obj.integrationTime)
             kcps = randi([0 obj.MAX_RANDOM_READ],1,1);
-            std = sqrt(obj.integrationTime) * randi([0 obj.MAX_RANDOM_READ],1,1)/sqrt(12);  % looks legit (std of unif. rand. var.)
+            std = abs(0.2 * kcps * randn);	% Gaussian noise proportional to signal
         end
         
         function clearTimeRead(obj)
             obj.integrationTime = 0;
         end
-        
-        
         
         
         % prepare to read from the spcm, when using a stage as a signal
