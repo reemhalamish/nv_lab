@@ -331,7 +331,7 @@ classdef PulseStreamer < handle
             % http handling
             url = strcat('http://',obj.ipAddress,':8050/json-rpc');
             % set the timeout to 3s
-            ret = urlread2(url, 'POST', req, []);            
+            ret = urlread2(url, 'POST', req, []);
         end
     end
     
