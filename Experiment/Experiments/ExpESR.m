@@ -1,8 +1,8 @@
 classdef ExpESR < Experiment
     %EXPESR ESR (electron spin resonance) experiment
     
-    properties (Constant)
-        ESR_NAME = 'ESR'
+    properties (Constant, Hidden)
+        EXP_NAME = 'ESR'
     end
     
     properties
@@ -16,7 +16,7 @@ classdef ExpESR < Experiment
     methods
         
         function obj = ExpESR
-            obj@Experiment(ExpESR.ESR_NAME);
+            obj@Experiment(ExpESR.EXP_NAME);
         end
         
         function LoadSequence(obj)

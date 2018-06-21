@@ -67,9 +67,9 @@ classdef Sequence < handle
             %                 0                seqDuration  
             % obj = ----------|###|#####|##|###|------------
             %                 |                |
-            %              time                |                       0   |time|            seqDuration+|time|  
+            %              time                |                       0   |time|            seqDuration+|time|
             % (1): --------|####|--------------|------------  -->  ----|####|###|#####|##|###|-------------------------
-            %        time     |                |                       0       |time|            seqDuration+|time|  
+            %        time     |                |                       0       |time|            seqDuration+|time|
             % (2): --|####|---|----------------|------------  -->  ----|####|---|###|#####|##|###|---------------------
             %                 |                |    time               0                sD   time
             % (3): -----------|----------------|----|####|--  -->  ----|###|#####|##|###|----|####|--------------------
@@ -90,10 +90,15 @@ classdef Sequence < handle
             end
         end
         
-        function addEventAtGivenTime(obj, time, channelNames, duration)
+        function addEvent(obj, duration, channelNames)
+            p = Pulse(duration, channelNames);    % New pulse. No nickname here
+            obj.addPulse(obj, p);
+        end
+        
+        function addEventAtGivenTime(obj, time, duration, channelNames)
             % Creates a pulse, and adds it to the sequence
             p = Pulse(duration, channelNames);    % New pulse. No nickname here
-            obj.addPulseAtGivenTime(obj, time, p)
+            addPulseAtGivenTime(obj, time, p)
         end
         
 %       Might be useful?        

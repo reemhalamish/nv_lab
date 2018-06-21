@@ -3,15 +3,46 @@ classdef Experiment < EventSender & EventListener & Savable
     %   Detailed explanation goes here
     
     properties (SetAccess = protected)
-        expName = ''            % string. For retrieving using getExpByName
         mCategory               % string. For loading (might change in subclasses)
+       
+        changeFlag = true;      % logical. True if changes have been made 
+                                % in Experiment parameters, but not yet
+                                % uploaded to hardware
         
         mCurrentXAxisParam      % ExpParameter in charge of axis x (which has name and value)
         mCurrentYAxisParam		% ExpParameter in charge of axis y (which has name and value)
     end
     
+    properties
+       averages         % int. Number of measurements to average from
+       repeats          % int. Number of repeats per measurement
+       track            % logical. initialize tracking
+       trackThreshhold  % double (between 0 and 1). Change in signal that will start the tracker
+       laserInitializationDuration  % laser initialization in pulsed experiments
+       laserOnDelay     %in \mus
+       laserOffDelay    %in \mus
+       mwOnDelay        %in \mus
+       mwOffDelay       %in \mus
+       detectionDuration % detection windows, in \mus
+       
+       greenLaserPower % in V
+    end
+    
+    properties (Access = private)
+        stopFlag = 0;
+        pauseFlag = 0; % 0 -> new signal will be acquired. 1 --> signal will be required.
+        pausedAverage = 0; 
+    end
+    
+    properties (Abstract, Constant, Hidden)
+        EXP_NAME        % char array. Name of experiment, as recognized by the system.
+    end
+    
     properties (Constant)
         NAME = 'Experiment'
+        
+        PATH_ALL_EXPERIMENTS = sprintf('%sControl code\\%s\\Experiment\\Experiments\\', ...
+            PathHelper.getPathToNvLab(), PathHelper.SetupMode);
         
         EVENT_PLOT_UPDATED = 'plotUpdated'      % when something changed regarding the plot (new data, change in x\y axis, change in x\y labels)
         EVENT_EXP_RESUMED = 'experimentResumed' % when the experiment is starting to run
@@ -31,17 +62,15 @@ classdef Experiment < EventSender & EventListener & Savable
         function sendEventPlotAnalyzeFit(obj); obj.sendEvent(struct(obj.EVENT_PLOT_ANALYZE_FIT, true)); end
         function sendEventParamChanged(obj); obj.sendEvent(struct(obj.EVENT_PARAM_CHANGED, true)); end
         
-        function obj = Experiment(expName)
+        function obj = Experiment()
             obj@EventSender(Experiment.NAME);
             obj@Savable(Experiment.NAME);
             obj@EventListener({Tracker.NAME, StageScanner.NAME});
-            obj.expName = expName;
             
-            obj.mCurrentXAxisParam = ExpParameter('X axis', ExpParameter.TYPE_VECTOR_OF_DOUBLES, [], obj.NAME);
-            obj.mCurrentYAxisParam = ExpParameter('Y axis', ExpParameter.TYPE_VECTOR_OF_DOUBLES, [], obj.NAME);
+            obj.mCurrentXAxisParam = ExpParamDoubleVector('X axis', [], obj.EXP_NAME);
+            obj.mCurrentYAxisParam = ExpParamDoubleVector('Y axis', [], obj.EXP_NAME);
             
-            % To be overridden by Trackable
-            obj.mCategory = Savable.CATEGORY_EXPERIMENTS; 
+            obj.mCategory = Savable.CATEGORY_EXPERIMENTS; % will be overridden in Trackable
             
             % copy parameters from previous experiment (if exists) and replace its base object
             prevExp = replaceBaseObject(obj);   % in base object map
@@ -68,7 +97,7 @@ classdef Experiment < EventSender & EventListener & Savable
                 if isprop(obj, paramName)
                     % if the current experiment has this property also
                     obj.(paramName) = prevExperiment.(paramName);
-                    obj.(paramName).expName = obj.expName;  % expParam, I am (now) your parent!
+                    obj.(paramName).expName = obj.EXP_NAME;  % expParam, I am (now) your parent!
                 end
             end
             
@@ -83,20 +112,30 @@ classdef Experiment < EventSender & EventListener & Savable
     %%
     methods
         function run(obj) %#ok<*MANU>
+            loadSequence(obj)
+            obj.stopFlag = false;
         end
         
         function pause(obj)
         end
         
         function stop(obj)
-            sendEventStopped(obj);
+            sendEventExpPaused(obj);
         end
         
-        function sendEventStopped(obj); obj.sendEvent(struct(obj.EVENT_EXP_PAUSED,true));end
+        
+    end
+    
+    %% To be overridden
+    methods (Abstract)
+        % Specifics of each of the experiments
+        loadSequence(obj) 
+        
+        plotResults(obj)
     end
     
     
-    %% overridden from EventListener
+    %% Overridden from EventListener
     methods
         % When events happen, this function jumps.
         % Event is the event sent from the EventSender
@@ -105,13 +144,13 @@ classdef Experiment < EventSender & EventListener & Savable
                 % todo - stuff
             elseif isfield(event.extraInfo, StageScanner.EVENT_SCAN_STARTED)
                 obj.stop;
-                obj.sendEventStopped;
+                obj.sendEventExpPaused;
             end
         end
     end
     
     
-    %% overriding from Savable
+    %% Overridden from Savable
     methods (Access = protected)
         function outStruct = saveStateAsStruct(obj, category, type) %#ok<INUSD>
             % Saves the state as struct. if you want to save stuff, make
@@ -159,29 +198,48 @@ classdef Experiment < EventSender & EventListener & Savable
         function obj = init
             % Creates a default Experiment.
             try
-                % Current algoritmic logic is reversed here (without a
-                % clean way out): if the try block SUCCEEDS, we need to
-                % output a warning.
+                % Logic is reversed (without a clean way out):
+                % if the try block succeeds, then we need to output a
+                % warning.
                 getObjByName(Experiment.NAME);
                 EventStation.anonymousWarning('Deleting Previous experiment')
             catch
             end
-            obj = Experiment('');
+            obj = ExperimentDefault;
         end
         
         function tf = current(newExpName)
             % logical. Whether the requested name is the current one (i.e.
-            % obj.expName).
+            % obj.EXP_NAME).
             %
             % see also: GETEXPBYNAME
             try
                 exp = getObjByName(Experiment.NAME);
-                tf = strcmp(exp.expName, newExpName);
+                tf = strcmp(exp.EXP_NAME, newExpName);
             catch
                 tf = false;
             end
         end
+
+        function namesCell = getExperimentNames()
+            %GETEXPERIMENTSNAMES returns cell of char arrays with names of
+            %valid Experiments.
+            % Algorithm: scan '\Experiments' folder, and get the Constant
+            % property 'EXP_NAME' from each file (if exists). Add also
+            % 'SpcmCounter', whatever be in the folder
+            
+            path = Experiment.PATH_ALL_EXPERIMENTS;
+            [~, expFileNames] = PathHelper.getAllFilesInFolder(path);
+            
+            namesCell = cell(size(expFileNames));
+            for i = 1:length(expFileNames)
+                expClassName = PathHelper.removeDotSuffix(expFileNames{i});
+                eval(['temp = ',expClassName,'.EXP_NAME;'])
+                namesCell{i} = temp;
+            end
+            namesCell{end+1} = SpcmCounter.EXP_NAME;
+            
+        end
     end
     
 end
-

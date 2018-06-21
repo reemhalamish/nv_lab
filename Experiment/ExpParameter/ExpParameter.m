@@ -1,11 +1,11 @@
 classdef (Abstract) ExpParameter < HiddenMethodsHandle & PropertiesDisplaySorted
     %EXPPARAMETER objects of type experiment-parameter
-    %   ep = ExpParameter(name) creates an empty parameter
+    %   ep = EXPPARAMETER(name) creates an empty parameter
     %
-    %   ep = ExpParameter(name,value) creates a parameter with VALUE
+    %   ep = EXPPARAMETER(name,value) creates a parameter with VALUE
     %
-    %   ep = ExpParameter(___,expName) creates a parameter which is
-    %   assigned to an experiment named EXPNAME
+    %   ep = EXPPARAMETER(___,expName) creates a parameter which is
+    %   assigned to an experiment named EXP_NAME
     %
     %   An experiment parameter can have a name, supported value-types and the actual
     %   values. Additionally, an ExpParameter-object will alyways point to the
@@ -21,7 +21,7 @@ classdef (Abstract) ExpParameter < HiddenMethodsHandle & PropertiesDisplaySorted
         expName = nan;  % string. Name of associated experiment
     end
     
-    properties (Constant)
+    properties (Constant, Hidden)
         TYPE_LOGICAL = 'logical'
         TYPE_DOUBLE = 'double'
         TYPE_VECTOR_OF_DOUBLES = 'vector of doubles'
@@ -54,7 +54,8 @@ classdef (Abstract) ExpParameter < HiddenMethodsHandle & PropertiesDisplaySorted
                 if newType == 'double' && length(newValue)>1; newType = obj.TYPE_VECTOR_OF_DOUBLES; end
                 
                 parameterName = obj.name; %#ok<*MCSUP>
-                if obj.isAssociatedToExp; parameterName = sprintf('%s.%s',obj.expName,parameterName); end
+                % If we know the name of the associated experiment, we want to include it in the error message:
+                if obj.isAssociatedToExp; parameterName = sprintf('%s.%s', obj.expName,parameterName); end
                 
                 EventStation.anonymousError('Trying to define value for %s failed! \nNew value: %s (of type %s) \nExpected type: %s', ...
                     parameterName, newValue, newType, obj.type);
@@ -69,14 +70,14 @@ classdef (Abstract) ExpParameter < HiddenMethodsHandle & PropertiesDisplaySorted
         
         function set.expName(obj, newExperimentName)
             charArray = char(newExperimentName);    % So strcmp could work. If the casting is improper, strcmp would return false
-            if ~strcmp(charArray, Experiment.AVAILABLE_EXPERIMENTS)
+            if ~strcmp(charArray, Experiment.getExperimentNames)
                 EventStation.anonymousError('Trying to define parent experiment for %s! Experiment name is invalid', obj.name);
             end
             obj.expName = newExperimentName;
         end
         
         function tf = isAssociatedToExp(obj)
-            tf = exist('obj.expName', 'var') && ~isempty(obj.expName);
+            tf = ~isnan(obj.expName) && ~isempty(obj.expName);
         end
     end
 end

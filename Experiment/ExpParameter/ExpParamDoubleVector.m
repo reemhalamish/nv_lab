@@ -1,6 +1,5 @@
 classdef (Sealed) ExpParamDoubleVector < ExpParameter
-    %EXPPARAMDOUBLEVECTOR Summary of this class goes here
-    %   Detailed explanation goes here
+    %EXPPARAMDOUBLEVECTOR 
     
     properties (SetAccess = protected)
         type = ExpParameter.TYPE_VECTOR_OF_DOUBLES
