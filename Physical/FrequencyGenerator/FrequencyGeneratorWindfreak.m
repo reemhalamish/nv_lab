@@ -8,7 +8,7 @@ classdef FrequencyGeneratorWindfreak < FrequencyGenerator & SerialControlled
         
         TYPE = {'synthhd', 'synthnv'};
         
-        NEEDED_FIELDS = {'address'}
+        NEEDED_FIELDS = {'address', 'serialNumber'}
     end
     
     methods (Access = private)
@@ -94,7 +94,7 @@ classdef FrequencyGeneratorWindfreak < FrequencyGenerator & SerialControlled
                     type, missingField);
             end
             
-            name = [lower(type), 'FrequencyGenerator'];
+            name = [lower(type), 'FrequencyGenerator', '-', struct.serialNumber];
             obj = FrequencyGeneratorSRS(name, struct.address);
             addBaseObject(obj);
         end

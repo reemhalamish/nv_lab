@@ -18,15 +18,14 @@ classdef (Sealed) FrequencyGeneratorDummy < FrequencyGenerator
     end
     
     methods
-        function varargout = sendCommand(~, command, value)
-            nargoutchk(0,1)
-            
-            if nargout == 1
-                if ~ischar(value)
-                    value = num2str(value);
-                end
-                varargout = {sprintf('Sent command: ''%s: %s\n', command, value)};
-            end
+        function sendCommand(obj, command) %#ok<*INUSD>
+            % No need to do anything
+        end
+        
+        function value = readOutput(obj) %#ok<*MANU>
+            % We explicitly request value from the device. Let's say it's
+            % 0, as long as dummy is involved.
+            value = '0';
         end
     end
     

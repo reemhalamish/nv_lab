@@ -28,15 +28,15 @@ classdef (Abstract) FrequencyGenerator < BaseObject
         TYPE    % for now, one of: {'srs', 'synthhd', 'synthnv'}
     end
     
-    properties
+    properties (Constant, Access = private)
         NEEDED_FIELDS = {'address'}
     end
     
     properties (Access = private)
         % Store values internally, to reduce time spent over serial connection
-        frequencyPrivate
-        amplitudePrivate
-        outputPrivate       % Output on or off;
+        frequencyPrivate    % double
+        amplitudePrivate    % double.
+        outputPrivate       % logical. Output on or off;
     end
     
     methods (Access = protected)
@@ -61,11 +61,11 @@ classdef (Abstract) FrequencyGenerator < BaseObject
         
         function set.output(obj, value)
             switch value
-                case {'1',1,'on',true}
-                    obj.sendCommand('enableOutput','1') %test this is the correct value to be sent!!!!!
+                case {'1', 1, 'on', true}
+                    obj.setValue('enableOutput', '1')
                     obj.outputPrivate = true;
-                case {'0',0,'off',false}
-                    obj.sendCommand('enableOutput','0') %test this is the correct value to be sent!!!!!
+                case {'0', 0, 'off', false}
+                    obj.setValue('enableOutput', '0')
                     obj.outputPrivate = false;
                 otherwise
                     error('Unknown command. Ignoring')
@@ -74,35 +74,43 @@ classdef (Abstract) FrequencyGenerator < BaseObject
         
         function set.amplitude(obj, newAamplitude)  % in dB
             % Change amplitude level of the frequency generator
-            % Test value, and compare to memory !!!!!!!!!!!!!
             if ~ValidationHelper.isInBorders(newAamplitude, obj.LIMITS_AMPLITUDE(1), obj.LIMITS_AMPLITUDE(2))
                 error('MW amplitude must be between %d and %d.\nRequested: %d', ...
                     obj.LIMITS_AMPLITUDE(1), obj.LIMITS_AMPLITUDE(2), newAamplitude)
             end
-            obj.sendCommand('amplitude',num2str(newAamplitude));
+            obj.setValue('amplitude', num2str(newAamplitude));
             obj.amplitudePrivate = newAamplitude;
         end
         
         function set.frequency(obj, newFrequency)      % in Hz
             % Change frequency level of the frequency generator
-            % Test value, and compare to memory !!!!!!!!!!!!!!!
             if ~ValidationHelper.isInBorders(newFrequency, obj.LIMITS_FREQUENCY(1), obj.LIMITS_FREQUENCY(2))
                 error('MW frequency must be between %d and %d.\nRequested: %d', ...
                     obj.LIMITS_FREQUENCY(1), obj.LIMITS_FREQUENCY(2), newFrequency)
             end
-            obj.sendCommand('frequency', num2str(newFrequency));
+            obj.setValue('frequency', num2str(newFrequency));
             obj.frequencyPrivate = newFrequency;
         end
         
+        
         function value = queryValue(obj, what)
-            value = sendCommand(obj, what, '?');
-            value = str2double(value);
+            command = [obj.nameToCommandName(what), '?'];
+            sendCommand(obj, command);
+            value = str2double(obj.readOutput);
+        end
+        
+        function setValue(obj, what, value)
+            command = [obj.nameToCommandName(what), value];
+            sendCommand(obj, command);
         end
     end
     
     methods (Abstract)
-        sendCommand(obj, what, value)
+        sendCommand(obj, command)
         % Actually sends command to hardware
+        
+        value = readOutput(obj)
+        % Get value returned from object
     end
     
     methods (Abstract, Static)
@@ -144,7 +152,7 @@ classdef (Abstract) FrequencyGenerator < BaseObject
                     switch t
                         case FrequencyGeneratorSRS.TYPE
                             try
-                                newFG = getObjByName(FrequencyGeneratorSRS.NAME);
+                                newFG = getObjByName(FrequencyGeneratorSRS.MY_NAME);
                             catch
                                 newFG = FrequencyGeneratorSRS.GetInstance(curFgStruct);
                             end
