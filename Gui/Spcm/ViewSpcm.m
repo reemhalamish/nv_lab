@@ -49,9 +49,9 @@ classdef ViewSpcm < ViewVBox & EventListener
             hboxControls = uix.HBox('Parent', panelControls, ...
                 'Spacing', 3);
             
-            obj.btnStartStop = uicontrol(obj.PROP_BUTTON_BIG_GREEN{:}, ...
-                'Parent', hboxControls, ...
-                'String', 'Error in Refresh');
+            obj.btnStartStop = ButtonStartStop(hboxControls);
+                obj.btnStartStop.startCallback = @obj.btnStartCallback;
+                obj.btnStartStop.stopCallback = @obj.btnStopCallback;
             obj.btnReset = uicontrol(obj.PROP_BUTTON{:}, ...
                 'Parent', hboxControls, ...
                 'String', 'Reset', ...
@@ -119,19 +119,13 @@ classdef ViewSpcm < ViewVBox & EventListener
                 spcmCount = getObjByName(Experiment.NAME);
                 obj.edtIntegrationTime.String = spcmCount.integrationTimeMillisec;
                 
-                if spcmCount.isOn
-                    set(obj.btnStartStop, 'BackgroundColor', 'red', ...
-                        'String', 'Stop', ...
-                        'Callback', @obj.btnStopCallback);
-                    return
-                end
+                obj.btnStartStop.isRunning = spcmCount.isOn;
+                
+            else
+                % The counter is unavailable
+                obj.btnStartStop.isRunning = false;
             end
             
-            % If we got here, it means the counter is not running (either
-            % available but off, or unavailable)
-            set(obj.btnStartStop, 'BackgroundColor', 'green', ...
-                'String', 'Start', ...
-                'Callback', @obj.btnStartCallback);
         end
         
         %%%% Callbacks %%%%
@@ -153,7 +147,7 @@ classdef ViewSpcm < ViewVBox & EventListener
         end
         function btnStopCallback(obj, ~, ~)
             spcmCount = obj.getCounter;
-            spcmCount.stop;
+            spcmCount.pause;
         end
         function btnResetCallback(obj, ~ ,~)
             spcmCount = obj.getCounter;
@@ -194,7 +188,7 @@ classdef ViewSpcm < ViewVBox & EventListener
             end
             
             spcmCounter = event.creator;
-            if isfield(event.extraInfo, spcmCounter.EVENT_SPCM_COUNTER_UPDATED)   % event = update
+            if isfield(event.extraInfo, spcmCounter.EVENT_DATA_UPDATED)   % event = update
                 % todo: this should be a method, say obj.update(spcm),
                 % which can be called also when changing wrap mode
                 if obj.isUsingWrap
@@ -212,7 +206,7 @@ classdef ViewSpcm < ViewVBox & EventListener
             else
                 obj.refresh;
             end
-            if isfield(event.extraInfo, spcmCounter.EVENT_SPCM_COUNTER_RESET)    % event = reset
+            if isfield(event.extraInfo, SpcmCounter.EVENT_SPCM_COUNTER_RESET)    % event = reset
                 line = obj.vAxes.Children;
                 delete(line);
             end

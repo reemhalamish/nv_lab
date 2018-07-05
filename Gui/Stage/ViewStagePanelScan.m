@@ -4,7 +4,6 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
     
     properties
         btnScan             % the Holy Main Button!
-        btnStopScan         % button
         cbxContinuous       % checkbox
         cbxFastScan         % checkbox
         cbxAutoSave         % checkbox
@@ -15,19 +14,18 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
     methods
         function obj = ViewStagePanelScan(parent, controller, stageName)
             obj@GuiComponent(parent, controller);
-            obj@EventListener(stageName);
+            obj@EventListener({stageName, Experiment.NAME});
             obj.stageName = stageName;
             
             %%%% Scan panel init %%%%
             panelScan = uix.Panel('Parent', parent.component, 'Title', 'Scan', 'Padding', 5);
             vboxMain = uix.VBox('Parent', panelScan, 'Spacing', 5, 'Padding', 0);
             
-            obj.btnScan = uicontrol(obj.PROP_BUTTON_BIG_GREEN{:}, 'Parent', vboxMain, 'String', 'Scan');
-            obj.btnStopScan = uicontrol(obj.PROP_BUTTON_BIG_RED{:}, 'Parent', vboxMain, 'String', 'Stop Scan');
+            obj.btnScan = ButtonStartStop(vboxMain, 'Scan', 'Stop Scan');
             hboxPixelTime = uix.HBox('Parent', vboxMain, 'Spacing', 3, 'Padding', 0);
-            uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxPixelTime, 'String', 'Pixel time', 'FontSize', 8);
-            obj.edtPixelTime = uicontrol(obj.PROP_EDIT{:}, 'Parent', hboxPixelTime);
-            hboxPixelTime.Widths = [-3 -2];
+                uicontrol(obj.PROP_LABEL{:}, 'Parent', hboxPixelTime, 'String', 'Pixel time', 'FontSize', 8);
+                obj.edtPixelTime = uicontrol(obj.PROP_EDIT{:}, 'Parent', hboxPixelTime);
+                hboxPixelTime.Widths = [-3 -2];
             
             % Get scan speed parameters from stage
             stage = getObjByName(obj.stageName);
@@ -41,15 +39,15 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
             obj.cbxFastScan = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', vboxMain, 'String', 'Fast Scan', 'Enable', enable, 'Value', value);
             obj.cbxAutoSave = uicontrol(obj.PROP_CHECKBOX{:}, 'Parent', vboxMain, 'String', 'Auto-Save');
             
-            vboxMain.Heights = [-3 -3 -3 -2 -2 -2];
+            vboxMain.Heights = [-4 -3 -2 -2 -2];
             
             %%%% callbacks %%%%
             obj.cbxAutoSave.Callback = @(h,e) obj.cbxAutoSaveCallback;
             obj.cbxContinuous.Callback = @(h,e) obj.cbxContCallback;
             obj.cbxFastScan.Callback = @(h,e) obj.cbxFastScanCallback;
             obj.edtPixelTime.Callback = @(h,e) obj.edtPixelTimeCallback;
-            obj.btnScan.Callback = @(h,e) obj.btnScanCallback;
-            obj.btnStopScan.Callback = @(h,e) obj.btnStopScanCallback;
+            obj.btnScan.startCallback = @(h,e) obj.btnScanCallback;
+            obj.btnScan.stopCallback = @(h,e) obj.btnStopScanCallback;
             
             %%%% internal values %%%%
             obj.height = 215;
@@ -102,14 +100,12 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
         function btnScanCallback(obj)
             scanner = getObjByName(StageScanner.NAME);
             scanner.switchTo(obj.stageName);
-            obj.btnScan.Enable = 'off'; % Can't be pressed while scan is running
             scanner.startScan();
-            obj.btnScan.Enable = 'on';
+            obj.btnScan.isRunning = false;  % Scan is now finished
         end
-        function btnStopScanCallback(obj)
+        function btnStopScanCallback(obj) %#ok<MANU>
             scanner = getObjByName(StageScanner.NAME);
             scanner.stopScan();
-            obj.btnScan.Enable = 'on';  % If scan was aborted by error
         end
     end
     
@@ -118,12 +114,20 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
         % When events happen, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
-            if event.isError || isfield(event.extraInfo, ClassStage.EVENT_SCAN_PARAMS_CHANGED)
+            if event.isError
+                obj.refresh();
+                % Besides updating scan parameters (refresh), we also want to check
+                % if scan is still running, and update ths Scan button
+                scanner = getObjByName(StageScanner.NAME);
+                obj.btnScan.Enable = BooleanHelper.boolToOnOff(~scanner.mCurrentlyScanning);
+            end
+            
+            if isfield(event.extraInfo, ClassStage.EVENT_SCAN_PARAMS_CHANGED)
                 obj.refresh();
             end
             
-            if isfield(event.extraInfo, Experiment.EVENT_EXP_RESUMED) ...
-                    || isfield(event.extraInfo, Experiment.EVENT_EXP_PAUSED)
+            if isfield(event.extraInfo, Experiment.EVENT_EXP_RESUMED) || ...
+                    isfield(event.extraInfo, Experiment.EVENT_EXP_PAUSED)
                 % When experiments run, we can't scan
                 exp = event.creator;
                 isScanPossible = ~exp.isOn;

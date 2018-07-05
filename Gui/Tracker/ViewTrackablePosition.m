@@ -20,19 +20,17 @@ classdef ViewTrackablePosition < ViewTrackable
     end
     
     properties (Constant)
-        BOTTOM_LABEL1 = 'time [sec]';
         LEFT_LABEL1 = sprintf('%s(position) [%s]', StringHelper.DELTA, StringHelper.MICRON);
-        BOTTOM_LABEL2 = 'time [sec]';
         LEFT_LABEL2 = 'kpcs'
     end
     
     methods
         function obj = ViewTrackablePosition(parent, controller)
-            obj@ViewTrackable(TrackablePosition.EXP_NAME, parent, controller)
+            obj@ViewTrackable(parent, controller)
             
             % Set parameters for graphic axes
             obj.vAxes1.YLabel.String = obj.LEFT_LABEL1;
-            obj.vAxes2.XLabel.String = obj.BOTTOM_LABEL2;
+            obj.vAxes2.XLabel.String = obj.LABEL_TIME;
             obj.vAxes2.YLabel.String = obj.LEFT_LABEL2;
             obj.legend1 = obj.newLegend(obj.vAxes1,{'x','y','z'});
             
@@ -168,18 +166,24 @@ classdef ViewTrackablePosition < ViewTrackable
         function update(obj) % (#1)
             trackablePos = getExpByName(TrackablePosition.EXP_NAME);
             history = trackablePos.convertHistoryToStructToSave;
-            t = cell2mat(history.time);
             pos = cell2mat(history.position);
+            
+            switch obj.xAxisMode
+                case obj.STRING_TIME
+                    xAx = cell2mat(history.time);
+                case obj.STRING_STEPS
+                    xAx = 1 : length(history.time);  % vector of natural numbers
+            end
             
             p_1 = pos(1, :);
             dp = diff([p_1;pos]);
-            plot(obj.vAxes1, t, dp); % plots each column (x,y,z) against the time
+            plot(obj.vAxes1, xAx, dp); % plots each column (x,y,z) against the time
             drawnow;
             axesLetters = num2cell(obj.stageAxes);     % Odd, but this usefully turns 'xyz' into {'x', 'y', 'z'}
             set(obj.legend1, 'String', axesLetters, 'Visible', 'on');
             
             kcps = cell2mat(history.value);
-            plot(obj.vAxes2,t,kcps);
+            plot(obj.vAxes2, xAx, kcps);
             
             currentPos = pos(end, :);
             axesLen = length(obj.stageAxes);
@@ -195,7 +199,7 @@ classdef ViewTrackablePosition < ViewTrackable
             
             % If tracking is currently performed, Start/Stop should be "Stop"
             % and reset should be disabled
-            obj.btnStartStopChangeMode(obj.btnStartStop, trackablePos.isCurrentlyTracking)
+            obj.btnStartStop.isRunning = trackablePos.isCurrentlyTracking;
             obj.btnReset.Enable = BooleanHelper.boolToOnOff(~trackablePos.isCurrentlyTracking);
             
             obj.cbxContinuous.Value = trackablePos.isRunningContinuously;
@@ -291,7 +295,7 @@ classdef ViewTrackablePosition < ViewTrackable
         % Unique to class
         function uiStageNameCallback(obj)
             newStageName = obj.uiStageName;
-            trackablePos = getObjByName(TrackablePosition.EXP_NAME);
+            trackablePos = getExpByName(TrackablePosition.EXP_NAME);
             trackablePos.mStageName = newStageName;
         end
         function edtInitStepSizeCallback(obj, index)
@@ -380,7 +384,7 @@ classdef ViewTrackablePosition < ViewTrackable
                 obj.showMessage(event.extraInfo.text);
             elseif isfield(event.extraInfo, trackablePos.EVENT_CONTINUOUS_TRACKING_CHANGED)
                 obj.refresh;
-            elseif isfield(event.extraInfo, trackablePos.obj.EVENT_STAGE_CHANGED)
+            elseif isfield(event.extraInfo, trackablePos.EVENT_STAGE_CHANGED)
                 obj.totalRefresh;
             elseif event.isError
                 errorMsg = event.extraInfo.(Event.ERROR_MSG);

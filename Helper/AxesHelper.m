@@ -39,7 +39,7 @@ classdef AxesHelper
                     ylabel(gAxes, leftLabel);
                     axis(gAxes, 'xy', 'tight', 'normal')
                     axis(gAxes, 'manual')
-                    c = colorbar('peer', gAxes, 'location', 'EastOutside');   % todo: peer is outdated
+                    c = colorbar(gAxes, 'location', 'EastOutside');
                     xlabel(c, 'kcps')
                 otherwise
                     EventStation.anonymousWarning('Can''t understand and display %d-dimensional scan!', dimNumber);
