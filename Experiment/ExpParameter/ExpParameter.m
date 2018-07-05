@@ -18,6 +18,9 @@ classdef (Abstract) ExpParameter < HiddenMethodsHandle & PropertiesDisplaySorted
     properties
         name            % string. Name to be presented in GUI
         value = [];     % value of type 'type'
+    end
+    
+    properties (SetAccess = ?Experiment)
         expName = nan;  % string. Name of associated experiment
     end
     
@@ -55,7 +58,7 @@ classdef (Abstract) ExpParameter < HiddenMethodsHandle & PropertiesDisplaySorted
                 
                 parameterName = obj.name; %#ok<*MCSUP>
                 % If we know the name of the associated experiment, we want to include it in the error message:
-                if obj.isAssociatedToExp; parameterName = sprintf('%s.%s', obj.expName,parameterName); end
+                if obj.isAssociatedToExp; parameterName = sprintf('%s.%s', obj.expName, parameterName); end
                 
                 EventStation.anonymousError('Trying to define value for %s failed! \nNew value: %s (of type %s) \nExpected type: %s', ...
                     parameterName, newValue, newType, obj.type);
@@ -66,14 +69,6 @@ classdef (Abstract) ExpParameter < HiddenMethodsHandle & PropertiesDisplaySorted
                 exp = getObjByName(Experiment.NAME);
                 exp.sendEventParamChanged();
             end
-        end
-        
-        function set.expName(obj, newExperimentName)
-            charArray = char(newExperimentName);    % So strcmp could work. If the casting is improper, strcmp would return false
-            if ~strcmp(charArray, Experiment.getExperimentNames)
-                EventStation.anonymousError('Trying to define parent experiment for %s! Experiment name is invalid', obj.name);
-            end
-            obj.expName = newExperimentName;
         end
         
         function tf = isAssociatedToExp(obj)

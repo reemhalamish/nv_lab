@@ -16,11 +16,19 @@ classdef ExpESR < Experiment
     methods
         
         function obj = ExpESR
-            obj@Experiment(ExpESR.EXP_NAME);
+            obj@Experiment();
         end
         
-        function LoadSequence(obj)
+        function prepare(obj)
            % old Load experiment 
+        end
+        
+        function perform(obj)
+            
+        end
+        
+        function analyze(obj)
+            
         end
     end
     

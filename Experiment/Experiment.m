@@ -14,23 +14,25 @@ classdef Experiment < EventSender & EventListener & Savable
     end
     
     properties
-       averages         % int. Number of measurements to average from
-       repeats          % int. Number of repeats per measurement
-       track            % logical. initialize tracking
-       trackThreshhold  % double (between 0 and 1). Change in signal that will start the tracker
-       laserInitializationDuration  % laser initialization in pulsed experiments
-       laserOnDelay     %in \mus
-       laserOffDelay    %in \mus
-       mwOnDelay        %in \mus
-       mwOffDelay       %in \mus
-       detectionDuration % detection windows, in \mus
-       
-       greenLaserPower % in V
+        isOn = false;       % Maybe isOn is like ~(the private property stopFlag)?
+        
+        averages            % int. Number of measurements to average from
+        repeats             % int. Number of repeats per measurement
+        track               % logical. initialize tracking
+        trackThreshhold     % double (between 0 and 1). Change in signal that will start the tracker
+        laserInitializationDuration  % laser initialization in pulsed experiments
+        laserOnDelay        %in \mus
+        laserOffDelay       %in \mus
+        mwOnDelay           %in \mus
+        mwOffDelay          %in \mus
+        detectionDuration   % detection windows, in \mus
+        
+        greenLaserPower     % in V
     end
     
     properties (Access = private)
         stopFlag = 0;
-        pauseFlag = 0; % 0 -> new signal will be acquired. 1 --> signal will be required.
+        pauseFlag = 0;	% 0 -> new signal will be acquired. 1 --> signal will be required.
         pausedAverage = 0; 
     end
     
@@ -44,7 +46,7 @@ classdef Experiment < EventSender & EventListener & Savable
         PATH_ALL_EXPERIMENTS = sprintf('%sControl code\\%s\\Experiment\\Experiments\\', ...
             PathHelper.getPathToNvLab(), PathHelper.SetupMode);
         
-        EVENT_PLOT_UPDATED = 'plotUpdated'      % when something changed regarding the plot (new data, change in x\y axis, change in x\y labels)
+        EVENT_DATA_UPDATED = 'dataUpdated'      % when something changed regarding the plot (new data, change in x\y axis, change in x\y labels)
         EVENT_EXP_RESUMED = 'experimentResumed' % when the experiment is starting to run
         EVENT_EXP_PAUSED = 'experimentPaused'   % when the experiment stops from running
         EVENT_PLOT_ANALYZE_FIT = 'plot_analyzie_fit'        % when the experiment wants the plot to draw the fitting-function-analysis
@@ -56,7 +58,7 @@ classdef Experiment < EventSender & EventListener & Savable
     end
     
     methods
-        function sendEventPlotUpdated(obj); obj.sendEvent(struct(obj.EVENT_PLOT_UPDATED, true)); end
+        function sendEventDataUpdated(obj); obj.sendEvent(struct(obj.EVENT_DATA_UPDATED, true)); end
         function sendEventExpResumed(obj); obj.sendEvent(struct(obj.EVENT_EXP_RESUMED, true)); end
         function sendEventExpPaused(obj); obj.sendEvent(struct(obj.EVENT_EXP_PAUSED, true)); end
         function sendEventPlotAnalyzeFit(obj); obj.sendEvent(struct(obj.EVENT_PLOT_ANALYZE_FIT, true)); end
@@ -72,11 +74,18 @@ classdef Experiment < EventSender & EventListener & Savable
             
             obj.mCategory = Savable.CATEGORY_EXPERIMENTS; % will be overridden in Trackable
             
-            % copy parameters from previous experiment (if exists) and replace its base object
-            prevExp = replaceBaseObject(obj);   % in base object map
-            if isa(prevExp, 'Experiment')
-                obj.robAndKillPrevExperiment(prevExp); 
-                % No need to tell the user otherwise. Perfectly normal.
+            % Copy parameters from previous experiment (if exists) and replace its base object
+            try
+                prevExp = getObjByName(Experiment.NAME);
+                if isa(prevExp, 'Experiment') && isvalid(prevExp)
+                    prevExp.pause;
+                    obj.robExperiment(prevExp);
+                end % No need to tell the user otherwise.
+                delete(prevExp);
+                replaceBaseObject(obj);
+            catch
+                % We got here if there was no Experiment here yet
+                addBaseObject(obj);
             end
         end
         
@@ -88,8 +97,8 @@ classdef Experiment < EventSender & EventListener & Savable
             cellOfStrings = allVariableProperties(isPropExpParam);
         end
         
-        function robAndKillPrevExperiment(obj, prevExperiment)
-            % get all the ExpParameter's from the previous experiment
+        function robExperiment(obj, prevExperiment)
+            % Get all the ExpParameter's from the previous experiment
             % prevExperiment = the previous experiment
             
             for paramNameCell = prevExperiment.getAllExpParameterProperties()
@@ -100,38 +109,40 @@ classdef Experiment < EventSender & EventListener & Savable
                     obj.(paramName).expName = obj.EXP_NAME;  % expParam, I am (now) your parent!
                 end
             end
-            
-            delete(prevExperiment);
         end
         
-        function delete(obj) %#ok<INUSD>
-            % todo: needed? 
-        end
     end
     
-    %%
+    %% Running
     methods
-        function run(obj) %#ok<*MANU>
-            loadSequence(obj)
+        function run(obj)
+            prepare(obj)
+            
             obj.stopFlag = false;
-        end
-        
-        function pause(obj)
-        end
-        
-        function stop(obj)
+            sendEventExpResumed(obj);
+            for i = 1:obj.averages
+                perform(obj);
+                sendEventDataUpdated(obj)
+            end
+            
+            obj.stopFlag = true;
             sendEventExpPaused(obj);
         end
         
-        
+        function pause(obj)
+            obj.stopFlag = true;
+            sendEventExpPaused(obj);
+        end
     end
     
     %% To be overridden
     methods (Abstract)
         % Specifics of each of the experiments
-        loadSequence(obj) 
+        prepare(obj) 
         
-        plotResults(obj)
+        perform(obj)
+        
+        analyze(obj)
     end
     
     
@@ -143,8 +154,7 @@ classdef Experiment < EventSender & EventListener & Savable
             if isfield(event.extraInfo, Tracker.EVENT_TRACKER_FINISHED)
                 % todo - stuff
             elseif isfield(event.extraInfo, StageScanner.EVENT_SCAN_STARTED)
-                obj.stop;
-                obj.sendEventExpPaused;
+                obj.pause;
             end
         end
     end
@@ -166,7 +176,6 @@ classdef Experiment < EventSender & EventListener & Savable
             
             % mCategory is overrided by Tracker, and we need to check it
             if ~strcmp(category,obj.mCategory); return; end
-            
             
         end
         
@@ -193,7 +202,7 @@ classdef Experiment < EventSender & EventListener & Savable
         end
     end
     
-    %%
+    %% Helper functions
     methods (Static)
         function obj = init
             % Creates a default Experiment.
@@ -218,6 +227,7 @@ classdef Experiment < EventSender & EventListener & Savable
                 tf = strcmp(exp.EXP_NAME, newExpName);
             catch
                 tf = false;
+                EventStation.anonymousWarning('I don''t know the Experiment you asked for!');
             end
         end
 
@@ -228,9 +238,17 @@ classdef Experiment < EventSender & EventListener & Savable
             % property 'EXP_NAME' from each file (if exists). Add also
             % 'SpcmCounter', whatever be in the folder
             
+            
+            % Get 'regular' Experiments
             path = Experiment.PATH_ALL_EXPERIMENTS;
             [~, expFileNames] = PathHelper.getAllFilesInFolder(path);
+            % Get Trackables
+            path2 = Trackable.PATH_ALL_TRACKABLES;
+            [~, trckblFileNames] = PathHelper.getAllFilesInFolder(path2);
+            % Join
+            expFileNames = [expFileNames, trckblFileNames];
             
+            % Extract names
             namesCell = cell(size(expFileNames));
             for i = 1:length(expFileNames)
                 expClassName = PathHelper.removeDotSuffix(expFileNames{i});

@@ -50,7 +50,7 @@ classdef TrackablePosition < Trackable % & StageScanner
     
     methods
         function obj = TrackablePosition(stageName)
-            obj@Trackable(TrackablePosition.EXP_NAME);
+            obj@Trackable;
             
             % Get stage
             if exist('stageName', 'var')
@@ -75,8 +75,11 @@ classdef TrackablePosition < Trackable % & StageScanner
             obj.pixelTime = obj.PIXEL_TIME;
             obj.nMaxIterations = obj.NUM_MAX_ITERATIONS;
         end
-
-        function startTrack(obj)
+    end
+    
+    %% Overridden from Experiment
+    methods
+        function prepare(obj)
             
             %%%% Initialize %%%%
             obj.resetAlgorithm;
@@ -113,7 +116,9 @@ classdef TrackablePosition < Trackable % & StageScanner
             
             obj.mSignal = scanner.scanPoint(stage, spcm, sp);
             obj.recordCurrentState;     % record starting point (time == 0)
-
+        end
+        
+        function perform(obj)
             % Execution of at least one iteration is acheived by using
             % {while(true) {statements} if(condition) {break}}
             while true
@@ -122,17 +127,16 @@ classdef TrackablePosition < Trackable % & StageScanner
                 if ~obj.isRunningContinuously; break; end
                 obj.sendEventTrackableExpEnded;
             end
-            
-            obj.isCurrentlyTracking = false;
-            obj.sendEventTrackableExpEnded;     % We want the GUI to catch that the tracker is not tracking anymore
-        end
-                
-        function stopTrack(obj)
-            obj.stopFlag = true;
-            obj.isCurrentlyTracking = false;
-            obj.sendEventTrackableExpEnded;
+
         end
         
+        function analyze(obj) %#ok<MANU>
+            % No analysis required (yet?)
+        end
+    end
+       
+    %% Overridden from Trackable
+    methods
         function resetTrack(obj)
             obj.resetAlgorithm;
             obj.timer = [];
@@ -244,12 +248,6 @@ classdef TrackablePosition < Trackable % & StageScanner
             obj.reset;   
         end
         
-        function tf = isDivergent(obj)
-            % If we arrive at the maximum number of iterations, we assume
-            % the tracking sequence will not converge, and we stop it
-            tf = (obj.stepNum >= obj.NUM_MAX_ITERATIONS);
-        end
-        
         function recordCurrentState(obj)
             record = struct;
             record.position = obj.mScanParams.fixedPos;
@@ -261,15 +259,6 @@ classdef TrackablePosition < Trackable % & StageScanner
             obj.sendEventTrackableUpdated;
         end
         
-        function resetAlgorithm(obj)
-            obj.stopFlag = false;
-            obj.stepNum = 0;
-            obj.currAxis = 1;
-            
-            obj.mSignal = [];
-            obj.mScanParams = StageScanParams;
-            obj.stepSize = obj.initialStepSize;
-        end
     end
     
     methods (Static)
@@ -278,7 +267,7 @@ classdef TrackablePosition < Trackable % & StageScanner
         end
     end
 
-    %% Scanning algoithms.
+    %% Scanning algorithms.
     % For now, only one, should include more in the future
     methods
         function HovavAlgorithm(obj)
@@ -365,6 +354,23 @@ classdef TrackablePosition < Trackable % & StageScanner
                 obj.currAxis = mod(obj.currAxis, len) + 1; % Cycle through 1:len
             end
         end
+        
+        function resetAlgorithm(obj)
+            obj.stopFlag = false;
+            obj.stepNum = 0;
+            obj.currAxis = 1;
+            
+            obj.mSignal = [];
+            obj.mScanParams = StageScanParams;
+            obj.stepSize = obj.initialStepSize;
+        end
+        
+        function tf = isDivergent(obj)
+            % If we arrive at the maximum number of iterations, we assume
+            % the tracking sequence will not converge, and we stop it
+            tf = (obj.stepNum >= obj.NUM_MAX_ITERATIONS);
+        end
+        
     end
     
 end

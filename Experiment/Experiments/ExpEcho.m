@@ -179,7 +179,7 @@ classdef ExpEcho < Experiment
                     end
                 end
                 fprintf('%s%%\n',num2str(a/obj.averages*100))
-                obj.PlotResults(a);
+                obj.PlotResults(a);         % Should instead be sendEventDataUpdated
                 drawnow
                 if ~success || obj.stopFlag
                     break

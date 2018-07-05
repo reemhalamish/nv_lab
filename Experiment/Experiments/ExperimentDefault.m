@@ -1,18 +1,20 @@
 classdef ExperimentDefault < Experiment
     %EXPDEFAULT Default experiment, to be run before any actual experiment
-    %starts
+    %           starts
     
     properties (Constant, Hidden)
         EXP_NAME = '';
     end
     
     methods
-        function loadSequence(obj) %#ok<*MANU>
+        function prepare(obj) %#ok<*MANU>
         end
         
-        function plotResults(obj)
+        function perform(obj)
         end
         
+        function analyze(obj)
+        end
     end
     
 end

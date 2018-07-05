@@ -49,6 +49,13 @@ classdef (Abstract) Spcm < EventSender
             obj@EventSender(spcmName);
         end
     end
+       
+    methods (Access = ?SpcmCounter)
+        function clearTimeTask(obj)
+            obj.clearTimeRead;
+            obj.setSPCMEnable(false);
+        end
+    end
 
     methods (Static)
         function create(spcmTypeStruct)
