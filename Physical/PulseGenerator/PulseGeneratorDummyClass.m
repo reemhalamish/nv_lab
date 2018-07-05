@@ -69,7 +69,7 @@ classdef (Sealed) PulseGeneratorDummyClass < PulseGenerator
         end
         
         function run(obj) %#ok<MANU>
-        % Need I say more?
+        % Upload sequence to hardware (if needed) and actually start it
         end
         
         function validateSequence(obj)

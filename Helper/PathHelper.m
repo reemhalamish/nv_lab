@@ -136,40 +136,30 @@ classdef PathHelper
             % SUFFIX - string (char array)
             % FILENAMES - struct array
             %
+            
             narginchk(1,2)
             nargoutchk(1,2)
             
-            if ~exist('optionalSuffix', 'var')
-                optionalSuffix = '';
-            end
-            
             inputFolder = PathHelper.appendBackslashIfNeeded(inputFolder);
-            allFilesInFolder = dir(inputFolder);
-            allFilesInFolder = allFilesInFolder(3 : end);   % the first two aren't relevant
             
-            len = length(allFilesInFolder);
-            temp = cell(1,len);
-            isRelevant = false(1, len);
-            for i = 1:len
-                fileName = allFilesInFolder(i).name;
-                fullPath = [inputFolder fileName];
-                if PathHelper.isFileExists(fullPath) && endsWith(fullPath, optionalSuffix)
-                    temp{i} = fileName;
-                    isRelevant(i) = true;
-                end
-                if strcmp(optionalSuffix, '') && endsWith(fullPath, '.ini')  % To remove Google Drive's 'desktop.ini'
-                    isRelevant(i) = false;
-                end
+            if ~exist('optionalSuffix', 'var')
+                allFilesInFolder = dir(inputFolder);
+                allFilesInFolder = allFilesInFolder(3 : end);   % the first two aren't relevant
+            else
+                searchString = [inputFolder, '*', optionalSuffix];
+                allFilesInFolder = dir(searchString);
             end
             
-            allFileNames = temp(isRelevant);
+            fileNames = extractfield(allFilesInFolder, 'name');
+            isIni = endsWith(fileNames, '.ini');    % This file comes from Google Drive, but we don't want it
+            fileNames = fileNames(~isIni);
+            
             switch nargout
                 case 1
-                    varargout{1} = cellfun(@(x) [inputFolder, x], ...
-                        allFileNames, 'UniformOutput', false);
+                    varargout{1} = strcat(inputFolder, fileNames);
                 case 2
                     varargout{1} = inputFolder;
-                    varargout{2} = allFileNames;
+                    varargout{2} = fileNames;
             end
             
         end

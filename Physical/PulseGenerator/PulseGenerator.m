@@ -200,7 +200,7 @@ classdef (Abstract) PulseGenerator < EventSender
         %   obj.pulseGeneratorPrivate.Off;
         
         run(obj)
-        % Need I say more?
+        % Upload sequence to hardware (if needed) and actually start it
         
         validateSequence(obj)
         % Needs to run before uploading it to PG hardware
