@@ -84,8 +84,7 @@ classdef ViewSpcmPlot < ViewHBox & EventListener
                     [time,kcps,std] = spcmCount.getRecords;
                 end
                 dimNum = 1;
-                AxesHelper.fillAxes(obj.vAxes, kcps, dimNum, time, nan, obj.BOTTOM_LABEL, obj.LEFT_LABEL);   %Still requires std implementation
-                errorbar(obj.vAxes, time, kcps, std);   % needs to be inside $fillAxes
+                AxesHelper.fill(obj.vAxes, kcps, dimNum, time, nan, obj.BOTTOM_LABEL, obj.LEFT_LABEL, std);
                 
                 set(obj.vAxes,'XLim',[-inf, inf]);  % Creates smooth "sweep" of data
                 drawnow;                            % consider using animatedline
