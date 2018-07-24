@@ -18,6 +18,12 @@ classdef (Abstract) ExpParameter < HiddenMethodsHandle & PropertiesDisplaySorted
     properties
         name            % string. Name to be presented in GUI
         value = [];     % value of type 'type'
+        units = [];
+    end
+    
+    properties (Dependent, SetAccess = private)
+        isAssociatedToExp
+        label
     end
     
     properties (SetAccess = ?Experiment)
@@ -31,23 +37,21 @@ classdef (Abstract) ExpParameter < HiddenMethodsHandle & PropertiesDisplaySorted
     end
     
     methods
-        function obj = ExpParameter(name, value, expName)
+        function obj = ExpParameter(name, value, units, expName)
             % All parameters except name are optional
             obj@HiddenMethodsHandle;
             obj@PropertiesDisplaySorted;
             
             obj.name = name;
             if exist('value', 'var'); obj.value = value; end
+            if exist('units', 'var'); obj.units = units; end
             if exist('expName', 'var'); obj.expName = expName; end
         end
     end
     
-    methods (Static, Abstract)
-        isOk = validateValue(newValue)
-        % Check if a new value is valid, according to obj.type
-    end
+
     
-    %% setters
+    %% Setters & getters
     methods
         function set.value(obj, newValue)
             if ~isempty(newValue) && ~obj.validateValue(newValue)
@@ -71,9 +75,30 @@ classdef (Abstract) ExpParameter < HiddenMethodsHandle & PropertiesDisplaySorted
             end
         end
         
-        function tf = isAssociatedToExp(obj)
+        function tf = get.isAssociatedToExp(obj)
             tf = ~isnan(obj.expName) && ~isempty(obj.expName);
         end
+        
+        function lbl = get.label(obj)
+            if isempty(obj.units)
+                lbl = obj.name;
+            else
+                if ~ischar(obj.units)
+                    EventStation.anonymousWarning('The name of the units of %s.%s are %s, but they need to be of type char!', ...
+                        obj.expName, obj.name, class(obj.units));
+                    lbl = obj.name;
+                else
+                    lbl = sprintf('%s [%s]', obj.name, obj.units);
+                end
+            end
+        end
     end
+    
+    %%
+    methods (Static, Abstract)
+        isOk = validateValue(newValue)
+        % Check if a new value is valid, according to obj.type
+    end
+    
 end
 

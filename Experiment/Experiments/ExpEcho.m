@@ -15,78 +15,116 @@ classdef ExpEcho < Experiment
     end
     
     properties
-        frequency       %in MHz
-        amplitude       %in MHz
-        tau             %in us
-        pi              %in us
-        halfPi          %in us
-        threeHalvesPi   %in us
-        constantTime        % logical
-        doubleMeasurement   % logical
+        frequency = 3029;   %in MHz
+        amplitude = -10;    %in dBm
+        
+        tau = 1:100;        %in us
+        halfPiTime = 0.025  %in us
+        piTime = 0.05       %in us
+        threeHalvesPiTime = 0.075 %in us
+        
+        
+        constantTime = false      % logical
+        doubleMeasurement = true  % logical
+    end
+    
+    properties (Access = private)
+        freqGenName
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods
-        function obj = ExpEcho % Defult values go here
+        function obj = ExpEcho(FG)
             obj@Experiment;
+            
+            % First, get a frequency generator
+            if nargin == 0; FG = []; end
+            obj.freqGenName = obj.getFgName(FG);
+            
+            % Set properties inherited from Experiment
             obj.repeats = 1000;
             obj.averages = 2000;
-            obj.track = true; %initialize tracking
+            obj.track = true;   % Initialize tracking
             obj.trackThreshhold = 0.7;
             
-            obj.frequency = 3029;   %MHz
-            obj.amplitude = -10;    %dBm
-            
-            obj.halfPi = 0.026;     %\mus
-            obj.pi = 2*obj.halfPi;
-            obj.threeHalvesPi = 3*obj.halfPi;
-            obj.tau = 1:1:100;          %\mus
             obj.detectionDuration = [0.25, 5];      % detection windows, in \mus
             obj.laserInitializationDuration = 20;   % laser initialization in pulsed experiments in \mus (??)
             
-            obj.constantTime = false;
-            obj.doubleMeasurement = true;
+            obj.mCurrentXAxisParam = ExpParamDoubleVector('Time', [], StringHelper.MICROSEC, obj.EXP_NAME);
+            obj.mCurrentYAxisParam = ExpParamDoubleVector('FL', [], 'normalised', obj.EXP_NAME);
+        end
+    end
+    
+    %% Setters
+    methods
+        function set.frequency(obj, newVal) % newVal is in MHz
+            if ~isscalar(newVal)
+                obj.sendError('Echo Experiment frequency must be scalar')
+            end
+            if ~ValidationHelper.isInBorders(newVal, 0, obj.MAX_FREQ)
+                errMsg = sprintf(...
+                    'Frequency must be between 0 and %d! Frequency reuqested: %d', ...
+                    obj.MAX_FREQ, newVal);
+                obj.sendError(errMsg);
+            end
+            % If we got here, then newVal is OK.
+            obj.frequency = newVal;
+            obj.changeFlag = true;
         end
         
-        function set.frequency(obj, newVal) % newVal in MHz
-            OK1 = isscalar(newVal);
-            OK2 = ValidationHelper.isInBorders(newVal, 0, obj.MAX_FREQ);
-            if OK1 && OK2
-                obj.frequency = newVal;
-                obj.changeFlag = true;
-            end
-        end
         
-        function set.amplitude(obj, newVal) % newVal in dBm
-            maxVectorLength = length(obj.FG);
-            OK1 = ValidationHelper.isValidVector(newVal, maxVectorLength); 
-            OK2 = ValidationHelper.isInBorders(newVal ,obj.MIN_AMPL, obj.MAX_AMPL);
-            if OK1 && OK2
-                obj.amplitude = newVal;
-                obj.changeFlag = true;
+        function set.amplitude(obj, newVal) % newVal is in dBm
+            if ~isscalar(newVal)
+                obj.sendError('Echo Experiment amplitude must be scalar')
             end
+            if ~ValidationHelper.isInBorders(newVal ,obj.MIN_AMPL, obj.MAX_AMPL)
+                errMsg = sprintf(...
+                    'Amplitude must be between %d and %d! Amplitude reuqested: %d', ...
+                    obj.MIN_AMPL, obj.MAX_AMPL, newVal);
+                obj.sendError(errMsg);
+            end
+            % If we got here, then newVal is OK.
+            obj.amplitude = newVal;
+            obj.changeFlag = true;
         end
         
         function set.tau(obj ,newVal)	% newVal in microsec
-            OK1 = ValidationHelper.isValidVector(newVal, obj.MAX_TAU_LENGTH);
-            OK2 = ValidationHelper.isInBorders(newVal, obj.MIN_TAU, obj.MAX_TAU);
-            if OK1 && OK2
-                obj.tau = newVal;
-                obj.changeFlag = true;
+            if ~ValidationHelper.isValidVector(newVal, obj.MAX_TAU_LENGTH)
+                obj.sendError('In Echo Experiment, the length of Tau must be a valid vector! Ignoring.')
+            end
+            if ~ValidationHelper.isInBorders(newVal, obj.MIN_TAU, obj.MAX_TAU)
+                errMsg = sprintf(...
+                    'Tau must be between %d and %d! Amplitude reuqested: %d', ...
+                    obj.MIN_TAU, obj.MAX_TAU, newVal);
+                obj.sendError(errMsg);
+            end
+            % If we got here, then newVal is OK.
+            obj.tau = newVal;
+            obj.changeFlag = true;
+        end
+        
+        function checkDetectionDuration(obj, newVal) %#ok<INUSL>
+            % Used in set.detectionDuration. Overriding from superclass
+            if length(newVal) ~= 2
+                error('Exactly 2 detection duration periods are needed in an Echo experiment')
             end
         end
-
-        %%%%%
-        function LoadExperiment(obj) %X - detection times, in us
-            %%% Create sequence for this experiment %%%
-            if length(obj.detectionDuration) ~= 2
-                error('Two detection duration periods are needed in an Echo experiment')
-            end
+    end
+    
+    %% Overridden from Experiment
+    methods
+        function prepare(obj)
+            %%% Create sequence for this experiment
+            
             % Useful parameters for what follows
             initDuration = obj.laserInitializationDuration-sum(obj.detectionDuration);
+            
             tauPulse = Pulse(obj.tau(end), '', 'tau');  % Delay
-            projectionPulse = Pulse(obj.halfPi, 'MW', 'projectionPulse');
+            projectionPulse = Pulse(obj.halfPiTime, 'MW', 'projectionPulse');
             if obj.constantTime
+                % The length of the sequence will change when we change
+                % tau. To counter that, we add some delay at the end.
+                % (mwOffDelay is a property of class Experiment)
                 lastDelay = Pulse(obj.mwOffDelay+2*max(obj.tau), '', 'lastDelay');
             else
                 lastDelay = Pulse(obj.mwOffDelay, '', 'lastDelay');
@@ -95,146 +133,146 @@ classdef ExpEcho < Experiment
             % Creating the sequence
             S = Sequence;
             S.addEvent(obj.laserOnDelay,            'greenLaser')               % Calibration of the laser with SPCM (laser on)
-            S.addEvent(obj.detectionDuration(1),    {'greenLaser','detector'})	% Detection
+            S.addEvent(obj.detectionDuration(1),    {'greenLaser', 'detector'}) % Detection
             S.addEvent(initDuration,                'greenLaser')               % Initialization
-            S.addEvent(obj.detectionDuration(2),    {'greenLaser','detector'})  % Reference detection
+            S.addEvent(obj.detectionDuration(2),    {'greenLaser', 'detector'}) % Reference detection
             S.addEvent(obj.laserOffDelay,           '');                        % Calibration of the laser with SPCM (laser off)
-            S.addEvent(obj.halfPi,  'MW');	% MW
-            S.addPulse(tauPulse); % ''      % Delay
-            S.addEvent(obj.pi,      'MW')   % MW
-            S.addPulse(tauPulse); % ''      % Delay
+            S.addEvent(obj.halfPiTime);     % MW
+            S.addPulse(tauPulse);           % Delay
+            S.addEvent(obj.piTime)          % MW
+            S.addPulse(tauPulse);           % Delay
             S.addPulse(projectionPulse);    % MW
-            S.addPulse(lastDelay) % ''      % Last delay, making sure the MW is off
+            S.addPulse(lastDelay)           % Last delay, making sure the MW is off
             
             %%% Send to PulseGenerator
             pg = getObjByName(PulseGenerator.NAME);
             pg.sequence = S;
             pg.repeats = obj.repeats;
             obj.changeFlag = false;
-        end
-        
-        function Run(obj) %X is the MW duration vector
-            obj.LoadExperiment;
-            obj.stopFlag = 0;
-            obj.SetAmplitude(obj.amplitude(1), 1)
-            obj.SetFrequency(obj.frequency(1), 1)
-            numScans = 2*obj.PB.repeats;
+            
+            % Set Frequency Generator
+            fg = getObjByName(obj.freqGenName);
+            fg.amplitude = obj.amplitude;
+            fg.frequency = obj.frequency;
+            
+            numScans = 2*obj.repeats;
             obj.signal = zeros(2*(1+obj.doubleMeasurement), length(obj.tau), obj.averages);
             timeout = 15 * numScans * max(obj.PB.time) * 1e-6;
-            obj.DAQtask = obj.InitializeExperiment(numScans);
-            if obj.constantTime
-                seqTime = max(obj.tau)+obj.laserInitializationDuration+obj.lastDeley;
-            else
-                seqTime = mean(obj.tau)+obj.laserInitializationDuration+obj.lastDeley;
-            end
-            fprintf('Starting %d averages with each average taking %.1f seconds, on average.\n', obj.averages, 1e-6*obj.repeats*seqTime*length(obj.tau)*(1+obj.doubleMeasurement));
-            for a = 1:obj.averages
-                for t = randperm(length(obj.tau))
-                    success = false;
-                    for trial = 1 : 5
-                        try
-                            obj.PB.changeSequence('tau', 'duration', obj.tau(t));
-                            if obj.constantTime
-                                obj.PB.changeSequence('lastDelay', 'duration', obj.lastDeley+(max(obj.tau)-obj.tau(t))*2);
-                            end
-                            obj.DAQ.startGatedCounting(obj.DAQtask)
-                            obj.PB.Run;
-                            s = obj.DAQ.readGatedCounting(obj.DAQtask,numScans,timeout);
-                            obj.DAQ.stopTask(obj.DAQtask);
-                            s = reshape(s,2,length(s)/2);
-                            s = mean(s,2).';
-                            s = s./(obj.detectionDuration*1e-6)*1e-3;%kcounts per second
-                            if obj.doubleMeasurement
-                                obj.PB.changeSequence('projectionPulse', 'duration', obj.threeHalvesPi);
-                                obj.DAQ.startGatedCounting(obj.DAQtask)
-                                obj.PB.Run;
-                                s2 = obj.DAQ.readGatedCounting(obj.DAQtask,numScans,timeout);
-                                obj.DAQ.stopTask(obj.DAQtask);
-                                s2 = reshape(s2,2,length(s2)/2);
-                                s2 = mean(s2,2).';
-                                s2 = s2./(obj.detectionDuration*1e-6)*1e-3; %kcounts per second
-                                s = [s s2]; %#ok<AGROW>
-                                obj.PB.changeSequence('projectionPulse', 'duration', obj.halfPi);
-                            end
-                            obj.signal(:,t,a) = s;
-                            
-                            tracked = obj.Tracking(s(2));
-                            if tracked
-                                obj.LoadExperiment
-                                obj.DAQtask = obj.InitializeExperiment(numScans);
-                            end
-                            success = true;
-                            break;
-                        catch err
-                            warning(err.message);
-                            fprintf('Experiment failed at trial %d, attempting again.\n', trial);
-                            try
-                                obj.DAQ.stopTask(obj.DAQtask);
-                            catch
-                            end
-                        end
-                    end
-                    if ~success
-                        break
-                    end
-                end
-                fprintf('%s%%\n',num2str(a/obj.averages*100))
-                obj.PlotResults(a);         % Should instead be sendEventDataUpdated
-                drawnow
-                if ~success || obj.stopFlag
-                    break
-                end
-                obj.SaveExperiment('temp_exp');
-            end
-            obj.CloseExperiment(obj.DAQtask)
-            end
-        
-        function PlotResults(obj,index)
-            new = 0;
-            if isempty(obj.figHandle) || ~isvalid(obj.figHandle)
-                figure; 
-                obj.figHandle = gca;
-                % add apushbutton
-                obj.gui.stopButton = uicontrol('Parent',gcf,'Style','pushbutton','String','Stop','Position',[0.0 0.5 100 20],'Visible','on','Callback',@obj.PushBottonCallback);
-                new = 1;
-            end
-            if nargin<2
-                index = size(obj.signal_,3);
-            end
-            S1 = squeeze(obj.signal_(1,:,1:index));
-            S2 = squeeze(obj.signal_(2,:,1:index));
+            obj.initialize(numScans);
             
-            if index == 1
-                S = S1./S2;
-            else
-                S = mean(S1./S2,2);
-            end
-
-            plot(obj.figHandle, 2*obj.tau, S)
-            xlabel('Time (\mus)')
-            ylabel('FL (norm)')
-            
-            if obj.doubleMeasurement
-                S3 = squeeze(obj.signal_(3,:,1:index));
-                S4 = squeeze(obj.signal_(4,:,1:index));
-                
-                if index == 1
-                    S = S3./S4;
-                else
-                    S = mean(S3./S4,2);
-                end
-                hold(obj.figHandle, 'on')
-                plot(obj.figHandle, 2*obj.tau, S)
-                hold(obj.figHandle, 'off')
-            end
-            
-            if new
-                addTopXAxis(obj.figHandle, 'xLabStr', '\tau (\mus)', 'exp', '0.5*argu');
-            end
+            fprintf('Starting %d averages with each average taking %.1f seconds, on average.\n', ...
+                obj.averages, 1e-6*obj.repeats*seqTime*length(obj.tau)*(1+obj.doubleMeasurement));
         end
         
-        function PushBottonCallback(obj,PushButton, EventData)
-           obj.stopFlag = 1; 
+        function perform(obj, nIter)
+            % Devices
+            pg = getObjByName(PulseGenerator.NAME);
+            seq = pg.sequence;
+            daq = getObjByName(NiDaq.NAME);
+            
+            % Some useful constants
+            kcps = 1e3;     % kilocounts/sec
+            musec = 1e-6;   % microseconds
+            maxLastDelay = obj.mwOffDelay + max(obj.tau);
+            
+            % Go over all tau's, in random order
+            for t = randperm(length(obj.tau))
+                success = false;
+                for trial = 1 : 5
+                    try
+                        seq.change('tau', 'duration', obj.tau(t));
+                        if obj.constantTime
+                            seq.change('lastDelay', 'duration', maxLastDelay - 2*obj.tau(t));
+                        end
+                        daq.startGatedCounting(obj.DAQtask)
+                        pg.Run;
+                        s = daq.readGatedCounting(obj.DAQtask,numScans,timeout);
+                        daq.stopTask(obj.DAQtask);
+                        s = reshape(s,2,length(s)/2);
+                        s = mean(s,2).';
+                        s = s./(obj.detectionDuration*musec)/kcps; %kcounts per second
+                        if obj.doubleMeasurement
+                            seq.change('projectionPulse', 'duration', obj.threeHalvesPiTime);
+                            daq.startGatedCounting(obj.DAQtask)
+                            pg.Run;
+                            s2 = daq.readGatedCounting(obj.DAQtask,numScans,timeout);
+                            daq.stopTask(obj.DAQtask);
+                            s2 = reshape(s2,2,length(s2)/2);
+                            s2 = mean(s2,2).';
+                            s2 = s2./(obj.detectionDuration*musec)/kcps; %kcounts per second
+                            s = [s s2]; %#ok<AGROW>
+                            seq.change('projectionPulse', 'duration', obj.halfPi);
+                        end
+                        obj.signal(:, t, nIter) = s;
+                        
+                        tracked = obj.Tracking(s(2));
+                        if tracked
+                            obj.LoadExperiment
+                            obj.DAQtask = obj.InitializeExperiment(numScans);
+                        end
+                        success = true;
+                        break;
+                    catch err
+                        warning(err.message);
+                        fprintf('Experiment failed at trial %d, attempting again.\n', trial);
+                        try
+                            daq.stopTask(obj.DAQtask);
+                        catch
+                        end
+                    end
+                end
+                if ~success
+                    break
+                end
+            end
+            
+            
+            
+            %%% Plotting: should instead be sendEventDataUpdated
+            S1 = squeeze(obj.signal(1,:,:));
+            S2 = squeeze(obj.signal(2,:,:));
+            
+            S = mean(S1./S2,2);
+            
+            if obj.doubleMeasurement
+                S3 = squeeze(obj.signal(3,:,:));
+                S4 = squeeze(obj.signal(4,:,:));
+                
+                SDoubleMeasurement = mean(S3./S4,2);
+                S = [S; SDoubleMeasurement];
+            end
+            
+            obj.mCurrentXAxisParam.value = 2*obj.tau;
+            obj.mCurrentYAxisParam.value = S;
+            
+            %%% end (plotting)
+
+            
+            % todo: needs to happen after all averages:
+            % obj.CloseExperiment(obj.DAQtask)
+        end
+        
+        
+    end
+    
+    %% Helper functions
+    methods (Static)
+        function name = getFgName(FG)
+            % Get name of relevant frequency generator (if there is only
+            % one; otherwise, we can't tell which one to use)
+            
+            if nargin == 0 || isempty(FG)
+                % No input -- we take the default FG
+                name = FrequencyGenerator.getDefaultFgName;
+            elseif ischar(FG)
+                getObjByName(FG);
+                % If this did not throw an error, then the FG exists
+                name = FG;
+            elseif isa(FG, 'FrequencyGenerator')
+                name = FG.name;
+            else
+                EventStation.anonymousError('Sorry, but a %s is not a Frequency Generator...', class(FG))
+            end
         end
     end
     

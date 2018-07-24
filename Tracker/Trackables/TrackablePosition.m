@@ -38,7 +38,7 @@ classdef TrackablePosition < Trackable % & StageScanner
         PIXEL_TIME = 1 ;  % in seconds
         
         % vector constants, for [X Y Z]
-        INITIAL_STEP_VECTOR = [0.1 0.1 0.2];    %[0.1 0.1 0.05];
+        INITIAL_STEP_VECTOR = [0.05 0.05 0.1];    %[0.1 0.1 0.05];
         MINIMUM_STEP_VECTOR = [0.02 0.02 0.02]; %[0.01 0.01 0.01];
         STEP_RATIO_VECTOR = 0.5*ones(1, 3);
         ZERO_VECTOR = [0 0 0];
@@ -244,10 +244,6 @@ classdef TrackablePosition < Trackable % & StageScanner
     end
         
     methods (Access = private)
-        function initialize(obj)
-            obj.reset;   
-        end
-        
         function recordCurrentState(obj)
             record = struct;
             record.position = obj.mScanParams.fixedPos;

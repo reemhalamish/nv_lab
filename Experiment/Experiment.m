@@ -1,4 +1,4 @@
-classdef Experiment < EventSender & EventListener & Savable
+classdef (Abstract) Experiment < EventSender & EventListener & Savable
     %EXPERIMENT Summary of this class goes here
     %   Detailed explanation goes here
     
@@ -110,6 +110,27 @@ classdef Experiment < EventSender & EventListener & Savable
                 end
             end
         end
+    end
+       
+    %% Setter
+    methods
+        %%% detectionDuration
+        function checkDetectionDuration(obj, newVal)
+            % Returns an error if property is invalid. To be overridden in
+            % subclasses
+            if ~isnumeric(newVal)
+                obj.sendError('DetectionDuration must be a number or a vector of numbers')
+            end
+        end
+        
+        function set.detectionDuration(obj, newVal)
+            % MATLAB setter, that cannot be overridden in subclasses, per
+            % MathWorks design. We therefore use checkDetectionDuration(),
+            % which can be overridden.
+            checkDetectionDuration(obj, newVal);
+            % If we got here, then newVal is OK.
+            obj.detectionDuration = newVal;
+        end
         
     end
     
@@ -120,13 +141,23 @@ classdef Experiment < EventSender & EventListener & Savable
             
             obj.stopFlag = false;
             sendEventExpResumed(obj);
+            
             for i = 1:obj.averages
-                perform(obj);
-                sendEventDataUpdated(obj)
+                try
+                    perform(obj, i);
+                    sendEventDataUpdated(obj)   % Plots and saves
+                    percentage = i/obj.averages*100;
+                    fprintf('%f.2%%\n', percentage)
+                    
+                    if obj.stopFlag
+                        break
+                    end
+                catch
+                    break
+                end
             end
             
-            obj.stopFlag = true;
-            sendEventExpPaused(obj);
+            obj.pause;
         end
         
         function pause(obj)
@@ -140,7 +171,10 @@ classdef Experiment < EventSender & EventListener & Savable
         % Specifics of each of the experiments
         prepare(obj) 
         
-        perform(obj)
+        perform(obj, nIter)
+        % Perform the main part of the experiment.
+        % This part is iterated obj.averages times, and nIter is the number
+        % of current iteration
         
         analyze(obj)
     end
@@ -203,6 +237,30 @@ classdef Experiment < EventSender & EventListener & Savable
     end
     
     %% Helper functions
+    methods
+        function setGreenLaserPower(obj, laserPower)
+            % Sets the laser power to the given value, or to the value
+            % given by obj.greenLaserPower
+            
+            if nargin < 2   % i.e. no variable named 'laserPower'
+                laserPower = obj.greenLaserPower;
+            end
+            
+            greenLaser = getObjByName(LaserGate.GREEN_LASER_NAME);
+            controallableParts = greenLaser.getContollableParts;
+            powerPart = controallableParts{1};
+            normalisedPower = (laserPower - powerPart.min)/(powerPart.maxValue - powerPart.min);
+            powerPart.value = normalisedPower;
+        end
+        
+        function initialize(obj, numScans)
+            spcm = getObjByName(Spcm.NAME);
+            spcm.prepareReadByTime;
+            obj.setGreenLaserPower;
+            spcm.setGatedCounting('', numScans);
+        end
+    end
+    
     methods (Static)
         function obj = init
             % Creates a default Experiment.
@@ -231,7 +289,7 @@ classdef Experiment < EventSender & EventListener & Savable
             end
         end
 
-        function namesCell = getExperimentNames()
+        function [expNamesCell, expClassNamesCell] = getExperimentNames()
             %GETEXPERIMENTSNAMES returns cell of char arrays with names of
             %valid Experiments.
             % Algorithm: scan '\Experiments' folder, and get the Constant
@@ -249,13 +307,15 @@ classdef Experiment < EventSender & EventListener & Savable
             expFileNames = [expFileNames, trckblFileNames];
             
             % Extract names
-            namesCell = cell(size(expFileNames));
+            expClassNamesCell = PathHelper.removeDotSuffix(expFileNames);
+            expNamesCell = cell(size(expFileNames));
             for i = 1:length(expFileNames)
-                expClassName = PathHelper.removeDotSuffix(expFileNames{i});
-                eval(['temp = ',expClassName,'.EXP_NAME;'])
-                namesCell{i} = temp;
+                % using a temporary variable, since the editor does not
+                % automatically find variables names in strings
+                eval(['temp = ',expClassNamesCell{i}, '.EXP_NAME;'])
+                expNamesCell{i} = temp; 
             end
-            namesCell{end+1} = SpcmCounter.EXP_NAME;
+            expNamesCell{end+1} = SpcmCounter.EXP_NAME;
             
         end
     end
