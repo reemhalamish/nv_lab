@@ -4,6 +4,7 @@ classdef StringHelper
     properties (Constant)
         % Useful html codes, to be used in GUI with sprintf
         MICRON = sprintf('\x03bcm');
+        MICROSEC = sprintf('\x03bcs');
         DELTA = sprintf('\x0394');
         LEFT_ARROW = sprintf('\x2190');
         RIGHT_ARROW = sprintf('\x2192');
@@ -28,7 +29,7 @@ classdef StringHelper
             % uses regex (regular expressions) to remove trailing zeros in
             % the beginning of strings which represents numbers
             string = regexprep(numString,'^0*','');     % remove 0's @beginning
-            if strfind(string,'.') == 1                 % We removed one 0 too many
+            if strfind(string, '.') == 1                 % We removed one 0 too many
                 string = strcat('0',string);
             end
             string = regexprep(string,'\.*0+$','');     % remove 0's @end (+decimal point, if unneeded)
@@ -55,6 +56,12 @@ classdef StringHelper
             % Creates indentation by n spaces
             newString = sprintf('%*s%s', n, '', string);
         end
+        
+        function ind = findLast(str, pattern)
+            indices = strfind(str, pattern);
+            ind = indices(end);
+        end
+        
     end
 end
 

@@ -83,7 +83,13 @@ classdef StageScanner < EventSender & EventListener & Savable
             spcm = getObjByName(Spcm.NAME);
             spcm.setSPCMEnable(true);
             
-            stage.sanityCheckForScanRange(obj.mStageScanParams);
+            try
+                stage.sanityCheckForScanRange(obj.mStageScanParams);
+            catch err
+                obj.mCurrentlyScanning = false;
+                obj.sendEventScanStopped;
+                rethrow(err)
+            end
             
             timerVal = tic;
             disp('Initiating scan...');
@@ -251,7 +257,7 @@ classdef StageScanner < EventSender & EventListener & Savable
                     try
                         if ~obj.mCurrentlyScanning
                             stage.AbortScan();
-                            spcm.clearScanRead();  % todo - added to try resolving the problem. wasn't here at the first place!
+                            spcm.clearScanRead();  % todo - added to try resolving the problem. Wasn't here in the first place!
                             return
                         end
                         
@@ -480,6 +486,7 @@ classdef StageScanner < EventSender & EventListener & Savable
                         eval(sprintf('%s = axisCPoint0;', ll));
                 end
             end
+            % todo: this needs to be redone. No need to use eval here.
         end
         
         

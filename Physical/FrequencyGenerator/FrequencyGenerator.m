@@ -78,8 +78,19 @@ classdef (Abstract) FrequencyGenerator < BaseObject
                 error('MW amplitude must be between %d and %d.\nRequested: %d', ...
                     obj.LIMITS_AMPLITUDE(1), obj.LIMITS_AMPLITUDE(2), newAamplitude)
             end
-            obj.setValue('amplitude', num2str(newAamplitude));
-            obj.amplitudePrivate = newAamplitude;
+            
+            switch length(newAmplitude)
+                case 1
+                    obj.setValue('amplitude', newAamplitude);
+                    obj.amplitudePrivate(1) = newAamplitude;
+                case length(obj.amplitudePrivate)
+                    obj.setValue('amplitude', newAamplitude);
+                    obj.amplitudePrivate = newAamplitude;
+                otherwise
+                    EventStation.anonymousError('Frequency Generator: amplitude vector size mismatch!');
+            end
+            
+            
         end
         
         function set.frequency(obj, newFrequency)      % in Hz
@@ -88,8 +99,17 @@ classdef (Abstract) FrequencyGenerator < BaseObject
                 error('MW frequency must be between %d and %d.\nRequested: %d', ...
                     obj.LIMITS_FREQUENCY(1), obj.LIMITS_FREQUENCY(2), newFrequency)
             end
-            obj.setValue('frequency', num2str(newFrequency));
-            obj.frequencyPrivate = newFrequency;
+            
+            switch length(newFrequency)
+                case 1
+                    obj.setValue('frequency', newFrequency);
+                    obj.frequencyPrivate(1) = newFrequency;
+                case length(obj.frequencyPrivate)
+                    obj.setValue('frequency', newFrequency);
+                    obj.frequencyPrivate = newFrequency;
+                otherwise
+                    EventStation.anonymousError('Frequency Generator: frequency vector size mismatch!');
+            end
         end
         
         
@@ -100,6 +120,11 @@ classdef (Abstract) FrequencyGenerator < BaseObject
         end
         
         function setValue(obj, what, value)
+            % Can be overridden by children
+            if isnumeric(value)
+                value = num2str(value);
+            end
+            
             command = [obj.nameToCommandName(what), value];
             sendCommand(obj, command);
         end
@@ -124,20 +149,25 @@ classdef (Abstract) FrequencyGenerator < BaseObject
     methods (Static)
         function freqGens = getFG()
             % Returns an instance of cell{all FG's}
+            %
+            % The cell is ordered, so that the first one is the default FG
             
             persistent fgCellContainer
             if isempty(fgCellContainer) || ~isvalid(fgCellContainer)
                 FGjson = JsonInfoReader.getJson.frequencyGenerators;
                 fgCellContainer = CellContainer;
+                isDefault = false(size(FGjson));    % initialize
                 
                 for i = 1: length(FGjson)
                     %%% Checks on each individual struct %%%
                     if iscell(FGjson); curFgStruct = FGjson{i}; ...
                         else; curFgStruct = FGjson(i); end
-                
+                    
+                    % If there is no type, then it is a dummy
                     if isfield(curFgStruct, 'type'); type = curFgStruct.type; ...
                         else; type = FrequencyGeneratorDummy.TYPE; end
-            
+                    
+                    % Usual checks on fields
                     missingField = FactoryHelper.usualChecks(struct, ...
                         FrequencyGenerator.NEEDED_FIELDS);
                     if ~isnan(missingField) && ...  Some field is missing
@@ -146,6 +176,9 @@ classdef (Abstract) FrequencyGenerator < BaseObject
                             'Trying to create a %s frequency generator, encountered missing field - "%s". Aborting',...
                             type, missingField);
                     end
+                    
+                    % Check whether this is THE default FG
+                    if isfield(curFgStruct, 'default'); isDefault(i) = true; end
             
                     %%% Get instance (create, if one doesn't exist) %%%
                     t = lower(type);
@@ -170,10 +203,34 @@ classdef (Abstract) FrequencyGenerator < BaseObject
                     end
                     fgCellContainer.cells{end + 1} = newFG;
                 end
+                
+                nDefault = sum(isDefault);
+                switch nDefault
+                    case 0
+                        % Nothing.
+                    case 1
+                        % We move the default one to index 1
+                        ind = 1:find(isDefault);
+                        indNew = circshift(ind, 1); % = [ind, 1, 2, ..., ind-1]
+                        fgCellContainer.cells{ind} = fgCellContainer.cells{indNew};
+                    otherwise
+                        EventStation.anonymousError('Too many Frequency Generators were set as default! Aborting.')
+                end
+                
             end
             
             freqGens = fgCellContainer.cells;
         end
+        
+        function name = getDefaultFgName()
+            fgCells = FrequencyGenerator.getFG;
+            if isempty(fgCells.cells)
+                EventStation.anonymousError('There is no active frequency generator!')
+            end
+            fg = fgCells.cells{1};   % We sorted the array so that the default FG is first
+            name = fg.name;
+        end
+
     end
     
 end

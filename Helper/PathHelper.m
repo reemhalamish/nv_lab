@@ -56,14 +56,26 @@ classdef PathHelper
                     if ischar(folderString); return; end
                 end
             end
+            
         end
         
-        function filepath = removeDotSuffix(filePathMaybeWithDotSuffix)
-            if ~any(filePathMaybeWithDotSuffix == '.')
-                filepath = filePathMaybeWithDotSuffix;
+        function filePath = removeDotSuffix(filePathMaybeWithDotSuffix)
+            % Accepts either char arrays, or cell arrays thereof
+            filePath = filePathMaybeWithDotSuffix;
+            hasDots = contains(filePath, '.');
+            
+            if ~hasDots
+                % We're done.
                 return
             end
-            filepath = filePathMaybeWithDotSuffix(1 : find(filePathMaybeWithDotSuffix == '.', 1, 'last') - 1);
+            
+            fileNameTruncate = @(x) x(1 : StringHelper.findLast(x, '.') - 1); % Takes anyhing before the final dot
+            if iscell(filePath)
+                filePath(hasDots) = cellfun(fileNameTruncate, filePath(hasDots), 'UniformOutput', false);
+            else
+                filePath = fileNameTruncate(filePath);
+            end
+            
         end
         
         function folderAndFile = splitFullPathToFolderAndFile(fullPath)
@@ -144,7 +156,7 @@ classdef PathHelper
             
             if ~exist('optionalSuffix', 'var')
                 allFilesInFolder = dir(inputFolder);
-                allFilesInFolder = allFilesInFolder(3 : end);   % the first two aren't relevant
+                allFilesInFolder = allFilesInFolder(3 : end);   % the first two are "." and ".."
             else
                 searchString = [inputFolder, '*', optionalSuffix];
                 allFilesInFolder = dir(searchString);
