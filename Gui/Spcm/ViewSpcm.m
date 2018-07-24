@@ -197,7 +197,7 @@ classdef ViewSpcm < ViewVBox & EventListener
                     [time,kcps,std] = spcmCounter.getRecords;
                 end
                 dimNum = 1;
-                AxesHelper.fillAxes(obj.vAxes, kcps, dimNum, time, nan, obj.BOTTOM_LABEL, obj.LEFT_LABEL,std);   %Still requires std implementation
+                AxesHelper.fill(obj.vAxes, kcps, dimNum, time, nan, obj.BOTTOM_LABEL, obj.LEFT_LABEL,std);
                 
                 obj.vAxes.Children.HitTest = 'off'; % So as not to be interacted by "marker" cursor
                 

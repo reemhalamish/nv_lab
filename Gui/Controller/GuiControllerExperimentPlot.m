@@ -1,20 +1,26 @@
-classdef GuiControllerSpcmCounter < GuiController
-    %GUICONTROLLERSPCMCOUNTER Gui Controller for the SPCM counter
+classdef GuiControllerExperimentPlot < GuiController
+    %GUICONTROLLEREXPERIMENTPLOT Gui Controller for an experiment plot +
+    %stop button
+    
+    properties
+        expName
+    end
     
     methods
-        function obj = GuiControllerSpcmCounter()
-            Setup.init;
+        function obj = GuiControllerExperimentPlot(expName)
             shouldConfirmOnExit = false;
             openOnlyOne = true;
-            windowName = 'SPCM Counter';
+            windowName = sprintf('%s - Plot', expName);
+            
             obj = obj@GuiController(windowName, shouldConfirmOnExit, openOnlyOne);
+            obj.expName = expName;
         end
         
         function view = getMainView(obj, figureWindowParent)
             % This function should get the main View of this GUI.
             % can call any view constructor with the params:
             % parent=figureWindowParent, controller=obj
-            view = ViewSpcm(figureWindowParent, obj);
+            view = ViewExperimentPlot(obj.expName, figureWindowParent, obj);
         end
         
         function onAboutToStart(obj)
@@ -24,16 +30,15 @@ classdef GuiControllerSpcmCounter < GuiController
             obj.moveToMiddleOfScreen();
         end
         
-        function onClose(obj) %#ok<MANU>
+        function onClose(obj)
             % Callback. Things to run when need to close the GUI.
             
             % If the counter is running, we want to turn it off
             if Experiment.current(SpcmCounter.EXP_NAME)
-                spcmCounter = getObjByName(Experiment.NAME);
-                if ~spcmCounter.isOn; return; end
-                EventStation.anonymousWarning('SPCM Counter is now turned off');
-                spcmCounter.pause;
-                spcmCounter.reset;
+                exp = getObjByName(Experiment.NAME);
+                if exp.isOn
+                    EventStation.anonymousWarning('The window closed, but %s is still running', obj.expName);
+                end
             end
         end
     end

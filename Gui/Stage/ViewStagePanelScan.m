@@ -14,7 +14,7 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
     methods
         function obj = ViewStagePanelScan(parent, controller, stageName)
             obj@GuiComponent(parent, controller);
-            obj@EventListener({stageName, Experiment.NAME});
+            obj@EventListener({stageName, Experiment.NAME, StageScanner.NAME});
             obj.stageName = stageName;
             
             %%%% Scan panel init %%%%
@@ -114,20 +114,20 @@ classdef ViewStagePanelScan < GuiComponent & EventListener
         % When events happen, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
-            if event.isError
+            if event.isError ...
+                    || isfield(event.extraInfo, StageScanner.EVENT_SCAN_FINISHED)
+                % Scan stopped, either intentionally or not
                 obj.refresh();
-                % Besides updating scan parameters (refresh), we also want to check
-                % if scan is still running, and update ths Scan button
-                scanner = getObjByName(StageScanner.NAME);
-                obj.btnScan.Enable = BooleanHelper.boolToOnOff(~scanner.mCurrentlyScanning);
+                obj.btnScan.Enable = 'on';
+                obj.btnScan.isRunning = false;
             end
             
             if isfield(event.extraInfo, ClassStage.EVENT_SCAN_PARAMS_CHANGED)
                 obj.refresh();
             end
             
-            if isfield(event.extraInfo, Experiment.EVENT_EXP_RESUMED) || ...
-                    isfield(event.extraInfo, Experiment.EVENT_EXP_PAUSED)
+            if isfield(event.extraInfo, Experiment.EVENT_EXP_RESUMED) ...
+                    || isfield(event.extraInfo, Experiment.EVENT_EXP_PAUSED)
                 % When experiments run, we can't scan
                 exp = event.creator;
                 isScanPossible = ~exp.isOn;

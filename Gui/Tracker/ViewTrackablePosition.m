@@ -365,13 +365,15 @@ classdef ViewTrackablePosition < ViewTrackable
         % When events happens, this function jumps.
         % event is the event sent from the EventSender
         function onEvent(obj, event)
+            
             creator = event.creator;
+            
             % Maybe it is one of the laser parts:
-                if isfield(event.extraInfo, 'value')
-                    obj.refresh;    % check values of all devices (level 2 refresh)
-                end
+            if isa(creator, 'LaserPartAbstract')
+                obj.refresh;    % check values of all devices (level 2 refresh)
+            end
             % Besides that, we only want to listen to trackablePos
-            if ~isprop(creator, 'EXP_NAME') || ~strcmp(creator.EXP_NAME, TrackablePosition.EXP_NAME)
+            if ~isa(creator, 'Experiment') || ~strcmp(creator.EXP_NAME, TrackablePosition.EXP_NAME)
                 
                 return
             end

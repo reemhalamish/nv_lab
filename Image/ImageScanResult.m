@@ -100,7 +100,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                 obj.colormapLimits = obj.calcColormapLimits(obj.mData);
             end
             
-            AxesHelper.fillAxes(obj.gAxes, obj.mData, obj.mDimNumber, obj.mFirstAxis, obj.mSecondAxis, obj.mLabelBot, obj.mLabelLeft);
+            AxesHelper.fill(obj.gAxes, obj.mData, obj.mDimNumber, obj.mFirstAxis, obj.mSecondAxis, obj.mLabelBot, obj.mLabelLeft);
             obj.sendEventImageUpdated();
             obj.imagePostProcessing;
         end
@@ -138,7 +138,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                     warning('This shouldn''t have happenned')
                     fig = ancestor(obj.gAxes, 'figure');
                     obj.cursor = datacursormode(fig);
-                    set(obj.cursor,'UpdateFcn', @obj.cursorMarkerDisplay);
+                    set(obj.cursor, 'UpdateFcn', @obj.cursorMarkerDisplay);
                 end
                 gLimitsVector = axis(obj.gAxes);   % vector of [x_min x_max y_min y_max]
                 obj.drawCrosshairs(gLimitsVector, pos)
