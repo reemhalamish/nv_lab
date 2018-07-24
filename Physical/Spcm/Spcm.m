@@ -19,29 +19,48 @@ classdef (Abstract) Spcm < EventSender
     end
     
     methods (Abstract)
-        % prepare to read spcm count from opening the spcm window to unit of time
+    %%% By time %%%
         prepareReadByTime(obj, integrationTimeInSec)
+        % Prepare to read spcm count from opening the spcm window to unit of time
         
-        % actually do the read - it takes "integrationTimeInSec" to do so
         [kcps, std] = readFromTime(obj)
+        % Actually do the read - it takes "integrationTimeInSec" to do so
         
-        % clear the reading task
         clearTimeRead(obj)
+        % Clear the reading task
         
-        % prepare to read from the spcm, when using a stage as a signal
+        
+        %%% By stage %%%
         prepareReadByStage(obj, stageName, nPixels, timeout, fastScan)
+        % Prepare to read from the spcm, when using a stage as a signal
         
-        % actually start the process
         startScanRead(obj)
+        % Actually start the process
         
-        % read vector of signals from the spcm
         vectorOfKcps = readFromScan(obj)
+        % Read vector of signals from the spcm
         
-        % complete the task of reading the spcm from a stage
         clearScanRead(obj)
+        % Complete the task of reading the spcm from a stage
         
-        % control the spcm - turn it on\off
+        
+        %%% Gated %%%
+        prepareGatedRead(obj)
+        % Prepare to read spcm count from opening the spcm window  
+        
+        startGatedRead(obj)
+        % Actually start the process
+        
+        vectorOfKcps = readGated(obj)
+        % Read vector of signals from the spcm
+        
+        clearGatedRead(obj)
+        % Complete the task of reading the spcm 
+        
+        
+        %%% General %%%
         setSPCMEnable(obj, newBooleanState)
+        % Turn the spcm on\off
     end
     
     methods (Access = protected)

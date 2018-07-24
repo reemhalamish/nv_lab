@@ -7,7 +7,7 @@ classdef NiDaq < EventSender
         dummyChannel    % vector of doubles. Saves value of write channels, for dummy mode
         
         channelArray
-        % 2D array.         (Better make it a struct, when we get to it)
+        % 2D array.         (Better make it a struct array, when we get to it)
         % 1st column - channels ('dev/...')
         % 2nd column - channel names ('laser green')
         % 3rd column - channel minimum value. by default it is 0.
@@ -36,6 +36,8 @@ classdef NiDaq < EventSender
         
         EVENT_NIDAQ_RESET = 'Ni_Daq_reset';
     end
+    
+    %% Initializtion %%
     
     methods (Access = protected)
         function obj = NiDaq(deviceName, dummyMode)
@@ -134,7 +136,60 @@ classdef NiDaq < EventSender
                 obj.dummyChannel(length(obj.channelArray)) = -1;
             end
         end % func registerChannel
+    end
+    
+    methods (Access = protected)
+        function index = getIndexFromChannelOrName(obj, channelOrChannelName)
+            channelNamesIndexes = find(contains(obj.channelArray(1:end, NiDaq.IDX_CHANNEL_NAME), channelOrChannelName));
+            if ~isempty(channelNamesIndexes)
+                index = channelNamesIndexes(1);
+                return;
+            end
+            
+            channelIndexes = find(contains(obj.channelArray(1:end, NiDaq.IDX_CHANNEL), channelOrChannelName));
+            if ~isempty(channelIndexes)
+                index = channelIndexes(1);
+                return;
+            end
+            
+            EventStation.anonymousError(...
+                '%s couldn''t find either channel or channel name "%s". Have you registered this channel?', ...
+                obj.name, channelOrChannelName);
+        end
         
+        function channelName = getChannelNameFromIndex(obj, index)
+            channelName = obj.channelArray{index, NiDaq.IDX_CHANNEL_NAME};
+        end
+        
+        function channel = getChannelFromIndex(obj, index)
+            channel = obj.channelArray{index, NiDaq.IDX_CHANNEL};
+        end
+        
+        function min = getChannelMinimumFromIndex(obj, index)
+            min = obj.channelArray{index, NiDaq.IDX_CHANNEL_MIN};
+            if ~isnumeric(min)
+                min = str2double(min);
+            end
+            if isnan(min)
+                min = obj.DEFAULT_MIN_VOLTAGE;
+            end
+        end
+        
+        function max = getChannelMaximumFromIndex(obj, index)
+            max = obj.channelArray{index, NiDaq.IDX_CHANNEL_MAX};
+            if ~isnumeric(max)
+                max = str2double(max);
+            end
+            if isnan(max)
+                max = obj.DEFAULT_MAX_VOLTAGE;
+            end
+        end
+    end
+    
+    %%% end (Initializtion block)   
+    
+    %% Read & write
+    methods
         function task = prepareVoltageInputTask(obj, channel, terminalConfig)
             % We might want to read continuously, so we need a seperate
             % function for creating the channel
@@ -370,14 +425,14 @@ classdef NiDaq < EventSender
             end
             device = sprintf('/%s/Ctr%d', obj.deviceName, ctrNumberOpt);
             
-            DAQmx_Val_Rising = daq.ni.NIDAQmx.DAQmx_Val_Rising;
-            DAQmx_Val_Falling = daq.ni.NIDAQmx.DAQmx_Val_Falling;
-            DAQmx_Val_ContSamps = daq.ni.NIDAQmx.DAQmx_Val_ContSamps;
-            DAQmx_Val_CountUp = daq.ni.NIDAQmx.DAQmx_Val_CountUp;
+            edgeRising = daq.ni.NIDAQmx.DAQmx_Val_Rising;
+            edgeFalling = daq.ni.NIDAQmx.DAQmx_Val_Falling;
+            sampleMode = daq.ni.NIDAQmx.DAQmx_Val_ContSamps;    % Continuous
+            countDirection = daq.ni.NIDAQmx.DAQmx_Val_CountUp;  % Up
             
             task = obj.createTask();
             
-            status = DAQmxCreateCICountEdgesChan(task, device, '', DAQmx_Val_Rising, 0, DAQmx_Val_CountUp);
+            status = DAQmxCreateCICountEdgesChan(task, device, '', edgeRising, 0, countDirection);
             obj.checkError(status);
             
             pixelsChannel = obj.getChannelFromIndex(obj.getIndexFromChannelOrName(pixelsChannelName));
@@ -387,7 +442,7 @@ classdef NiDaq < EventSender
                 otherwise
                     sampleRate = 1e6;
             end
-            status = DAQmxCfgSampClkTiming(task, sprintf('/%s/%s', obj.deviceName, pixelsChannel), sampleRate, DAQmx_Val_Falling, DAQmx_Val_ContSamps, nCounts);
+            status = DAQmxCfgSampClkTiming(task, sprintf('/%s/%s', obj.deviceName, pixelsChannel), sampleRate, edgeFalling, sampleMode, nCounts);
             obj.checkError(status);
             
             countChannel = obj.getChannelFromIndex(obj.getIndexFromChannelOrName(countChannelName));
@@ -407,29 +462,68 @@ classdef NiDaq < EventSender
             end
             device = sprintf('/%s/Ctr%d', obj.deviceName, ctrNumberOpt);
             
-            DAQmx_Val_Rising = daq.ni.NIDAQmx.DAQmx_Val_Rising; % Rising
-            DAQmx_Val_FiniteSamps = daq.ni.NIDAQmx.DAQmx_Val_FiniteSamps; % Finite Samples
-            DAQmx_Val_Seconds = daq.ni.NIDAQmx.DAQmx_Val_Seconds; % Seconds
+            edgeType = daq.ni.NIDAQmx.DAQmx_Val_Rising;         % Rising
+            sampleMode = daq.ni.NIDAQmx.DAQmx_Val_FiniteSamps;  % Finite
+            daqUnits = daq.ni.NIDAQmx.DAQmx_Val_Seconds;        % Seconds
             
             task = obj.createTask();
             
-            status = DAQmxCreateCIPulseWidthChan(task, device, '', 0.000000100, 18.38860750, DAQmx_Val_Seconds, DAQmx_Val_Rising, '');
+            status = DAQmxCreateCIPulseWidthChan(task, device, '', 0.000000100, 18.38860750, daqUnits, edgeType, '');
             obj.checkError(status);
             
-            status = DAQmxCfgImplicitTiming(task, DAQmx_Val_FiniteSamps , nCounts);
+            status = DAQmxCfgImplicitTiming(task, sampleMode , nCounts);
             obj.checkError(status);
             
             countChannelName = obj.getChannelFromIndex(obj.getIndexFromChannelOrName(countChannelName));
-            DAQmxSet(task, 'CI.CtrTimebaseSrc', device, sprintf('/%s/%s', obj.deviceName, countChannelName));
+            status = DAQmxSet(task, 'CI.CtrTimebaseSrc', device, sprintf('/%s/%s', obj.deviceName, countChannelName));
             obj.checkError(status);
             
             pixelsChannel = obj.getChannelFromIndex(obj.getIndexFromChannelOrName(pixelsChannelName));
-            DAQmxSet(task, 'CI.PulseWidthTerm', device, sprintf('/%s/%s', obj.deviceName, pixelsChannel));
+            status = DAQmxSet(task, 'CI.PulseWidthTerm', device, sprintf('/%s/%s', obj.deviceName, pixelsChannel));
             obj.checkError(status);
                        
             status = DAQmxSet(task, 'CI.DupCountPrevent', device, 1);
             obj.checkError(status);
         end
+        
+        function task = CreateDAQPulseChanFreq(obj, task, frequency, dutyCycle, nSamples, ctrNumberOpt)
+            if ~exist('ctrNumberOpt', 'var')
+                ctrNumberOpt = 0;
+            end
+            device = sprintf('/%s/Ctr%d', obj.deviceName, ctrNumberOpt);
+            
+            triggerType = daq.ni.NIDAQmx.DAQmx_Val_DigLvl;
+            
+            
+            daqUnits = daq.ni.NIDAQmx.DAQmx_Val_Hz;             % Hz
+            idleState = daq.ni.NIDAQmx.DAQmx_Val_Low;           % Low
+            sampleMode = daq.ni.NIDAQmx.DAQmx_Val_ContSamps;	% Continuous
+            
+            if isempty(task)
+                task = obj.createTask();
+            end
+            
+            status = DAQmxSet(task, 'PauseTrigType', device, daq.ni.NIDAQmx.DAQmx_Val_DigLvl);
+            obj.checkError(status);
+            
+            status = DAQmxSet(task, 'DigLvlPauseTrigSrc', device, '/dev1/PFI0');
+            obj.checkError(status);
+            
+            status = DAQmxSet(task, 'DigLvlPauseTrigWhen', device, daq.ni.NIDAQmx.DAQmx_Val_Low);
+            obj.checkError(status);
+            
+            
+            initialDelay = 0.0;
+            status = DAQmxCreateCOPulseChanFreq(task, device, '', daqUnits, idleState, initialDelay, frequency, dutyCycle);
+            obj.checkError(status);
+            
+            status = DAQmxCfgImplicitTiming(task, sampleMode, nSamples);
+            obj.checkError(status);
+        end
+        
+        
+        
+        
         
         function [readArray, nRead] = ReadDAQCounter(obj, task, nCounts, timeout)
             numSampsPerChan = nCounts;
@@ -441,7 +535,11 @@ classdef NiDaq < EventSender
                 timeout, readArray, arraySizeInSamps, sampsPerChanRead);
             obj.checkError(status);
         end
-        
+    end
+    %%% End (Reading & writing)
+    
+    %% Task handling
+    methods
         function startTask(obj, task)
             if obj.dummyMode; return; end
             
@@ -456,10 +554,9 @@ classdef NiDaq < EventSender
             obj.clearTask(task)
         end
         
-    end % methods
+    end
     
     methods (Access = protected)
-        % helper methods
         function checkError(obj, status)
             % Checks for DAQ errors according to the status and sends an error event.
             if status ~= 0
@@ -506,52 +603,7 @@ classdef NiDaq < EventSender
             % Actual reading
             [status, voltageInt]= DAQmxReadAnalogF64(task, numSampsPerChan, timeout, fillmode, readArray, numSampsPerChan, sampsPerChanRead);
             obj.checkError(status);
-        end
-        
-        function index = getIndexFromChannelOrName(obj, channelOrChannelName)
-            channelNamesIndexes = find(contains(obj.channelArray(1:end, NiDaq.IDX_CHANNEL_NAME), channelOrChannelName));
-            if ~isempty(channelNamesIndexes)
-                index = channelNamesIndexes(1);
-                return;
-            end
-            
-            channelIndexes = find(contains(obj.channelArray(1:end, NiDaq.IDX_CHANNEL), channelOrChannelName));
-            if ~isempty(channelIndexes)
-                index = channelIndexes(1);
-                return;
-            end
-            
-            EventStation.anonymousError(...
-                '%s couldn''t find either channel or channel name "%s". Have you registered this channel?', ...
-                obj.name, channelOrChannelName);
-        end
-        
-        function channelName = getChannelNameFromIndex(obj, index)
-            channelName = obj.channelArray{index, NiDaq.IDX_CHANNEL_NAME};
-        end
-        
-        function channel = getChannelFromIndex(obj, index)
-            channel = obj.channelArray{index, NiDaq.IDX_CHANNEL};
-        end
-        
-        function min = getChannelMinimumFromIndex(obj, index)
-            min = obj.channelArray{index, NiDaq.IDX_CHANNEL_MIN};
-            if ~isnumeric(min)
-                min = str2double(min);
-            end
-            if isnan(min)
-                min = obj.DEFAULT_MIN_VOLTAGE;
-            end
-        end
-        
-        function max = getChannelMaximumFromIndex(obj, index)
-            max = obj.channelArray{index, NiDaq.IDX_CHANNEL_MAX};
-            if ~isnumeric(max)
-                max = str2double(max);
-            end
-            if isnan(max)
-                max = obj.DEFAULT_MAX_VOLTAGE;
-            end
-        end
+        end 
     end
+
 end

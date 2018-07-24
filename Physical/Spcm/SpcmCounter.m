@@ -88,11 +88,10 @@ classdef SpcmCounter < Experiment
     
     %% Overridden from Experiment
     methods
-        function prepare(obj)
+        function run(obj)
             obj.isOn = true;
-        end
-        
-        function perform(obj)
+            sendEventExpResumed(obj);
+            
             integrationTime = obj.integrationTimeMillisec;  % For convenience
             
             spcm = getObjByName(Spcm.NAME);
@@ -125,9 +124,15 @@ classdef SpcmCounter < Experiment
             pause((obj.integrationTimeMillisec + 1) / 1000);    % Let me finish what I was doing
             obj.sendEventExpPaused;
         end
+    end
         
+    methods
+        % Functions that are abstract in superclass. Not relevant here.
+        function prepare(obj) %#ok<MANU>
+        end
+        function perform(obj) %#ok<MANU> 
+        end
         function analyze(obj) %#ok<MANU>
-            % No analysis required (yet?)
         end
     end
     

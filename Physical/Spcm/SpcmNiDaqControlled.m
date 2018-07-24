@@ -6,6 +6,11 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
         % Backup, for NiDaq reset
         isEnabled   % logical
         
+        % For time counter
+        counterIntegrationTime
+        nTimeCounts
+        counterTimeTask
+        
         % For scanning
         nScanCounts
         scanTimeoutTime
@@ -14,10 +19,10 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
         fastScan
         scanningStageName
         
-        % For time counter
-        counterIntegrationTime
-        nTimeCounts
-        counterTimeTask
+        % For gated read
+        nGatedCounts
+        gatedTimeoutTime
+        counterGatedTask
         
         % Name
         niDaqGateChannelName
@@ -47,6 +52,7 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
             obj.nScanCounts = 0;
         end
         
+    %%% Read by time %%%
         function prepareReadByTime(obj, integrationTimeInSec)
             % Prepare the SPCM to a scan by timer, with integration time of
             % integrationTime in seconds.
@@ -97,7 +103,10 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
             daq = getObjByName(NiDaq.NAME);
             daq.endTask(obj.counterTimeTask);
         end
-                
+    %%% End (by time) %%%
+    
+    
+    %%% By Stage %%%
         function prepareReadByStage(obj, stageName, nPixels, timeout, fastScan)
             % Prepare the SPCM to a scan by a stage. Before a multiline
             % scan, this should be called only once.
@@ -108,14 +117,13 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
             obj.scanTimeoutTime = timeout;
             obj.fastScan = fastScan;
             obj.scanningStageName = stageName;
-            niDaq = getObjByName(NiDaq.NAME);
             
+            niDaq = getObjByName(NiDaq.NAME);
             prepareReadByStageInternal(obj, niDaq);
         end
         
         function startScanRead(obj)
-            % Starts reading by scan, this should be called before every
-            % line.
+            % Starts reading by scan, this should be called before every line.
             daq = getObjByName(NiDaq.NAME);
             daq.startTask(obj.counterScanSPCMTask);
             daq.startTask(obj.counterScanTimeTask);
@@ -146,8 +154,8 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
             kiloCounts = countsSPCM/1000;
             time = countsTime*1e-8; % For seconds
             vectorOfKcps = kiloCounts./time;
-            if nnz(isnan(vectorOfKcps))
-                if nnz(time)==0
+            if any(isnan(vectorOfKcps))
+                if all(time == 0)
                     obj.sendError('NaN detected in kcps, time is zeros (no data read from the DAQ)')
                 else
                     obj.sendError('NaN detected in kcps')
@@ -165,6 +173,67 @@ classdef SpcmNiDaqControlled < Spcm & NiDaqControlled
             daq.endTask(obj.counterScanSPCMTask);
             daq.endTask(obj.counterScanTimeTask);
         end
+    %%% End (By stage) %%%%
+        
+        
+    %%% By gate %%%
+        function prepareGatedRead(obj, nReads, timeout)
+            % Prepare to read spcm count from opening the spcm window
+            if ~ValidationHelper.isValuePositiveInteger(nReads)
+                obj.sendError(sprintf('Can''t prepare for reading %d times, only positive integers allowed! Igonring.', nReads));
+            end
+            obj.timesToRead = nReads;
+            obj.gatedTimeoutTime = timeout;
+            
+            % Consts
+            freq = 10e3;
+            dutyCycle = 0.5;
+            
+            daq = getObjByName(NiDaq.NAME);
+            task = daq.CreateDAQEdgeCountingMeas(nReads, countChannelName, gateChannelName);
+            daq.CreateDAQPulseChanFreq(task, freq, dutyCycle, nReads);
+            obj.counterGatedTask = task;
+            
+        end
+        
+        function startGatedRead(obj)
+            % Actually start the process
+            daq = getObjByName(NiDaq.NAME);
+            daq.startTask(obj.counterGatedGateTask);
+            daq.startTask(obj.pulseTask);
+        end
+        
+        function vectorOfKcps = readGated(obj)
+            % Read vector of signals from the spcm
+            if obj.nGatedCounts <= 0
+                obj.sendError('Can''t read from SPCM without calling ''prepare()''!');
+            end
+            daq = getObjByName(NiDaq.NAME);
+            countsSPCM = double(daq.ReadDAQCounter(obj.counterGatedTask, obj.nGatedCounts, obj.gatedTimeoutTime));
+            
+            kiloCounts = countsSPCM/1000;
+            time = countsTime*1e-8; % For seconds
+            vectorOfKcps = kiloCounts./time;
+            if any(isnan(vectorOfKcps))
+                if all(time == 0)
+                    obj.sendError('NaN detected in kcps, time is zeros (no data read from the DAQ)')
+                else
+                    obj.sendError('NaN detected in kcps')
+                end
+            end
+        end
+        
+        function clearGatedRead(obj)
+            % Complete the task of reading the spcm
+            if obj.nGatedCounts <= 0
+                obj.sendError('Can''t clear without calling ''prepare()''! ');
+            end
+            obj.nGatedCounts = 0;
+            daq = getObjByName(NiDaq.NAME);
+            daq.endTask(obj.counterGatedTask);
+        end
+    %%% End (by gate) %%%
+        
         
         function setSPCMEnable(obj, newBooleanValue)
             % Enables/Disables the SPCM.
