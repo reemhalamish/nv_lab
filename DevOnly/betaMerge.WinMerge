@@ -2,8 +2,8 @@
 
 <project>
    <paths>
-      <left>C:\Users\OWNER\Google Drive\work\NV Lab\Control code\dev\</left>
-      <right>C:\Users\OWNER\Google Drive\work\NV Lab\Control code\beta\</right>
+      <left>C:\source_code_dev\</left>
+      <right>C:\Users\OWNER\Google Drive\NV Lab\Control code\beta\</right>
       <filter>*.m</filter>
       <subfolders>1</subfolders>
       <left-readonly>0</left-readonly>

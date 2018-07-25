@@ -115,7 +115,7 @@ classdef SpcmTimeTaggerControlledNiDaqEnabled < Spcm & NiDaqControlled
 %             daq.endTask(obj.counterTimeTask);
         end
                 
-        function prepareReadByStage(obj, stageName, nPixels, timeout, fastScan)
+        function prepareCountByStage(obj, stageName, nPixels, timeout, fastScan)
             % Prepare the SPCM to a scan by a stage. Before a multiline
             % scan, this should be called only once.
             if ~ValidationHelper.isValuePositiveInteger(nPixels)
@@ -127,10 +127,10 @@ classdef SpcmTimeTaggerControlledNiDaqEnabled < Spcm & NiDaqControlled
 %             obj.scanningStageName = stageName;
 %             niDaq = getObjByName(NiDaq.NAME);
 %             
-%             prepareReadByStageInternal(obj, niDaq);
+%             prepareCountByStageInternal(obj, niDaq);
         end
         
-        function startScanRead(obj)
+        function startScanCount(obj)
             % Starts reading by scan, this should be called before every
             % line.
 %             daq = getObjByName(NiDaq.NAME);
@@ -138,7 +138,7 @@ classdef SpcmTimeTaggerControlledNiDaqEnabled < Spcm & NiDaqControlled
 %             daq.startTask(obj.counterScanTimeTask);
         end
         
-        function stopScanRead(obj)
+        function stopScanCount(obj)
             % Stops at the end of reading line
 %             daq = getObjByName(NiDaq.NAME);
 %             daq.stopTask(obj.counterScanSPCMTask);
@@ -225,7 +225,7 @@ classdef SpcmTimeTaggerControlledNiDaqEnabled < Spcm & NiDaqControlled
     
     
     methods (Access = protected)
-        function prepareReadByStageInternal(obj, niDaq)
+        function prepareCountByStageInternal(obj, niDaq)
             % Creates the measurment in the DAQ according to the parameters
             % in the object.
 %             if obj.fastScan

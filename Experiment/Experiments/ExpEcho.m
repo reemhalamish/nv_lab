@@ -15,6 +15,7 @@ classdef ExpEcho < Experiment
     end
     
     properties
+        % Default values (might change during setup)
         frequency = 3029;   %in MHz
         amplitude = -10;    %in dBm
         
@@ -22,6 +23,8 @@ classdef ExpEcho < Experiment
         halfPiTime = 0.025  %in us
         piTime = 0.05       %in us
         threeHalvesPiTime = 0.075 %in us
+        
+        timeout             % in ??. If timeout passes, we consider this measurement as failed
         
         
         constantTime = false      % logical
@@ -111,38 +114,56 @@ classdef ExpEcho < Experiment
         end
     end
     
+    %% Helper functions
+    methods
+        function sig = readAndShape(obj)
+            spcm = getObjByName(Spcm.NAME);
+            pg = getObjByName(PulseGenerator.NAME);
+            
+            kc = 1e3;     % kilocounts
+            musec = 1e-6;   % microseconds
+            
+            spcm.startGatedCount;
+            pg.Run;
+            s = spcm.readGated(obj.DAQtask, numScans, obj.timeout);
+            s = reshape(s, 2, length(s)/2);
+            sig = mean(s,2).';
+            sig = sig./(obj.detectionDuration*musec)/kc; %kcounts per second
+        end
+    end
+    
     %% Overridden from Experiment
     methods
         function prepare(obj)
-            %%% Create sequence for this experiment
+            % Create sequence for this experiment
             
-            % Useful parameters for what follows
+            %%% Useful parameters for what follows
             initDuration = obj.laserInitializationDuration-sum(obj.detectionDuration);
             
-            tauPulse = Pulse(obj.tau(end), '', 'tau');  % Delay
-            projectionPulse = Pulse(obj.halfPiTime, 'MW', 'projectionPulse');
             if obj.constantTime
                 % The length of the sequence will change when we change
                 % tau. To counter that, we add some delay at the end.
                 % (mwOffDelay is a property of class Experiment)
-                lastDelay = Pulse(obj.mwOffDelay+2*max(obj.tau), '', 'lastDelay');
+                lastDelay = obj.mwOffDelay+2*max(obj.tau);
             else
-                lastDelay = Pulse(obj.mwOffDelay, '', 'lastDelay');
+                lastDelay = obj.mwOffDelay;
             end
             
-            % Creating the sequence
+            %%% Creating the sequence
             S = Sequence;
-            S.addEvent(obj.laserOnDelay,            'greenLaser')               % Calibration of the laser with SPCM (laser on)
-            S.addEvent(obj.detectionDuration(1),    {'greenLaser', 'detector'}) % Detection
-            S.addEvent(initDuration,                'greenLaser')               % Initialization
-            S.addEvent(obj.detectionDuration(2),    {'greenLaser', 'detector'}) % Reference detection
-            S.addEvent(obj.laserOffDelay,           '');                        % Calibration of the laser with SPCM (laser off)
-            S.addEvent(obj.halfPiTime);     % MW
-            S.addPulse(tauPulse);           % Delay
-            S.addEvent(obj.piTime)          % MW
-            S.addPulse(tauPulse);           % Delay
-            S.addPulse(projectionPulse);    % MW
-            S.addPulse(lastDelay)           % Last delay, making sure the MW is off
+            S.addEvent(obj.laserOnDelay,    'greenLaser')                                   % Calibration of the laser with SPCM (laser on)
+            S.addEvent(obj.detectionDuration(1),...
+                                            {'greenLaser', 'detector'})                     % Detection
+            S.addEvent(initDuration,        'greenLaser')                                   % Initialization
+            S.addEvent(obj.detectionDuration(2),...
+                                            {'greenLaser', 'detector'})                     % Reference detection
+            S.addEvent(obj.laserOffDelay);                                                  % Calibration of the laser with SPCM (laser off)
+            S.addEvent(obj.halfPiTime);                                                     % MW
+            S.addEvent(obj.tau(end),        '',                         'tau');             % Delay
+            S.addEvent(obj.piTime)                                                          % MW
+            S.addEvent(obj.tau(end),        '',                         'tau');             % Delay
+            S.addPulse(obj.halfPiTime,      'MW',                       'projectionPulse'); % MW
+            S.addPulse(lastDelay,           '',                         'lastDelay');       % Last delay, making sure the MW is off
             
             %%% Send to PulseGenerator
             pg = getObjByName(PulseGenerator.NAME);
@@ -150,32 +171,36 @@ classdef ExpEcho < Experiment
             pg.repeats = obj.repeats;
             obj.changeFlag = false;
             
-            % Set Frequency Generator
+            %%% Set Frequency Generator
             fg = getObjByName(obj.freqGenName);
             fg.amplitude = obj.amplitude;
             fg.frequency = obj.frequency;
             
             numScans = 2*obj.repeats;
             obj.signal = zeros(2*(1+obj.doubleMeasurement), length(obj.tau), obj.averages);
-            timeout = 15 * numScans * max(obj.PB.time) * 1e-6;
-            obj.initialize(numScans);
+            obj.timeout = 15 * numScans * max(obj.PB.time) * 1e-6;
+            
+            spcm = getObjByName(Spcm.NAME);
+            spcm.prepareGatedCount(numScans);
             
             fprintf('Starting %d averages with each average taking %.1f seconds, on average.\n', ...
                 obj.averages, 1e-6*obj.repeats*seqTime*length(obj.tau)*(1+obj.doubleMeasurement));
         end
         
         function perform(obj, nIter)
+            %%% Initialization
+            
             % Devices
             pg = getObjByName(PulseGenerator.NAME);
             seq = pg.sequence;
-            daq = getObjByName(NiDaq.NAME);
+            spcm = getObjByName(Spcm.NAME);
             
-            % Some useful constants
-            kcps = 1e3;     % kilocounts/sec
-            musec = 1e-6;   % microseconds
+            % Some magic numbers
             maxLastDelay = obj.mwOffDelay + max(obj.tau);
+            len = 2*(1 + double(obj.doubleMeasurement));    % 2 for single, 4 for double
+            sig = zeros(1, len);   % allocate memory
             
-            % Go over all tau's, in random order
+            %%% Run - Go over all tau's, in random order
             for t = randperm(length(obj.tau))
                 success = false;
                 for trial = 1 : 5
@@ -184,31 +209,19 @@ classdef ExpEcho < Experiment
                         if obj.constantTime
                             seq.change('lastDelay', 'duration', maxLastDelay - 2*obj.tau(t));
                         end
-                        daq.startGatedCounting(obj.DAQtask)
-                        pg.Run;
-                        s = daq.readGatedCounting(obj.DAQtask,numScans,timeout);
-                        daq.stopTask(obj.DAQtask);
-                        s = reshape(s,2,length(s)/2);
-                        s = mean(s,2).';
-                        s = s./(obj.detectionDuration*musec)/kcps; %kcounts per second
+                        obj.setGreenLaserPower; % todo: This is never set anywhere!!!!
+                        sig(1:2) = obj.readAndShape;
+                        
                         if obj.doubleMeasurement
                             seq.change('projectionPulse', 'duration', obj.threeHalvesPiTime);
-                            daq.startGatedCounting(obj.DAQtask)
-                            pg.Run;
-                            s2 = daq.readGatedCounting(obj.DAQtask,numScans,timeout);
-                            daq.stopTask(obj.DAQtask);
-                            s2 = reshape(s2,2,length(s2)/2);
-                            s2 = mean(s2,2).';
-                            s2 = s2./(obj.detectionDuration*musec)/kcps; %kcounts per second
-                            s = [s s2]; %#ok<AGROW>
+                            sig(3:4) = obj.readAndShape;
                             seq.change('projectionPulse', 'duration', obj.halfPi);
                         end
-                        obj.signal(:, t, nIter) = s;
+                        obj.signal(:, t, nIter) = sig;
                         
                         tracked = obj.Tracking(s(2));
                         if tracked
-                            obj.LoadExperiment
-                            obj.DAQtask = obj.InitializeExperiment(numScans);
+                            obj.prepare;
                         end
                         success = true;
                         break;
@@ -216,7 +229,7 @@ classdef ExpEcho < Experiment
                         warning(err.message);
                         fprintf('Experiment failed at trial %d, attempting again.\n', trial);
                         try
-                            daq.stopTask(obj.DAQtask);
+                            spcm.stopTask(obj.DAQtask);
                         catch
                         end
                     end

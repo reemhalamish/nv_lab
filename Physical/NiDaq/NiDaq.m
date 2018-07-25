@@ -7,7 +7,7 @@ classdef NiDaq < EventSender
         dummyChannel    % vector of doubles. Saves value of write channels, for dummy mode
         
         channelArray
-        % 2D array.         (Better make it a struct array, when we get to it)
+        % 2D array.         (todo: Better make it a struct array, when we get to it)
         % 1st column - channels ('dev/...')
         % 2nd column - channel names ('laser green')
         % 3rd column - channel minimum value. by default it is 0.
@@ -32,7 +32,7 @@ classdef NiDaq < EventSender
     end
     properties (Constant)
         NAME = 'NiDaq';
-        UNITS = ' V';
+        UNITS = ' V'; % The space is for the GUI.
         
         EVENT_NIDAQ_RESET = 'Ni_Daq_reset';
     end
@@ -413,13 +413,14 @@ classdef NiDaq < EventSender
         end
         
         
-        function task = CreateDAQEdgeCountingMeas(obj, nCounts, countChannelName, pixelsChannelName, ctrNumberOpt)
+        function task = CreateDAQEdgeCountingMeas(obj, nCounts, countChannelName, edgesChannelName, ctrNumberOpt)
             % Creates an edge counting measurement task.
-            % (countChannelName, countEdgeChannelName) use cases:
+            % (countChannelName, edgesChannelName) use cases:
             % For counting photons by stage: (SPCM, Stage)
             % For counting time by stage: (NiDaq.CHANNEL_100MHZ, Stage)
             % For counting photons by time: (SPCM, NiDaq.CHANNEL_100kHZ)
-            % ctrNumber can be 0 or 1, if not specified then it is 0.
+            % For counting photons by gating Pulse: (SPCM, PulseGenerator)
+            % ctrNumber can be 0 or 1. If not specified, then it is 0.
             if ~exist('ctrNumberOpt', 'var')
                 ctrNumberOpt = 0;
             end
@@ -435,14 +436,14 @@ classdef NiDaq < EventSender
             status = DAQmxCreateCICountEdgesChan(task, device, '', edgeRising, 0, countDirection);
             obj.checkError(status);
             
-            pixelsChannel = obj.getChannelFromIndex(obj.getIndexFromChannelOrName(pixelsChannelName));
-            switch pixelsChannelName
+            edgesChannel = obj.getChannelFromIndex(obj.getIndexFromChannelOrName(edgesChannelName));
+            switch edgesChannelName
                 case obj.CHANNEL_100kHZ
                     sampleRate = 100e3;
                 otherwise
                     sampleRate = 1e6;
             end
-            status = DAQmxCfgSampClkTiming(task, sprintf('/%s/%s', obj.deviceName, pixelsChannel), sampleRate, edgeFalling, sampleMode, nCounts);
+            status = DAQmxCfgSampClkTiming(task, sprintf('/%s/%s', obj.deviceName, edgesChannel), sampleRate, edgeFalling, sampleMode, nCounts);
             obj.checkError(status);
             
             countChannel = obj.getChannelFromIndex(obj.getIndexFromChannelOrName(countChannelName));
@@ -450,13 +451,14 @@ classdef NiDaq < EventSender
             obj.checkError(status);
         end
         
-        function task = CreateDAQPulseWidthMeas(obj, nCounts, countChannelName, pixelsChannelName, ctrNumberOpt)
+        function task = CreateDAQPulseWidthMeas(obj, nCounts, countChannelName, pulseWidthChannelName, ctrNumberOpt)
             % Creates a pulse width measurement task
-            % (countChannelName, countEdgeChannelName) use cases:
+            % (countChannelName, pulseWidthChannelName) use cases:
             % For counting photons by stage: (SPCM, Stages)
             % For counting time by stage: (NiDaq.CHANNEL_100MHZ, Stage)
             % For counting photons by time: (SPCM, NiDaq.CHANNEL_100kHZ)
-            % ctrNumber can be 0 or 1, if not specified then it is 0.
+            % For counting photons by gating Pulse: (SPCM, PulseGenerator)
+            % ctrNumber can be 0 or 1. If not specified, then it is 0.
             if ~exist('ctrNumberOpt', 'var')
                 ctrNumberOpt = 0;
             end
@@ -478,51 +480,41 @@ classdef NiDaq < EventSender
             status = DAQmxSet(task, 'CI.CtrTimebaseSrc', device, sprintf('/%s/%s', obj.deviceName, countChannelName));
             obj.checkError(status);
             
-            pixelsChannel = obj.getChannelFromIndex(obj.getIndexFromChannelOrName(pixelsChannelName));
-            status = DAQmxSet(task, 'CI.PulseWidthTerm', device, sprintf('/%s/%s', obj.deviceName, pixelsChannel));
+            widthChannel = obj.getChannelFromIndex(obj.getIndexFromChannelOrName(pulseWidthChannelName));
+            status = DAQmxSet(task, 'CI.PulseWidthTerm', device, sprintf('/%s/%s', obj.deviceName, widthChannel));
             obj.checkError(status);
                        
             status = DAQmxSet(task, 'CI.DupCountPrevent', device, 1);
             obj.checkError(status);
         end
         
-        function task = CreateDAQPulseChanFreq(obj, task, frequency, dutyCycle, nSamples, ctrNumberOpt)
+        
+        function CreateDAQTimedPulseChannelOutput(obj, frequency, dutyCycle, nPulses)
+            % Creates pulse series, defined by frequency, duty cycle and
+            % total number of number of pulses.
+            % Probably unneeded, in afterthought, but should be harmless.
+            
             if ~exist('ctrNumberOpt', 'var')
                 ctrNumberOpt = 0;
             end
             device = sprintf('/%s/Ctr%d', obj.deviceName, ctrNumberOpt);
             
-            triggerType = daq.ni.NIDAQmx.DAQmx_Val_DigLvl;
-            
-            
-            daqUnits = daq.ni.NIDAQmx.DAQmx_Val_Hz;             % Hz
+            % DAQ constants
+            daqUnits = daq.ni.NIDAQmx.DAQmx_Val_Hz;             % Volts
             idleState = daq.ni.NIDAQmx.DAQmx_Val_Low;           % Low
-            sampleMode = daq.ni.NIDAQmx.DAQmx_Val_ContSamps;	% Continuous
+            sampleMode = daq.ni.NIDAQmx.DAQmx_Val_ContSamps;    % Continuous
             
-            if isempty(task)
-                task = obj.createTask();
-            end
-            
-            status = DAQmxSet(task, 'PauseTrigType', device, daq.ni.NIDAQmx.DAQmx_Val_DigLvl);
-            obj.checkError(status);
-            
-            status = DAQmxSet(task, 'DigLvlPauseTrigSrc', device, '/dev1/PFI0');
-            obj.checkError(status);
-            
-            status = DAQmxSet(task, 'DigLvlPauseTrigWhen', device, daq.ni.NIDAQmx.DAQmx_Val_Low);
-            obj.checkError(status);
-            
+            task = obj.createTask;
             
             initialDelay = 0.0;
             status = DAQmxCreateCOPulseChanFreq(task, device, '', daqUnits, idleState, initialDelay, frequency, dutyCycle);
             obj.checkError(status);
             
-            status = DAQmxCfgImplicitTiming(task, sampleMode, nSamples);
+            status = DAQmxCfgImplicitTiming(task, sampleMode, nPulses);
             obj.checkError(status);
+            
+            obj.endTask(task);
         end
-        
-        
-        
         
         
         function [readArray, nRead] = ReadDAQCounter(obj, task, nCounts, timeout)
@@ -604,6 +596,16 @@ classdef NiDaq < EventSender
             [status, voltageInt]= DAQmxReadAnalogF64(task, numSampsPerChan, timeout, fillmode, readArray, numSampsPerChan, sampsPerChanRead);
             obj.checkError(status);
         end 
+    end
+    
+    methods (Static)
+        function d = countDiff(counts)
+            % Treats overflow in edge counting
+            maxCounts = 2^32;   % (i.e., 2^32 +1 => -2^32)
+            
+            d = diff(counts);
+            d(d<0) = d(d<0) + maxCounts;
+        end
     end
 
 end

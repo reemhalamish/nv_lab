@@ -261,9 +261,9 @@ classdef StageScanner < EventSender & EventListener & Savable
                             return
                         end
                         
-                        spcm.prepareReadByStage(stage.name, curPixelsAmountToScan, timeout, isFastScan);
+                        spcm.prepareCountByStage(stage.name, curPixelsAmountToScan, timeout, isFastScan);
                         
-                        spcm.startScanRead();
+                        spcm.startScanCount();
                         
                         % scan stage
                         eval(sprintf('stage.Scan%s(x,y,z, nFlat, nOverRun, tPixel);', upper(axisToScan)));
@@ -418,10 +418,10 @@ classdef StageScanner < EventSender & EventListener & Savable
             nOverRun = 0;   % Let the waveform over run the start and end. Not needed genrally, a stage can overwrite if needed. BACKWARD_COPITABILITY
             axesLettersUpper = upper(ClassStage.SCAN_AXES([axisADirectionIndex, axisBDirectionIndex]));
             eval(sprintf('stage.PrepareScan%s(x, y, z, nFlat, nOverRun, tPixel);', axesLettersUpper));
-            spcm.prepareReadByStage(stage.name, nPixels, timeout, isFastScan);
+            spcm.prepareCountByStage(stage.name, nPixels, timeout, isFastScan);
             
             % do the scan
-            spcm.startScanRead();
+            spcm.startScanCount();
             for lineIndex = matrixIndexLineStart : matrixIndexLineEnd
                 if ~obj.mCurrentlyScanning; break; end
                 success = false;

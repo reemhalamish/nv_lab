@@ -21,7 +21,7 @@ classdef Pulse < matlab.mixin.Copyable
             obj@matlab.mixin.Copyable;  % Superclass providing copy functionality for handle objects
             
             try     % Property uses setters, and might result in error.
-            obj.duration = duration;
+                obj.duration = duration;
             catch err
                 delete(obj)
                 rethrow(err)

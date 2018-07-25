@@ -90,14 +90,23 @@ classdef Sequence < handle
             end
         end
         
-        function addEvent(obj, duration, channelNames)
-            p = Pulse(duration, channelNames);    % New pulse. No nickname here
+        function addEvent(obj, duration, channelNames, optName)
+            % Creates a pulse, and adds it to the sequence on its end
+            if exist('optName', 'var')
+                p = Pulse(duration, channelNames, optName);
+            else
+                p = Pulse(duration, channelNames);
+            end
             obj.addPulse(obj, p);
         end
         
         function addEventAtGivenTime(obj, time, duration, channelNames)
-            % Creates a pulse, and adds it to the sequence
-            p = Pulse(duration, channelNames);    % New pulse. No nickname here
+            % Creates a pulse, and adds it to the sequence at a given time
+            if exist('optName', 'var')
+                p = Pulse(duration, channelNames, optName);
+            else
+                p = Pulse(duration, channelNames);
+            end
             addPulseAtGivenTime(obj, time, p)
         end
         

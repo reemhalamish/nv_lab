@@ -31,10 +31,10 @@ classdef (Abstract) Spcm < EventSender
         
         
         %%% By stage %%%
-        prepareReadByStage(obj, stageName, nPixels, timeout, fastScan)
+        prepareCountByStage(obj, stageName, nPixels, timeout, fastScan)
         % Prepare to read from the spcm, when using a stage as a signal
         
-        startScanRead(obj)
+        startScanCount(obj)
         % Actually start the process
         
         vectorOfKcps = readFromScan(obj)
@@ -45,10 +45,10 @@ classdef (Abstract) Spcm < EventSender
         
         
         %%% Gated %%%
-        prepareGatedRead(obj)
+        prepareGatedCount(obj)
         % Prepare to read spcm count from opening the spcm window  
         
-        startGatedRead(obj)
+        startGatedCount(obj)
         % Actually start the process
         
         vectorOfKcps = readGated(obj)

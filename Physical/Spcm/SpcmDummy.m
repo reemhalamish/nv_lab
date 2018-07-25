@@ -7,8 +7,8 @@ classdef SpcmDummy < Spcm
         timesToRead         % int
         isEnabled           % logical
         integrationTime     % double (in seconds). Time over which photons are counted
-        calledScanStart     % logical. Used for checking that the user actually called startScanRead() before calling readFromScan()
-        calledGatedStart	% logical. Used for checking that the user actually called startGatedRead() before calling readGated()
+        calledScanStart     % logical. Used for checking that the user actually called startScanCount() before calling readFromScan()
+        calledGatedStart	% logical. Used for checking that the user actually called startGatedCount() before calling readGated()
     end
     
     properties (Constant)
@@ -48,7 +48,7 @@ classdef SpcmDummy < Spcm
         
         
     %%% From stage %%%
-        function prepareReadByStage(obj, ~, nPixels, timeout, ~)
+        function prepareCountByStage(obj, ~, nPixels, timeout, ~)
             % Prepare to read from the spcm, when using a stage as a signal
             if ~ValidationHelper.isValuePositiveInteger(nPixels)
                 obj.sendError(sprintf('Can''t prepare for reading %d times, only positive integers allowed! Igonring.', nPixels));
@@ -57,7 +57,7 @@ classdef SpcmDummy < Spcm
             obj.integrationTime = timeout / (2 * nPixels);
         end
         
-        function startScanRead(obj)
+        function startScanCount(obj)
             % Actually start the process
             obj.calledScanStart = true;
         end
@@ -69,11 +69,11 @@ classdef SpcmDummy < Spcm
             end
             
             if obj.timesToRead <= 0
-                obj.sendError('Can''t readFromScan() without calling ''prepareReadByStage()''!  ');
+                obj.sendError('Can''t readFromScan() without calling ''prepareCountByStage()''!  ');
             end
             
             if ~obj.calledScanStart
-                obj.sendError('Can''t readFromScan() without calling startScanRead()!');
+                obj.sendError('Can''t readFromScan() without calling startScanCount()!');
             end
             
             pause(obj.integrationTime * obj.timesToRead);
@@ -88,7 +88,7 @@ classdef SpcmDummy < Spcm
         
         
     %%% From gated %%%
-        function prepareGatedRead(obj, nReads, timeout)
+        function prepareGatedCount(obj, nReads, timeout)
             % Prepare to read spcm count from opening the spcm window
             if ~ValidationHelper.isValuePositiveInteger(nReads)
                 obj.sendError(sprintf('Can''t prepare for reading %d times, only positive integers allowed! Igonring.', nReads));
@@ -97,7 +97,7 @@ classdef SpcmDummy < Spcm
             obj.integrationTime = timeout / (2 * nReads);
         end
         
-        function startGatedRead(obj)
+        function startGatedCount(obj)
             % Actually start the process
             obj.calledGatedStart = true;
         end
@@ -109,11 +109,11 @@ classdef SpcmDummy < Spcm
             end
             
             if obj.timesToRead <= 0
-                obj.sendError('Can''t readFromScan() without calling ''prepareReadByStage()''!  ');
+                obj.sendError('Can''t readFromScan() without calling ''prepareCountByStage()''!  ');
             end
             
             if ~obj.calledScanStart
-                obj.sendError('Can''t readFromScan() without calling startScanRead()!');
+                obj.sendError('Can''t readFromScan() without calling startScanCount()!');
             end
             
             pause(obj.integrationTime * obj.timesToRead);
