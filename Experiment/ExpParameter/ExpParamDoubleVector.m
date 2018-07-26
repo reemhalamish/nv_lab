@@ -6,8 +6,8 @@ classdef (Sealed) ExpParamDoubleVector < ExpParameter
     end
     
     methods
-        function obj = ExpParamDoubleVector(name, value, expName)
-            obj@ExpParameter(name, value, expName);
+        function obj = ExpParamDoubleVector(name, value, units, expName)
+            obj@ExpParameter(name, value, units, expName);
         end
     end
     

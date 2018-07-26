@@ -23,26 +23,6 @@ classdef Tracker < EventSender & EventListener & Savable
             
             obj.startListeningTo(obj.getTrackableExperiments);
         end
-        
-        function startTrackable(obj, name, varargin) %#ok<INUSL>
-            % todo: GuiControllerTracker(name)
-            % Tracker should be a multi-tab window. We want it to open and
-            % switch to the relevant tab
-            try
-                exp = getExpByName(name);
-            catch
-                switch name
-                    case TrackablePosition.EXP_NAME
-                        % If this is the case, calling the function should
-                        % have included stage- and laser-name
-                        stageName = varargin{1};
-                        exp = TrackablePosition(stageName);
-                    otherwise
-                        disp('This should not have happenned')
-                end
-            end
-            exp.start;
-        end
     end
     
     methods (Static)
@@ -137,6 +117,26 @@ classdef Tracker < EventSender & EventListener & Savable
             % They will be programatically found (using something similar
             % to Experiment.getExperimentNames()
             namesCell = TrackablePosition.EXP_NAME;
+        end
+        
+        function startTrackable(name, varargin)
+            % todo: GuiControllerTracker(name)
+            % Tracker should be a multi-tab window. We want it to open and
+            % switch to the relevant tab
+            try
+                exp = getExpByName(name);
+            catch
+                switch name
+                    case TrackablePosition.EXP_NAME
+                        % If this is the case, calling the function should
+                        % have included stage name
+                        stageName = varargin{1};
+                        exp = TrackablePosition(stageName);
+                    otherwise
+                        disp('This should not have happenned')
+                end
+            end
+            exp.start;
         end
     end
     

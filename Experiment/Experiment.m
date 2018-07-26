@@ -69,8 +69,10 @@ classdef (Abstract) Experiment < EventSender & EventListener & Savable
             obj@Savable(Experiment.NAME);
             obj@EventListener({Tracker.NAME, StageScanner.NAME});
             
-            obj.mCurrentXAxisParam = ExpParamDoubleVector('X axis', [], obj.EXP_NAME);
-            obj.mCurrentYAxisParam = ExpParamDoubleVector('Y axis', [], obj.EXP_NAME);
+            emptyValue = [];
+            emptyUnits = '';
+            obj.mCurrentXAxisParam = ExpParamDoubleVector('X axis', emptyValue, emptyUnits, obj.EXP_NAME);
+            obj.mCurrentYAxisParam = ExpParamDoubleVector('Y axis', emptyValue, emptyUnits, obj.EXP_NAME);
             
             obj.mCategory = Savable.CATEGORY_EXPERIMENTS; % will be overridden in Trackable
             
@@ -186,7 +188,7 @@ classdef (Abstract) Experiment < EventSender & EventListener & Savable
         % Event is the event sent from the EventSender
         function onEvent(obj, event)
             if isfield(event.extraInfo, Tracker.EVENT_TRACKER_FINISHED)
-                % todo - stuff
+                % todo - resume current experiment
             elseif isfield(event.extraInfo, StageScanner.EVENT_SCAN_STARTED)
                 obj.pause;
             end
