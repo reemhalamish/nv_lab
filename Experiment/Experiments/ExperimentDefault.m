@@ -7,6 +7,10 @@ classdef ExperimentDefault < Experiment
     end
     
     methods
+        function obj = ExperimentDefault()
+            obj@Experiment;
+        end
+        
         function prepare(obj) %#ok<*MANU>
         end
         

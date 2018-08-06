@@ -20,7 +20,6 @@ classdef TrackablePosition < Trackable % & StageScanner
         mStageName
         mLaserName
         
-        thresholdFraction
         pixelTime
         nMaxIterations
     end
@@ -33,7 +32,6 @@ classdef TrackablePosition < Trackable % & StageScanner
         EVENT_STAGE_CHANGED = 'stageChanged'
         
         % Default properties
-        THRESHOLD_FRACTION = 0.01;  % Change is significant if dx/x > threshold fraction
         NUM_MAX_ITERATIONS = 120;   % After that many steps, convergence is improbable
         PIXEL_TIME = 1 ;  % in seconds
         
@@ -58,9 +56,13 @@ classdef TrackablePosition < Trackable % & StageScanner
                 stage = getObjByName(stageName);
                 assert(stage.isScannable)
             else
-                stages = ClassStage.getScannableStages;
-                stage = stages{1};
+                stage = JsonInfoReader.getDefaultObject('stages');
                 obj.mStageName = stage.NAME;
+                
+                % Obselete code, might be useful in the future:
+%                 stages = ClassStage.getScannableStages;
+%                 stage = stages{1};
+%                 obj.mStageName = stage.NAME;
             end
             
             % We also need these:
@@ -71,7 +73,6 @@ classdef TrackablePosition < Trackable % & StageScanner
             % Set default tracking properties
             obj.initialStepSize = obj.INITIAL_STEP_VECTOR(phAxes);
             obj.minimumStepSize = obj.MINIMUM_STEP_VECTOR(phAxes);
-            obj.thresholdFraction = obj.THRESHOLD_FRACTION;
             obj.pixelTime = obj.PIXEL_TIME;
             obj.nMaxIterations = obj.NUM_MAX_ITERATIONS;
         end
@@ -211,13 +212,6 @@ classdef TrackablePosition < Trackable % & StageScanner
             end
         end
         
-        function set.thresholdFraction(obj, newFraction)
-            if ~isnumeric(newFraction) || newFraction <= 0 || newFraction >= 1
-                obj.sendError('Fraction must be a numeric value between 0 and 1');
-            end
-            obj.thresholdFraction = newFraction;
-        end
-        
         function set.pixelTime(obj, newTime)
             if ~(newTime > 0)       % False if zero or less, and also if not a number
                 obj.sendError('Pixel time must be a positive number');
@@ -254,13 +248,6 @@ classdef TrackablePosition < Trackable % & StageScanner
             obj.mHistory{end+1} = record;
             obj.sendEventTrackableUpdated;
         end
-        
-    end
-    
-    methods (Static)
-        function tf = isDifferenceAboveThreshhold(x0, x1)
-            tf = (x0-x1) > TrackablePosition.THRESHOLD_FRACTION;
-        end
     end
 
     %% Scanning algorithms.
@@ -281,6 +268,9 @@ classdef TrackablePosition < Trackable % & StageScanner
             sp.fixedPos = stage.Pos(phAxes);
             sp.pixelTime = obj.pixelTime;
             
+            tracker = getObjByName(Tracker.NAME);
+            thresh = tracker.kcpsThreshholdFraction;
+            
             while ~obj.stopFlag && any(obj.stepSize > obj.MINIMUM_STEP_VECTOR(phAxes)) && ~obj.isDivergent
                 if obj.stepSize(obj.currAxis) > obj.MINIMUM_STEP_VECTOR(obj.currAxis)
                     obj.stepNum = obj.stepNum + 1;
@@ -298,8 +288,8 @@ classdef TrackablePosition < Trackable % & StageScanner
                     sp.fixedPos(obj.currAxis) = pos + step;
                     signals(3) = scanner.scanPoint(stage, spcm, sp);
                     
-                    shouldMoveBack = obj.isDifferenceAboveThreshhold(signals(1), signals(2));
-                    shouldMoveFwd = obj.isDifferenceAboveThreshhold(signals(3), signals(2));
+                    shouldMoveBack = Tracker.isDifferenceAboveThreshhold(signals(1), signals(2), thresh);
+                    shouldMoveFwd = Tracker.isDifferenceAboveThreshhold(signals(3), signals(2), thresh);
                     
                     shouldContinue = false;
                     if shouldMoveBack
@@ -342,7 +332,7 @@ classdef TrackablePosition < Trackable % & StageScanner
                         sp.isFixed(obj.currAxis) = true;
                         newSignal = scanner.scanPoint(stage, spcm, sp);
                         
-                        shouldContinue = obj.isDifferenceAboveThreshhold(newSignal, obj.mSignal);
+                        shouldContinue = Tracker.isDifferenceAboveThreshhold(newSignal, obj.mSignal, thresh);
                     end
                     obj.stepSize(obj.currAxis) = step/2;
                 end

@@ -154,7 +154,7 @@ classdef (Abstract) FrequencyGenerator < BaseObject
             
             persistent fgCellContainer
             if isempty(fgCellContainer) || ~isvalid(fgCellContainer)
-                FGjson = JsonInfoReader.getJson.frequencyGenerators;
+                FGjson = JsonInfoReader.getJson.frequencyGenerator;
                 fgCellContainer = CellContainer;
                 isDefault = false(size(FGjson));    % initialize
                 
@@ -170,7 +170,7 @@ classdef (Abstract) FrequencyGenerator < BaseObject
                     % Usual checks on fields
                     missingField = FactoryHelper.usualChecks(struct, ...
                         FrequencyGenerator.NEEDED_FIELDS);
-                    if ~isnan(missingField) && ...  Some field is missing
+                    if ischar(missingField) && ~any(isnan(missingField)) && ...  Some field is missing
                             ~strcmp(type, FrequencyGeneratorDummy.TYPE) % This FG is not dummy
                         EventStation.anonymousError(...
                             'Trying to create a %s frequency generator, encountered missing field - "%s". Aborting',...
@@ -187,7 +187,7 @@ classdef (Abstract) FrequencyGenerator < BaseObject
                             try
                                 newFG = getObjByName(FrequencyGeneratorSRS.MY_NAME);
                             catch
-                                newFG = FrequencyGeneratorSRS.GetInstance(curFgStruct);
+                                newFG = FrequencyGeneratorSRS.getInstance(curFgStruct);
                             end
                         case FrequencyGeneratorWindfreak.TYPE
                             try
@@ -197,7 +197,7 @@ classdef (Abstract) FrequencyGenerator < BaseObject
                                 newFG = FrequencyGeneratorWindfreak.getInstance(curFgStruct);
                             end
                         case FrequencyGeneratorDummy.TYPE
-                            newFG = FrequencyGeneratorDummy.GetInstance(curFgStruct);
+                            newFG = FrequencyGeneratorDummy.getInstance(curFgStruct);
                         otherwise
                             EventStation.anonymousWarning('Could not create Frequency Generator of type %s!', type)
                     end
@@ -224,10 +224,10 @@ classdef (Abstract) FrequencyGenerator < BaseObject
         
         function name = getDefaultFgName()
             fgCells = FrequencyGenerator.getFG;
-            if isempty(fgCells.cells)
+            if isempty(fgCells)
                 EventStation.anonymousError('There is no active frequency generator!')
             end
-            fg = fgCells.cells{1};   % We sorted the array so that the default FG is first
+            fg = fgCells{1};   % We sorted the array so that the default FG is first
             name = fg.name;
         end
 

@@ -76,6 +76,10 @@ classdef (Abstract) Experiment < EventSender & EventListener & Savable
             
             obj.mCategory = Savable.CATEGORY_EXPERIMENTS; % will be overridden in Trackable
             
+            obj.robAndKillPrevious;
+        end
+        
+        function robAndKillPrevious(obj)
             % Copy parameters from previous experiment (if exists) and replace its base object
             try
                 prevExp = getObjByName(Experiment.NAME);
@@ -106,7 +110,7 @@ classdef (Abstract) Experiment < EventSender & EventListener & Savable
             for paramNameCell = prevExperiment.getAllExpParameterProperties()
                 paramName = paramNameCell{:};
                 if isprop(obj, paramName)
-                    % if the current experiment has this property also
+                    % If the current experiment has this property also
                     obj.(paramName) = prevExperiment.(paramName);
                     obj.(paramName).expName = obj.EXP_NAME;  % expParam, I am (now) your parent!
                 end
@@ -188,7 +192,8 @@ classdef (Abstract) Experiment < EventSender & EventListener & Savable
         % Event is the event sent from the EventSender
         function onEvent(obj, event)
             if isfield(event.extraInfo, Tracker.EVENT_TRACKER_FINISHED)
-                % todo - resume current experiment
+                obj.preapre;
+                % After all events are done, we will be able to resume the experiments from where we stopped
             elseif isfield(event.extraInfo, StageScanner.EVENT_SCAN_STARTED)
                 obj.pause;
             end
@@ -298,27 +303,31 @@ classdef (Abstract) Experiment < EventSender & EventListener & Savable
             % property 'EXP_NAME' from each file (if exists). Add also
             % 'SpcmCounter', whatever be in the folder
             
-            
-            % Get 'regular' Experiments
-            path = Experiment.PATH_ALL_EXPERIMENTS;
-            [~, expFileNames] = PathHelper.getAllFilesInFolder(path);
-            % Get Trackables
-            path2 = Trackable.PATH_ALL_TRACKABLES;
-            [~, trckblFileNames] = PathHelper.getAllFilesInFolder(path2);
-            % Join
-            expFileNames = [expFileNames, trckblFileNames];
-            
-            % Extract names
-            expClassNamesCell = PathHelper.removeDotSuffix(expFileNames);
-            expNamesCell = cell(size(expFileNames));
-            for i = 1:length(expFileNames)
-                % using a temporary variable, since the editor does not
-                % automatically find variables names in strings
-                eval(['temp = ',expClassNamesCell{i}, '.EXP_NAME;'])
-                expNamesCell{i} = temp; 
+            persistent expNames expClassNames
+            if isempty(expNames) || ~isvalid(expNames)
+                % Get 'regular' Experiments
+                path = Experiment.PATH_ALL_EXPERIMENTS;
+                [~, expFileNames] = PathHelper.getAllFilesInFolder(path);
+                % Get Trackables
+                path2 = Trackable.PATH_ALL_TRACKABLES;
+                [~, trckblFileNames] = PathHelper.getAllFilesInFolder(path2);
+                % Join
+                expFileNames = [expFileNames, trckblFileNames];
+                
+                % Extract names
+                expClassNames = PathHelper.removeDotSuffix(expFileNames);
+                expNames = cell(size(expFileNames));
+                for i = 1:length(expFileNames)
+                    % using a temporary variable, since the editor does not
+                    % automatically find variables names in strings
+                    eval(['temp = ',expClassNames{i}, '.EXP_NAME;'])
+                    expNames{i} = temp;
+                end
+                expNames{end+1} = SpcmCounter.EXP_NAME;
             end
-            expNamesCell{end+1} = SpcmCounter.EXP_NAME;
             
+            expNamesCell = expNames;
+            expClassNamesCell = expClassNames;
         end
     end
     

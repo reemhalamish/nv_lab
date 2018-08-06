@@ -22,6 +22,8 @@ classdef (Abstract) Trackable < Experiment
         EVENT_TRACKABLE_EXP_ENDED = 'TrackableExperimentFinished'
         EVENT_TRACKABLE_EXP_UPDATED = 'TrackableExperimentUpdated'
         EVENT_CONTINUOUS_TRACKING_CHANGED = 'continuousTrackingChanged'
+        
+        TRACKABLE_CLASS_NAME = 'trackable';
     end
     
     properties (Constant, Abstract)
@@ -37,6 +39,7 @@ classdef (Abstract) Trackable < Experiment
             obj.isRunningContinuously = obj.DEFAULT_CONTINUOUS_TRACKING;
         end
         
+        %%% Events
         function sendEventTrackableExpEnded(obj)
             s = struct;
             s.(obj.EVENT_TRACKABLE_EXP_ENDED) = true;
@@ -48,7 +51,7 @@ classdef (Abstract) Trackable < Experiment
             obj.sendEvent(struct(obj.EVENT_TRACKABLE_EXP_UPDATED,true));
         end
         
-        
+        %%% Tracking general structure
         function startTrack(obj)
             % (All functions are inherited from Experiment and implemented
             %  in subclasses)
@@ -99,7 +102,7 @@ classdef (Abstract) Trackable < Experiment
         end
     end
     
-    methods %setters
+    methods % Setters
         function set.isRunningContinuously(obj,newValue)
             obj.isRunningContinuously = newValue;
             obj.sendEvent(struct(obj.EVENT_CONTINUOUS_TRACKING_CHANGED,true));

@@ -63,6 +63,10 @@
             bool = ValidationHelper.isStringValueInBorders(stringValues, 0, inf);
         end
         
+        function tf = isValueFraction(newValue)
+            tf = isnumeric(newValue) && ValidationHelper.isInBorders(newValue, 0, 1);
+        end
+        
         function bool = isValidVector(val, maxLength)
             % Checks whether 'val' is a vector (that is, a Nx1 or 1xN
             % matrix) and makes sure it isn't longer than 'maxLength'

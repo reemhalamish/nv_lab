@@ -177,7 +177,8 @@ classdef ExpEcho < Experiment
             fg.frequency = obj.frequency;
             
             numScans = 2*obj.repeats;
-            obj.signal = zeros(2*(1+obj.doubleMeasurement), length(obj.tau), obj.averages);
+            measurementlength = 1 + double(obj.doubleMeasurement);   % 1 is single, 2 is double
+            obj.signal = zeros(2 * measurementlength, length(obj.tau), obj.averages);
             obj.timeout = 15 * numScans * max(obj.PB.time) * 1e-6;
             
             spcm = getObjByName(Spcm.NAME);
@@ -219,11 +220,8 @@ classdef ExpEcho < Experiment
                         end
                         obj.signal(:, t, nIter) = sig;
                         
-                        tracked = obj.Tracking(s(2));
-                        if tracked
-                            obj.prepare;
-                        end
-                        success = true;
+                        Tracker.compareReference(sig(2), Tracker.REFERENCE_TYPE_KCPS, TrackablePosition.EXP_NAME);
+                        success = true;     % Since we got till here
                         break;
                     catch err
                         warning(err.message);
@@ -263,6 +261,11 @@ classdef ExpEcho < Experiment
             
             % todo: needs to happen after all averages:
             % obj.CloseExperiment(obj.DAQtask)
+        end
+        
+        function analyze(obj)
+            % In the future, this will analyze results and fit from it the
+            % coherence time.
         end
         
         
