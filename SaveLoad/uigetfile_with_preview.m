@@ -51,6 +51,18 @@ function filename = uigetfile_with_preview(filterSpec, prompt, folder, callback,
         'units',  'pixel',...
         'pos',    [200, 200, 1000, 600]...
         );
+    
+    function KeyPressFcn(~, evnt)
+        if strcmp(evnt.Key, 'escape')
+            filename = '';
+            close(hFig);
+        end
+        
+    end
+
+
+    set(hFig, 'WindowKeyPressFcn', @KeyPressFcn);      
+    
 
     % Display the file-selection component
     javaComponentName = 'javax.swing.JFileChooser'; %#ok<NASGU>
@@ -220,7 +232,6 @@ function PreviewCallback(hjFileChooser, eventData, hPreviewPanel, hViewMetadataP
 
                     end
                     measurements = usefulData.imageScanResult.mData;
-                    %fnames = fieldnames(data);
 
                     gAxes = axes(...
                         'Parent',     hPreviewPanel,...
@@ -299,11 +310,12 @@ end
 
 
 %% Key-types callback in the file-name editbox
-function KeyTypedCallback(hEditbox, eventData, hjFileChooser) %#ok<INUSL>
-text = char(get(hEditbox,'Text'));
-[wasFound,idx,unused,folder] = regexp(text,'(.*[:\\/])'); %#ok<ASGLU>
-if wasFound
-    % This will silently fail if folder does not exist
-    hjFileChooser.setCurrentDirectory(java.io.File(folder));
-end
+function KeyTypedCallback(hEditbox, eventData, hjFileChooser)
+    text = char(get(hEditbox,'Text'));
+    [wasFound,idx,unused,folder] = regexp(text,'(.*[:\\/])');
+
+    if wasFound
+        % This will silently fail if folder does not exist
+        hjFileChooser.setCurrentDirectory(java.io.File(folder));
+    end
 end
