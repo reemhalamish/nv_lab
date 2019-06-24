@@ -111,6 +111,10 @@ classdef ViewLoad < ViewVBox & EventListener
         end
         
         function handleButtonLoad(obj)
+            filePath = uigetfile_with_preview('.mat');
+            saveLoad = SaveLoad.getInstance(obj.category);
+            saveLoad.loadFileToLocal(filePath);
+            return;
             saveLoad = SaveLoad.getInstance(obj.category);
             loadingFolder = saveLoad.mLoadingFolder;
             [fileName,folderName,~] = uigetfile('*.mat', 'Choose file to load...', loadingFolder);

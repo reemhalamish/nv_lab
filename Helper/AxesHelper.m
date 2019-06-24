@@ -56,11 +56,15 @@ classdef AxesHelper
                     else
                         plot(gAxes, firstAxisVector, data);
                     end
-                case 2
-                    % todo: add more data to image (e.g. std)
-                    imagesc(data, 'Parent', gAxes, ...
+                case 2                    
+                    % todo: add more data to image (e.g. std)                    
+                    imagesc(...
+                        data,...
+                        'Parent', gAxes, ...
                         'XData', firstAxisVector, ...
-                        'YData', secondAxisOptionalVector);
+                        'YData', secondAxisOptionalVector...
+                        );
+                    
                 otherwise
                     EventStation.anonymousWarning('Can''t understand and display %d-dimensional scan!', dimNumber);
                     return

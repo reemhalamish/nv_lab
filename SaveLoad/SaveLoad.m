@@ -52,7 +52,6 @@ classdef SaveLoad < Savable & EventSender
         NAME_PATTERN_BASE_OBJECT = 'SaveLoad_%s';
     end
     
-    
     methods (Static, Sealed)
         function obj = getInstance(category)
             % This method gets the relevant SaveLoad object based on the
@@ -106,6 +105,7 @@ classdef SaveLoad < Savable & EventSender
     methods
         function setNotes(obj, newNotes, saveToFileOptionalBoolean)
             shouldSaveToFile = exist('saveToFileOptionalBoolean', 'var') && saveToFileOptionalBoolean;
+            
             if (ischar(newNotes))
                 if ~strcmp(newNotes, obj.mNotes)
                     obj.mNotes = newNotes;
@@ -438,6 +438,7 @@ classdef SaveLoad < Savable & EventSender
             %
             sendWarnings = exist('shouldSendErrorsOptional', 'var') && shouldSendErrorsOptional;
             loadedStruct = obj.tryLoadingStruct(fileFullPath, sendWarnings);
+            
             if ~isstruct(loadedStruct)
                 success = false;
                 return
@@ -466,7 +467,6 @@ classdef SaveLoad < Savable & EventSender
         
         function clearLocal(obj)
             % Used after deleting last file in current folder
-            
             % Empty local struct
             obj.mLoadedFileFullPath = NaN;
             obj.mLoadedFileName = NaN;
@@ -704,7 +704,8 @@ classdef SaveLoad < Savable & EventSender
                     warningMsg = sprintf(...
                         'Incorrect file suffix! Ignoring.\n(Suffix needed:"%s", file to load: "%s"', ...
                         obj.SAVE_FILE_SUFFIX, ...
-                        fileName);
+                        fileName...
+                        );
                     
                     obj.sendWarning(warningMsg, struct(SaveLoad.EVENT_ERR_SUFFIX_INVALID, true, obj.EVENT_FILENAME, fileFullPath));
                 end
