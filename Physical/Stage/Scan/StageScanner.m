@@ -83,7 +83,13 @@ classdef StageScanner < EventSender & EventListener & Savable
             spcm = getObjByName(Spcm.NAME);
             spcm.setSPCMEnable(true);
             
-            stage.sanityCheckForScanRange(obj.mStageScanParams);
+            try
+                stage.sanityCheckForScanRange(obj.mStageScanParams);
+            catch err
+                obj.mCurrentlyScanning = false;
+                obj.sendEventScanStopped;
+                rethrow(err)
+            end
             
             timerVal = tic;
             disp('Initiating scan...');
@@ -91,18 +97,24 @@ classdef StageScanner < EventSender & EventListener & Savable
             % kcps = kilo counts per second
             
             while (stage.scanParams.continuous && obj.mCurrentlyScanning)
-                %Yoav: Should not update during scan, probably next
-                %line should stay commented
-%                 obj.mStageScanParams = stage.scanParams.copy;
                 kcpsScanMatrix = obj.scan(stage, spcm, obj.mStageScanParams, kcpsScanMatrix);
                 drawnow; % todo check what happens if removing this line
             end
+            
+            if isempty(kcpsScanMatrix)  % Maybe scan did not happen at all
+                spcm.setSPCMEnable(false);
+                obj.mCurrentlyScanning = false;
+                return
+            end
+            
             toc(timerVal)
             
             spcm.setSPCMEnable(false);
             obj.mScan = kcpsScanMatrix;
 
-            scanStoppedManually = ~obj.mCurrentlyScanning; % maybe someone has changed this boolean meanwhile
+            scanStoppedManually = ~obj.mCurrentlyScanning;  % maybe someone has changed this boolean meanwhile
+            obj.mCurrentlyScanning = false;                 % So when events are sent, they will know we are done.
+            
             if scanStoppedManually
                 obj.sendEventScanStopped();
             else
@@ -114,7 +126,6 @@ classdef StageScanner < EventSender & EventListener & Savable
             %    struct, and (if needed) will autosave it.
             
             stage.sendEventPositionChanged;
-            obj.mCurrentlyScanning = false;
         end
         
         
@@ -171,7 +182,7 @@ classdef StageScanner < EventSender & EventListener & Savable
             for trial = 1:StageScanner.TRIALS_AMOUNT_ON_ERROR
                 try
                     spcm.prepareReadByTime(scanParams.pixelTime);
-                    kcps = spcm.readFromTime();
+                    [kcps, ~] = spcm.readFromTime();
                     spcm.clearTimeRead;
                     if kcps == 0
                         obj.sendError('No Signal Detected!')
@@ -246,13 +257,13 @@ classdef StageScanner < EventSender & EventListener & Savable
                     try
                         if ~obj.mCurrentlyScanning
                             stage.AbortScan();
-                            spcm.clearScanRead();  % todo - added to try resolving the problem. wasn't here at the first place!
+                            spcm.clearScanRead();  % todo - added to try resolving the problem. Wasn't here in the first place!
                             return
                         end
                         
-                        spcm.prepareReadByStage(stage.name, curPixelsAmountToScan, timeout, isFastScan);
+                        spcm.prepareCountByStage(stage.name, curPixelsAmountToScan, timeout, isFastScan);
                         
-                        spcm.startScanRead();
+                        spcm.startScanCount();
                         
                         % scan stage
                         eval(sprintf('stage.Scan%s(x,y,z, nFlat, nOverRun, tPixel);', upper(axisToScan)));
@@ -407,10 +418,10 @@ classdef StageScanner < EventSender & EventListener & Savable
             nOverRun = 0;   % Let the waveform over run the start and end. Not needed genrally, a stage can overwrite if needed. BACKWARD_COPITABILITY
             axesLettersUpper = upper(ClassStage.SCAN_AXES([axisADirectionIndex, axisBDirectionIndex]));
             eval(sprintf('stage.PrepareScan%s(x, y, z, nFlat, nOverRun, tPixel);', axesLettersUpper));
-            spcm.prepareReadByStage(stage.name, nPixels, timeout, isFastScan);
+            spcm.prepareCountByStage(stage.name, nPixels, timeout, isFastScan);
             
             % do the scan
-            spcm.startScanRead();
+            spcm.startScanCount();
             for lineIndex = matrixIndexLineStart : matrixIndexLineEnd
                 if ~obj.mCurrentlyScanning; break; end
                 success = false;
@@ -475,6 +486,7 @@ classdef StageScanner < EventSender & EventListener & Savable
                         eval(sprintf('%s = axisCPoint0;', ll));
                 end
             end
+            % todo: this needs to be redone. No need to use eval here.
         end
         
         

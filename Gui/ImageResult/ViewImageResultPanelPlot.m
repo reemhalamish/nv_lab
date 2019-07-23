@@ -53,7 +53,8 @@ classdef ViewImageResultPanelPlot < GuiComponent
         function popupStyleCallback(obj, ~, ~)
             imageScanResult = getObjByName(ImageScanResult.NAME);
             imageScanResult.plotStyle = obj.popupStyle.Value;
-            imageScanResult.imagePostProcessing;    % Update added layer (including plot style)
+            % Update added layer (including plot style)
+            imageScanResult.imagePostProcessing;
         end
     end
     

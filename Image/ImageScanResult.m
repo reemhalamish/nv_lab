@@ -100,7 +100,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                 obj.colormapLimits = obj.calcColormapLimits(obj.mData);
             end
             
-            AxesHelper.fillAxes(obj.gAxes, obj.mData, obj.mDimNumber, obj.mFirstAxis, obj.mSecondAxis, obj.mLabelBot, obj.mLabelLeft);
+            AxesHelper.fill(obj.gAxes, obj.mData, obj.mDimNumber, obj.mFirstAxis, obj.mSecondAxis, obj.mLabelBot, obj.mLabelLeft);
             obj.sendEventImageUpdated();
             obj.imagePostProcessing;
         end
@@ -136,12 +136,12 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                 if isempty(obj.cursor)
                     % If current cursor does not exist (for some reason)
                     warning('This shouldn''t have happenned')
-                    fig = ancestor(obj.gAxes,'figure');
+                    fig = ancestor(obj.gAxes, 'figure');
                     obj.cursor = datacursormode(fig);
-                    set(obj.cursor,'UpdateFcn',@obj.cursorMarkerDisplay);
+                    set(obj.cursor, 'UpdateFcn', @obj.cursorMarkerDisplay);
                 end
-                gLimits = axis(obj.gAxes);   % vector of [x_min x_max y_min y_max]
-                obj.drawCrosshairs(gLimits, pos)
+                gLimitsVector = axis(obj.gAxes);   % vector of [x_min x_max y_min y_max]
+                obj.drawCrosshairs(gLimitsVector, pos)
             catch err
                 obj.sendWarning('Unable to set crosshairs');
                 err2warning(err)
@@ -164,9 +164,14 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                 set(GETRECT_H1, 'UserData', 'Completed');
             end
             
-            fig = ancestor(obj.gAxes,'figure');
-            delete(findall(fig, 'Type', 'hggroup')); % Delete data tip
-            datacursormode(fig, 'off'); % Disable cursor mode
+            if isempty(obj.cursor)
+                % If current cursor does not exist (for some reason)
+                warning('This shouldn''t have happenned')
+                fig = ancestor(obj.gAxes, 'figure');
+                obj.cursor = datacursormode(fig);
+            end
+            obj.cursor.removeAllDataCursors;
+            set(obj.cursor, 'Enable', 'off');
             
             % Remove drawn limits, if exists
             if ~isempty(obj.gLimits)
@@ -182,12 +187,13 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             if HandleHelper.isType(obj.gLimits, 'rectangle')
                 obj.gLimits.Position = pos;
             else
-                obj.gLimits = rectangle(obj.gAxes, ...
-                    'Position', pos, ...
-                    'EdgeColor', 'g', ...
-                    'LineWidth', 1, ...
-                    'LineStyle', '-.', ...
-                    'HitTest', 'Off');
+                obj.gLimits = rectangle(obj.gAxes,...
+                    'Position',     pos, ...
+                    'EdgeColor',    'g', ...
+                    'LineWidth',    1, ...
+                    'LineStyle',    '-.', ...
+                    'HitTest',      'Off'...
+                    );
             end
         end
         
@@ -223,7 +229,7 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             if ~exist('action', 'var')
                 actionIndex = 1;    % Marker is default
             else
-                actionIndex = find(strcmp(action,obj.CURSOR_OPTIONS));
+                actionIndex = find(strcmp(action, obj.CURSOR_OPTIONS));
             end
             switch actionIndex
                 case 1      % Display cursor with specific data tip
@@ -754,8 +760,8 @@ classdef ImageScanResult < Savable & EventSender & EventListener
             if isfield(event.extraInfo, ClassStage.EVENT_POSITION_CHANGED) ...
                     && strcmp(event.creator.name, obj.mStageName)
                 
-                % If scanner is running, and there is no point in updating
-                % crosshairs would really delay it
+                % If scanner is running, and there is no point in updating.
+                % Crosshairs would really delay it
                 scanner = getObjByName(StageScanner.NAME);
                 if scanner.mCurrentlyScanning; return; end
                 
@@ -763,8 +769,8 @@ classdef ImageScanResult < Savable & EventSender & EventListener
                     stage = getObjByName(obj.mStageName);
                     physAxes = obj.mAxesString;
                     pos = stage.Pos(physAxes);
-                    gLimits = axis(obj.gAxes);   % vector of [x_min x_max y_min y_max]
-                    obj.drawCrosshairs(gLimits, pos)
+                    limits = axis(obj.gAxes);   % vector of [x_min x_max y_min y_max]
+                    obj.drawCrosshairs(limits, pos)
                 catch err
                     % Probably, there is nothing to draw on. Moving on!
                     % For debugging purposes, we do show this warning.

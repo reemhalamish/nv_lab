@@ -16,9 +16,14 @@ classdef (Abstract) Trackable < Experiment
     end
     
     properties (Constant)
+        PATH_ALL_TRACKABLES = sprintf('%sControl code\\%s\\Tracker\\Trackables\\', ...
+            PathHelper.getPathToNvLab(), PathHelper.SetupMode);
+        
         EVENT_TRACKABLE_EXP_ENDED = 'TrackableExperimentFinished'
         EVENT_TRACKABLE_EXP_UPDATED = 'TrackableExperimentUpdated'
         EVENT_CONTINUOUS_TRACKING_CHANGED = 'continuousTrackingChanged'
+        
+        TRACKABLE_CLASS_NAME = 'trackable';
     end
     
     properties (Constant, Abstract)
@@ -29,11 +34,12 @@ classdef (Abstract) Trackable < Experiment
     
     %%
     methods
-        function obj = Trackable(expName)
-            obj@Experiment(expName);
+        function obj = Trackable
+            obj@Experiment;
             obj.isRunningContinuously = obj.DEFAULT_CONTINUOUS_TRACKING;
         end
         
+        %%% Events
         function sendEventTrackableExpEnded(obj)
             s = struct;
             s.(obj.EVENT_TRACKABLE_EXP_ENDED) = true;
@@ -45,6 +51,31 @@ classdef (Abstract) Trackable < Experiment
             obj.sendEvent(struct(obj.EVENT_TRACKABLE_EXP_UPDATED,true));
         end
         
+        %%% Tracking general structure
+        function startTrack(obj)
+            % (All functions are inherited from Experiment and implemented
+            %  in subclasses)
+            prepare(obj)
+            
+            obj.stopFlag = false;
+            sendEventExpResumed(obj);
+            perform(obj);
+            
+            stopTrack(obj)  % Signaling internally and externally that we are done
+            analyze(obj)
+            sendEventPlotAnalyzeFit(obj)
+        end
+        
+        function stopTrack(obj)
+            obj.stopFlag = true;
+            obj.isCurrentlyTracking = false;
+            obj.sendEventTrackableExpEnded;
+        end
+        
+    end
+        
+    %% Helper functions
+    methods
         function clearHistory(obj)
             obj.mHistory = {};
         end
@@ -71,7 +102,7 @@ classdef (Abstract) Trackable < Experiment
         end
     end
     
-    methods %setters
+    methods % Setters
         function set.isRunningContinuously(obj,newValue)
             obj.isRunningContinuously = newValue;
             obj.sendEvent(struct(obj.EVENT_CONTINUOUS_TRACKING_CHANGED,true));
@@ -81,12 +112,6 @@ classdef (Abstract) Trackable < Experiment
     methods (Abstract)
        params = getAllTrackalbeParameter(obj)
        % Returns a cell of values/paramters from the trackable experiment
-       
-       startTrack(obj)
-       % Start running the trackable
-       
-       stopTrack(obj)
-       % well...
        
        resetTrack(obj)
        % Re-initialize the trackable

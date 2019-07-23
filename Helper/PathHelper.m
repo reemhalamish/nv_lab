@@ -14,15 +14,22 @@ classdef PathHelper
             if ~ischar(nvLabFolderPath); EventStation.anonymousError('Can''t find NV Lab folder!!'); end
         end
         
-        function devOrProdString = SetupMode
+        function modeString = SetupMode
             % Determines whether to use dev(elopment) or prod(uction)
             % folder for saving and loading, according to json
             jsonStruct = JsonInfoReader.getJson();
-            isDev = strcmp(jsonStruct.setupNumber, '999');  % The only setup in dev mode is 999, all else are in prod.
-            devOrProdString = BooleanHelper.ifTrueElse(isDev, 'dev', 'prod');
+            if strcmp(JsonInfoReader.setupNumber, '999')  % The only setup in dev mode is 999, all else are in prod.
+                modeString = 'dev';
+            elseif jsonStruct.debugMode
+                modeString = 'beta';
+            else
+                modeString = 'prod';
+            end
         end
         
         function folderString = recuresiveFindFolder(startingPositionPath, folderNameToSearchString)
+            % Recursively finds and returns the full path of a one folder
+            % within another (== starting position)
             startingPositionPath = PathHelper.appendBackslashIfNeeded(startingPositionPath);
             folderString = nan;  % if nothing will be found later on
             
@@ -49,14 +56,26 @@ classdef PathHelper
                     if ischar(folderString); return; end
                 end
             end
+            
         end
         
-        function filepath = removeDotSuffix(filePathMaybeWithDotSuffix)
-            if ~any(filePathMaybeWithDotSuffix == '.')
-                filepath = filePathMaybeWithDotSuffix;
+        function filePath = removeDotSuffix(filePathMaybeWithDotSuffix)
+            % Accepts either char arrays, or cell arrays thereof
+            filePath = filePathMaybeWithDotSuffix;
+            hasDots = contains(filePath, '.');
+            
+            if ~hasDots
+                % We're done.
                 return
             end
-            filepath = filePathMaybeWithDotSuffix(1 : find(filePathMaybeWithDotSuffix == '.', 1, 'last') - 1);
+            
+            fileNameTruncate = @(x) x(1 : StringHelper.findLast(x, '.') - 1); % Takes anyhing before the final dot
+            if iscell(filePath)
+                filePath(hasDots) = cellfun(fileNameTruncate, filePath(hasDots), 'UniformOutput', false);
+            else
+                filePath = fileNameTruncate(filePath);
+            end
+            
         end
         
         function folderAndFile = splitFullPathToFolderAndFile(fullPath)
@@ -112,35 +131,49 @@ classdef PathHelper
             [~, fileName] = folderAndFile{:};
         end
         
-        function allFileNames = getAllFilesInFolder(inputFolder, optionalSuffix)
+        function varargout = getAllFilesInFolder(inputFolder, optionalSuffix)
             %%% Returns names of all relevant files in a folder
             %
-            % allFilesInFolder - cell of strings - files in full path
-            % optionalSuffix - optional string. if exists, only filenames
-            %                   that end with the pattern will be returned 
+            % FILENAMES = getAllFilesInFolder(INPUTFOLDER) returns all
+            % files in folder, with their full path
             %
-            % allFiles - struct array
+            % [FOLDER, FILENAMES] = getAllFilesInFolder(INPUTFOLDER)
+            % returns FILENAMES without prepending the path
             %
-            if ~exist('optionalSuffix', 'var')
-                optionalSuffix = '';
-            end
+            % __ = getAllFilesInFolder(INPUTFOLDER, SUFFIX) returns only
+            % files that end with SUFFIX
+            %
+            %
+            % INPUTFOLDER - cell of strings
+            % SUFFIX - string (char array)
+            % FILENAMES - struct array
+            %
+            
+            narginchk(1,2)
+            nargoutchk(1,2)
             
             inputFolder = PathHelper.appendBackslashIfNeeded(inputFolder);
-            allFilesInFolder = dir(inputFolder);
-            allFilesInFolder = allFilesInFolder(3 : end);   % the first two aren't relevant
             
-            len = length(allFilesInFolder);
-            temp = cell(1,len);
-            isRelevant = false(1, len);
-            for i = 1:len
-                fileName = allFilesInFolder(i).name;
-                fullPath = [inputFolder fileName];
-                if PathHelper.isFileExists(fullPath) && endsWith(fullPath, optionalSuffix)
-                    temp{i} = fullPath;
-                    isRelevant(i) = true;
-                end
+            if ~exist('optionalSuffix', 'var')
+                allFilesInFolder = dir(inputFolder);
+                allFilesInFolder = allFilesInFolder(3 : end);   % the first two are "." and ".."
+            else
+                searchString = [inputFolder, '*', optionalSuffix];
+                allFilesInFolder = dir(searchString);
             end
-            allFileNames = temp(isRelevant);
+            
+            fileNames = extractfield(allFilesInFolder, 'name');
+            isIni = endsWith(fileNames, '.ini');    % This file comes from Google Drive, but we don't want it
+            fileNames = fileNames(~isIni);
+            
+            switch nargout
+                case 1
+                    varargout{1} = strcat(inputFolder, fileNames);
+                case 2
+                    varargout{1} = inputFolder;
+                    varargout{2} = fileNames;
+            end
+            
         end
         
         function fullpath = joinToFullPath(folder, fileName)
@@ -150,7 +183,7 @@ classdef PathHelper
             % filename = 'myfile.txt'
             % fullpath ----> 'c:\reem\myfile.txt'
             %
-            % See also MATLAB native function "fullfile" 
+            % See also MATLAB's native function "fullfile" 
             
             folder = PathHelper.appendBackslashIfNeeded(folder);
             fullpath = sprintf('%s%s', folder, fileName);

@@ -205,7 +205,7 @@ classdef (Sealed) ClassPIP562 < ClassPIMicos
                 obj.sendError(sprintf('AutoZero failed for controller %s with ID %d: Reason unknown.', ...
                     obj.controllerModel, obj.ID));
             end
-            MovePrivate(obj, phAxis, 100*ones(size(phAxis))); % Go back to the center
+            MovePrivate(obj, phAxis, 10*ones(size(phAxis))); % Go back to the rest point
             WaitFor(obj, 'onTarget', phAxis)
         end
         

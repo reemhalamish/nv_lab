@@ -6,10 +6,22 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
     % Child objects must implement refresh() and draw() functions, for
     % their views as well as for the common views.
     
+    properties (Constant)
+        STRING_TIME = 'Time'
+        STRING_STEPS = 'Steps'
+        
+        LABEL_TIME = 'time [sec]'
+        LABEL_STEPS = 'steps'
+    end
+    
     properties
         vAxes1  % graphical axes. Usually, displays the same as the axes of Experiment
         vAxes2  % graphical axes. Usually, history of the tracked parameter
         legend1 % legend. for plot in vAxes1
+        
+        radioTime   % radiobutton. x Axis shows events time
+        radioSteps  % radiobutton. x Axis shows events step number
+        xAxisMode   % char array. Either 'Steps' or 'Time'
         
         % Manual control panel
         cbxContinuous   % checkbox
@@ -23,19 +35,13 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
         panelTracked    % panel
     end
     
-    properties (Abstract, SetAccess = protected)
-        trackableName   % string. The name of the trackable controlled by this GUI
-    end
-    
     methods
-        function obj = ViewTrackable(trackableName, parent, controller)
+        function obj = ViewTrackable(parent, controller)
             padding = 15;
             spacing = 10;
             lineHeight = 20;
             obj@ViewVBox(parent, controller, padding, spacing);
             obj@EventListener(Experiment.NAME);
-            
-            obj.trackableName = trackableName;
             
             hboxMain = uix.HBox('Parent', obj.component, ...
                 'Spacing', 20, 'Padding', 5);
@@ -55,9 +61,9 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
                 'Padding', 5);
             vboxManual = uix.VBox('Parent', panelManual, ...
                 'Spacing', 5);
-            obj.btnStartStop = uicontrol(obj.PROP_BUTTON_BIG_GREEN{:}, ...
-                'Parent', vboxManual, ...
-                'String', 'Error in Refresh');
+            obj.btnStartStop = ButtonStartStop(vboxManual);
+                obj.btnStartStop.startCallback = @obj.btnStartCallback;
+                obj.btnStartStop.stopCallback = @obj.btnStopCallback;
             obj.btnReset = uicontrol(obj.PROP_BUTTON{:}, ...
                 'Parent', vboxManual, ...
                 'String', 'Reset', ...
@@ -89,14 +95,32 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
             obj.vAxes2 = axes('Parent', vboxAxes, ...
                 'NextPlot', 'replacechildren', ...
                 'ActivePositionProperty', 'outerposition');
+            obj.xAxisMode = ViewTrackable.STRING_TIME;      % By default. Might be changed by subclasses.
             axes()      % to avoid accidental plotting over the data in the axes
             vboxAxes.Heights = [-1 0 -1];
+            
+            % Radio buttons
+            rbHeight = 15; % "rb" stands for "radio button"
+            rbWidth = 70;
+            paddingFromBottom = 10;
+            
+            bgXAxis = uibuttongroup(...
+                'Parent', vboxRight, ...
+                'Title', 'x Axis', ...
+                'SelectionChangedFcn',@obj.callbackRadioSelection);
+                obj.radioTime = uicontrol(obj.PROP_RADIO{:}, 'Parent', bgXAxis, ...
+                    'String', obj.STRING_TIME, ...
+                    'Position', [10 paddingFromBottom rbWidth rbHeight]);  % [fromLeft, fromBottom, width, height]
+                obj.radioSteps = uicontrol(obj.PROP_RADIO{:}, 'Parent', bgXAxis, ...
+                    'String', obj.STRING_STEPS, ...
+                    'Position', [90 paddingFromBottom rbWidth rbHeight]);  % [fromLeft, fromBottom, width, height]
+
             obj.btnSave = uicontrol(obj.PROP_BUTTON{:}, ...
                 'Parent', vboxRight, ...
                 'String', 'Save', ...
                 'Callback', @obj.btnSaveCallback);
-            btnSaveHeight = 50;
-            vboxRight.Heights = [-1 btnSaveHeight];
+            rowHeight = 50;
+            vboxRight.Heights = [-1 rowHeight rowHeight];
             
             hboxMain.Widths = [280 -1];
             
@@ -111,22 +135,6 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
             % Child objects are in charge of refreshing!
 
         end     % constructor
-        
-        function btnStartStopChangeMode(obj, btn, isOn)
-            % Takes care of switching the Start/Stop Button operation mode
-            %   Note that the button needs to be an input argument;
-            %   Otherwise the function will consider the handle to the
-            %   button as deleted.
-            if isOn
-                set(btn,'BackgroundColor', 'red', ...
-                    'String', 'Stop', ...
-                    'Callback', @obj.btnStopCallback);
-            else
-                set(btn,'BackgroundColor', 'green', ...
-                    'String', 'Start', ...
-                    'Callback', @obj.btnStartCallback);
-            end
-        end
         
         function showMessage(obj, message, colorOptional)
             if exist('colorOptional', 'var')
@@ -147,6 +155,18 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
             EventStation.anonymousWarning(message);
         end
         
+        function callbackRadioSelection(obj, ~, event)
+            mode = event.NewValue.String;
+            obj.xAxisMode = mode;
+            switch mode
+                case obj.STRING_TIME
+                    obj.vAxes2.XLabel.String = obj.LABEL_TIME;
+                case obj.STRING_STEPS
+                    obj.vAxes2.XLabel.String = obj.LABEL_STEPS;
+            end
+            obj.update;
+        end
+        
     end
     
     methods (Abstract)
@@ -163,7 +183,6 @@ classdef (Abstract) ViewTrackable <  ViewVBox & EventListener
     methods (Abstract, Access = protected)
         % Callbacks for all of the defined UIControls
         cbxContinuousCallback(obj)
-        btnStartStopCallback(obj)
         btnStartCallback(obj)
         btnStopCallback(obj)
         btnResetCallback(obj)

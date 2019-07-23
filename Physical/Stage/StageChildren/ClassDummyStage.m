@@ -488,6 +488,19 @@ classdef (Sealed) ClassDummyStage  < ClassStage
         
         function Halt(obj)
             % Halts all stage movements.
+            warningMsg = 'Stage was manually stopped!';
+            
+            scanner = getObjByName(StageScanner.NAME);
+            if strcmp(scanner.mStageName, obj.name) && scanner.mCurrentlyScanning
+                scanner.mCurrentlyScanning = false;
+                obj.sendWarning(warningMsg);
+            elseif Experiment.current(TrackablePosition.EXP_NAME)
+                exp = getObjByName(Experiment.NAME);
+                if exp.isOn
+                    exp.isOn = false;
+                    obj.sendWarning(warningMsg);
+                end
+            end
         end
         
         function success = SetTiltAngle(obj, thetaXZ, thetaYZ)

@@ -11,7 +11,7 @@ classdef GuiControllerSpcmCounter < GuiController
         end
         
         function view = getMainView(obj, figureWindowParent)
-            % this function should get the main View of this GUI.
+            % This function should get the main View of this GUI.
             % can call any view constructor with the params:
             % parent=figureWindowParent, controller=obj
             view = ViewSpcm(figureWindowParent, obj);
@@ -25,14 +25,14 @@ classdef GuiControllerSpcmCounter < GuiController
         end
         
         function onClose(obj) %#ok<MANU>
-            % callback. Things to run when need to close the GUI.
+            % Callback. Things to run when need to close the GUI.
             
             % If the counter is running, we want to turn it off
-            if Experiment.current(SpcmCounter.COUNTER_NAME)
+            if Experiment.current(SpcmCounter.EXP_NAME)
                 spcmCounter = getObjByName(Experiment.NAME);
                 if ~spcmCounter.isOn; return; end
                 EventStation.anonymousWarning('SPCM Counter is now turned off');
-                spcmCounter.stop;
+                spcmCounter.pause;
                 spcmCounter.reset;
             end
         end

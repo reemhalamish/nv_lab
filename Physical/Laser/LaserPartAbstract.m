@@ -144,26 +144,26 @@ classdef (Abstract) LaserPartAbstract < EventSender
         
     end
     
-        %% These functions call physical objects. Tread with caution!
-        methods (Access = protected)
-            function setValueRealWorld(~, ~)
-                % Sets the voltage value in physical laser part
-            end
-            
-            function setEnabledRealWorld(~, ~)
-                % Sets the physical laser part on (true) or off (false)
-            end
-            
-            function value = getValueRealWorld(~)
-                % Gets the voltage value from physical laser part
-                value = 100;
-            end
-            
-            function tf = getEnabledRealWorld(~)
-                % Returns whether the physical laser part is on (true) or off (false)
-                tf = true;
-            end
+    %% These functions call physical objects. Tread with caution!
+    methods (Access = protected)
+        function setValueRealWorld(~, ~)
+            % Sets the voltage value in physical laser part
         end
+        
+        function setEnabledRealWorld(~, ~)
+            % Sets the physical laser part on (true) or off (false)
+        end
+        
+        function value = getValueRealWorld(~)
+            % Gets the voltage value from physical laser part
+            value = 100;
+        end
+        
+        function tf = getEnabledRealWorld(~)
+            % Returns whether the physical laser part is on (true) or off (false)
+            tf = true;
+        end
+    end
     
 end
 

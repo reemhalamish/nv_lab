@@ -19,7 +19,7 @@ classdef FactoryHelper
                 missingField = 'Entire struct';
                 return
             end
-            for i=1 : length(neededFields)
+            for i = 1 : length(neededFields)
                 if ~isfield(struct, neededFields{i})
                     missingField = neededFields{i};
                     return;

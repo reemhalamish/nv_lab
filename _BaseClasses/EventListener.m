@@ -30,7 +30,7 @@ classdef (Abstract) EventListener < handle
     
     
     properties (SetAccess = private)
-        namesToListenTo
+        namesToListenTo = {};
         % cell-array of strings
     end
     
@@ -74,7 +74,6 @@ classdef (Abstract) EventListener < handle
         function obj = EventListener(namesToListenTo)
             % namesToListenTo - can be either empty, a string or cell of strings
             obj@handle();
-            obj.namesToListenTo = {};
             if exist('namesToListenTo', 'var')
                 obj.startListeningTo(namesToListenTo);
             end

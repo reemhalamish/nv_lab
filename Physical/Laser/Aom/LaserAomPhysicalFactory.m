@@ -1,6 +1,6 @@
 classdef LaserAomPhysicalFactory
-    %LASERAOMPHYSICSFACTORY creates the laser part for a laser
-    %   has only one method: createFromStruct()
+    %LASERAOMPHYSICALFACTORY Creates the laser part for a laser.
+    %   Has only one method: createFromStruct()
     
     properties (Constant)
         NEEDED_FIELDS = {'classname'};

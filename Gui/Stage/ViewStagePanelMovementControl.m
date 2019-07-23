@@ -349,9 +349,14 @@ classdef ViewStagePanelMovementControl < GuiComponent & EventListener
             stage = getObjByName(obj.stageName);
             isLoopClosed = strcmp(stage.loopMode, 'Closed');
             scanner = getObjByName(StageScanner.NAME);
-            jstick = getObjByName(Joystick.NAME);
-            isEnabled = (isLoopClosed && ~scanner.mCurrentlyScanning ...
+            if stage.hasJoystick
+                jstick = getObjByName(Joystick.NAME);
+                isEnabled = (isLoopClosed && ~scanner.mCurrentlyScanning ...
                 && ~jstick.isEnabled);
+            else 
+                isEnabled = (isLoopClosed && ~scanner.mCurrentlyScanning);
+            end
+            
             onOffString = BooleanHelper.boolToOnOff(isEnabled);
             
             ax = ClassStage.getAxis(obj.stageAxes);

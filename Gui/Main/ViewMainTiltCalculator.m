@@ -146,7 +146,8 @@ classdef ViewMainTiltCalculator < GuiComponent
             xyz = 'XYZ';
             for pIndex = 1: 3
                 for xyzIndex = 1: 3
-                    eval(sprintf('point = stageConnector.tiltPoint%d;', pIndex));
+                    stageTiltPoint = str2func(sprintf('stageConnector.tiltPoint%d', pIndex));
+                    point = stageTiltPoint;
                     if ~isnan(point)
                         eval(sprintf('obj.edt%s%d.String = point(%d);', ...
                             xyz(xyzIndex), ...

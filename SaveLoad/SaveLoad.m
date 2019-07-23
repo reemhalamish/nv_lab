@@ -38,9 +38,9 @@ classdef SaveLoad < Savable & EventSender
         EVENT_LOCAL_STRUCT = 'localStruct';
         
         PATH_DEFAULT_SAVE = sprintf('%sControl code\\%s\\_ManualSaves\\Setup %s\\', ...
-            PathHelper.getPathToNvLab(), PathHelper.SetupMode, JsonInfoReader.getJson.setupNumber);
+            PathHelper.getPathToNvLab(), PathHelper.SetupMode, JsonInfoReader.setupNumber);
         PATH_DEFAULT_AUTO_SAVE = sprintf('%sControl code\\%s\\_AutoSave\\Setup %s\\', ...
-            PathHelper.getPathToNvLab(), PathHelper.SetupMode, JsonInfoReader.getJson.setupNumber);
+            PathHelper.getPathToNvLab(), PathHelper.SetupMode, JsonInfoReader.setupNumber);
         SAVE_FILE_SUFFIX = '.mat';
         
         STRUCT_STATUS_NOT_SAVED = 'not yet saved!';
@@ -51,7 +51,6 @@ classdef SaveLoad < Savable & EventSender
         
         NAME_PATTERN_BASE_OBJECT = 'SaveLoad_%s';
     end
-    
     
     methods (Static, Sealed)
         function obj = getInstance(category)
@@ -106,6 +105,7 @@ classdef SaveLoad < Savable & EventSender
     methods
         function setNotes(obj, newNotes, saveToFileOptionalBoolean)
             shouldSaveToFile = exist('saveToFileOptionalBoolean', 'var') && saveToFileOptionalBoolean;
+            
             if (ischar(newNotes))
                 if ~strcmp(newNotes, obj.mNotes)
                     obj.mNotes = newNotes;
@@ -151,7 +151,7 @@ classdef SaveLoad < Savable & EventSender
             %       AND WILL CHANGE obj.mSavingFolder AS WELL, so 
             %       that next calls to obj.save() will save in the same folder!
             if ~ischar(newLoadingFolderString)
-                obj.sendWarning('Please call saveLoad.setmLoadingFolder() only will folder full path! only strings will be accepted');
+                obj.sendWarning('Please call saveLoad.setmLoadingFolder() only will folder full path! Only strings will be accepted');
                 return
             end
             
@@ -211,22 +211,27 @@ classdef SaveLoad < Savable & EventSender
             allObjects = Savable.getAllSavableObjects();
             for i = 1 : length(allObjects.cells)
                 savableObject = allObjects.cells{i};
-                objectStruct = savableObject.saveStateAsStruct(category,type);
-                if isstruct(objectStruct)
-                    % Readable string - get the string
-                    readableString = savableObject.returnReadableString(objectStruct);
-                    if ischar(readableString) && ~isempty(readableString)
-                        objectStruct.(Savable.CHILD_PROPERTY_READABLE_STRING) = readableString;
+                try
+                    objectStruct = savableObject.saveStateAsStruct(category,type);
+                    if isstruct(objectStruct)
+                        % Readable string - get the string
+                        readableString = savableObject.returnReadableString(objectStruct);
+                        if ischar(readableString) && ~isempty(readableString)
+                            objectStruct.(Savable.CHILD_PROPERTY_READABLE_STRING) = readableString;
+                        end
+
+                        % Property name - replace all spaces with underscores
+                        nameToSave = matlab.lang.makeValidName(savableObject.name);
+                        if isfield(outStruct,nameToSave)
+                            % If object was already saved in the parameter stage, merge structs
+                            outStruct.(nameToSave) = StructHelper.merge(outStruct.(nameToSave),objectStruct);
+                        else
+                            outStruct.(nameToSave) = objectStruct;
+                        end
                     end
-                    
-                    % Property name - replace all spaces with underscores
-                    nameToSave = matlab.lang.makeValidName(savableObject.name);
-                    if isfield(outStruct,nameToSave)
-                        % If object was already saved in the parameter stage, merge structs
-                        outStruct.(nameToSave) = StructHelper.merge(outStruct.(nameToSave),objectStruct);
-                    else
-                        outStruct.(nameToSave) = objectStruct;
-                    end
+                catch MException
+                    obj.sendWarning('Could not save data from %s, because an error has occurred', savableObject.name)
+                    err2warning(MException)
                 end
             end
             
@@ -263,17 +268,20 @@ classdef SaveLoad < Savable & EventSender
             allObjects = Savable.getAllSavableObjects();
             for i = 1 : length(allObjects.cells)
                 savableObject = allObjects.cells{i};
-                % Replace all spaces with underscores
-                nameToLoad = matlab.lang.makeValidName(savableObject.name);
-                if isfield(structToLoadFrom, nameToLoad)
-                    savableObject.loadStateFromStruct(structToLoadFrom.(nameToLoad), category, subCategory);
+                try
+                    nameToLoad = matlab.lang.makeValidName(savableObject.name); % Replace all spaces with underscores
+                    if isfield(structToLoadFrom, nameToLoad)
+                        savableObject.loadStateFromStruct(structToLoadFrom.(nameToLoad), category, subCategory);
+                    end
+                catch MException
+                    obj.sendWarning('Could not load data for %s, because an error has occurred', savableObject.name)
+                    err2warning(MException)
                 end
             end
-            
         end
         
         function outputStructToSave = postProcessLocalSaveStruct(obj, inputStructToSave) %#ok<INUSL>
-            % To be overritten by image/expriment, if needed
+            % To be overridden by image/expriment, if needed
             outputStructToSave = inputStructToSave;
         end
         
@@ -430,6 +438,7 @@ classdef SaveLoad < Savable & EventSender
             %
             sendWarnings = exist('shouldSendErrorsOptional', 'var') && shouldSendErrorsOptional;
             loadedStruct = obj.tryLoadingStruct(fileFullPath, sendWarnings);
+            
             if ~isstruct(loadedStruct)
                 success = false;
                 return
@@ -458,7 +467,6 @@ classdef SaveLoad < Savable & EventSender
         
         function clearLocal(obj)
             % Used after deleting last file in current folder
-            
             % Empty local struct
             obj.mLoadedFileFullPath = NaN;
             obj.mLoadedFileName = NaN;
@@ -504,7 +512,7 @@ classdef SaveLoad < Savable & EventSender
             end
             
             ispresent = cellfun(@(string) strcmp(currentFileFullPath, string), allFiles);
-            % if file not found in folder, make it load the last file
+            % if file was not found in folder, make it load the last file
             % (fileIndex will be 1 beyond last file, as it will load the file BEFORE fileIndex)
             if ~any(ispresent)
                 fileIndex = length(allFiles) + 1;
@@ -696,7 +704,8 @@ classdef SaveLoad < Savable & EventSender
                     warningMsg = sprintf(...
                         'Incorrect file suffix! Ignoring.\n(Suffix needed:"%s", file to load: "%s"', ...
                         obj.SAVE_FILE_SUFFIX, ...
-                        fileName);
+                        fileName...
+                        );
                     
                     obj.sendWarning(warningMsg, struct(SaveLoad.EVENT_ERR_SUFFIX_INVALID, true, obj.EVENT_FILENAME, fileFullPath));
                 end

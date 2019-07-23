@@ -70,6 +70,7 @@ classdef ViewSaveLoad < GuiComponent & EventListener
             elseif ischar(status)
                 toDisplay = sprintf('File Name - %s', status);
             end
+            
             obj.tvFileName.String = toDisplay;
             obj.tvFileName.ForegroundColor = obj.statusColor(status);
         end

@@ -37,7 +37,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
     
     methods (Static, Access = public) % Get instance constructor
         function stages = getStages()
-            % Return an instance of cell{all the stages}
+            % Return an instance of cell{all stages}
             
             persistent stagesCellContainer
             if isempty(stagesCellContainer) || ~isvalid(stagesCellContainer)
@@ -485,7 +485,11 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             % For all the positions marked as "fixed" in obj.scanParams,
             % move to this position
             params = obj.scanParams;
-            obj.sanityCheckForScanRange(params);
+            try
+                obj.sanityCheckForScanRange(params);
+            catch err
+                obj.sendError(err.message)  % We don't send the error in the sanity check, so we need to do it here
+            end
             phAxes = obj.SCAN_AXES(find(params.isFixed)); %#ok<FNDSB>
             fixedPos = params.fixedPos(find(params.isFixed)); %#ok<FNDSB>
             if isempty(phAxes)
@@ -566,7 +570,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             [limNeg, limPos] = obj.ReturnLimits(obj.availableAxes);
             wasChange = scanParams.copy.updateByLimit(obj.availableAxes, limNeg, limPos);
             if wasChange
-                obj.sendError('Sanity checks on the scan parameters failed!');
+                error('Sanity checks on the scan parameters failed!');  % Don't sendError(), because we might want to do stuff before
             end
         end
         
@@ -802,8 +806,7 @@ classdef (Abstract) ClassStage < EventSender & Savable & EventListener
             indentation = 5;
             for i = 1:n
                 axLetter = obj.availableAxes(i);
-                axNum = obj.getAxis(axLetter);
-                position = savedStruct.position(axNum);
+                position = savedStruct.position(i);
                 axisString = sprintf('%s axis: %.3f', axLetter, position);
                 string = sprintf('%s\n%s', string, ...
                     StringHelper.indent(axisString, indentation));

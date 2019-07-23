@@ -4,10 +4,11 @@ classdef SpcmDummy < Spcm
     %   methods
     
     properties
-        timesToRead % int
-        isEnabled   % boolean
-        integrationTime  % units: seconds. when using the SPCM counter
-        calledStart % boolean. is used to check that the user actually called startRead() before calling read()
+        timesToRead         % int
+        isEnabled           % logical
+        integrationTime     % double (in seconds). Time over which photons are counted
+        calledScanStart     % logical. Used for checking that the user actually called startScanCount() before calling readFromScan()
+        calledGatedStart	% logical. Used for checking that the user actually called startGatedCount() before calling readGated()
     end
     
     properties (Constant)
@@ -22,9 +23,11 @@ classdef SpcmDummy < Spcm
             obj.timesToRead = 0;
             obj.isEnabled = false;
             obj.integrationTime = 0;
-            obj.calledStart = false;
+            obj.calledScanStart = false;
+            obj.calledGatedStart = false;
         end
         
+    %%% From time %%%
         function prepareReadByTime(obj, integrationTimeInSec)
             obj.integrationTime = integrationTimeInSec;
         end
@@ -35,52 +38,94 @@ classdef SpcmDummy < Spcm
             end
             pause(obj.integrationTime)
             kcps = randi([0 obj.MAX_RANDOM_READ],1,1);
-            std = sqrt(obj.integrationTime) * randi([0 obj.MAX_RANDOM_READ],1,1)/sqrt(12);  % looks legit (std of unif. rand. var.)
+            std = abs(0.2 * kcps * randn);	% Gaussian noise proportional to signal
         end
         
         function clearTimeRead(obj)
             obj.integrationTime = 0;
         end
+    %%% End (from time) %%%
         
         
-        
-        
-        % prepare to read from the spcm, when using a stage as a signal
-        function prepareReadByStage(obj, ~, nPixels, timeout, ~)
+    %%% From stage %%%
+        function prepareCountByStage(obj, ~, nPixels, timeout, ~)
+            % Prepare to read from the spcm, when using a stage as a signal
             if ~ValidationHelper.isValuePositiveInteger(nPixels)
-                obj.sendError(sprintf('Can''t prepare for reading %s times, only positive integers allowed! igonring', nPixels));
+                obj.sendError(sprintf('Can''t prepare for reading %d times, only positive integers allowed! Igonring.', nPixels));
             end
             obj.timesToRead = nPixels;
             obj.integrationTime = timeout / (2 * nPixels);
         end
         
-        % actually start the process
-        function startScanRead(obj)
-            obj.calledStart = true;
+        function startScanCount(obj)
+            % Actually start the process
+            obj.calledScanStart = true;
         end
         
-        % read vector of signals from the spcm
         function vectorOfKcps = readFromScan(obj)
+            % Read vector of signals from the spcm
             if ~obj.isEnabled
                 obj.sendError('Can''t readFromScan() without calling ''setSPCMEnabled()''!');
             end
             
             if obj.timesToRead <= 0
-                obj.sendError('Can''t readFromScan() without calling ''prepareReadByStage()''!  ');
+                obj.sendError('Can''t readFromScan() without calling ''prepareCountByStage()''!  ');
             end
             
-            if ~obj.calledStart
-                obj.sendError('Can''t readFromScan() without calling startScanRead()!');
+            if ~obj.calledScanStart
+                obj.sendError('Can''t readFromScan() without calling startScanCount()!');
             end
             
             pause(obj.integrationTime * obj.timesToRead);
             vectorOfKcps = randi([0 obj.MAX_RANDOM_READ], 1, obj.timesToRead);
         end
         
-        % complete the task of reading the spcm from a stage
         function clearScanRead(obj)
+            % Complete the task of reading the spcm from a stage
             obj.timesToRead = 0;
         end
+    %%% End (from stage) %%%
+        
+        
+    %%% From gated %%%
+        function prepareGatedCount(obj, nReads, timeout)
+            % Prepare to read spcm count from opening the spcm window
+            if ~ValidationHelper.isValuePositiveInteger(nReads)
+                obj.sendError(sprintf('Can''t prepare for reading %d times, only positive integers allowed! Igonring.', nReads));
+            end
+            obj.timesToRead = nReads;
+            obj.integrationTime = timeout / (2 * nReads);
+        end
+        
+        function startGatedCount(obj)
+            % Actually start the process
+            obj.calledGatedStart = true;
+        end
+        
+        function vectorOfKcps = readGated(obj)
+            % Read vector of signals from the spcm
+            if ~obj.isEnabled
+                obj.sendError('Can''t readFromScan() without calling ''setSPCMEnabled()''!');
+            end
+            
+            if obj.timesToRead <= 0
+                obj.sendError('Can''t readFromScan() without calling ''prepareCountByStage()''!  ');
+            end
+            
+            if ~obj.calledScanStart
+                obj.sendError('Can''t readFromScan() without calling startScanCount()!');
+            end
+            
+            pause(obj.integrationTime * obj.timesToRead);
+            vectorOfKcps = randi([0 obj.MAX_RANDOM_READ], 1, obj.timesToRead);
+        end
+        
+        function clearGatedRead(obj)
+            % Complete the task of reading the spcm
+            obj.integrationTime = 0;
+        end
+        
+    %%% End (from gated) %%%
         
         function setSPCMEnable(obj, newBooleanValue)
             obj.isEnabled = newBooleanValue;
